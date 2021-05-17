@@ -1,0 +1,24 @@
+//
+//  PhotoViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+@interface PhotoViewController : UIViewController<NSURLConnectionDelegate, NSURLConnectionDataDelegate, UIScrollViewDelegate,UIAlertViewDelegate,UIScrollViewDelegate>{
+   
+    UIActivityIndicatorView *myIndicator;
+	UIAlertView *progressAlertView;
+    UIProgressView *progressView;
+    NSString *mode;
+    BOOL _isWebApp;
+}
+@property (nonatomic, strong) IBOutlet UIScrollView *scrollView;
+@property (nonatomic, retain) UIImageView *imageView;
+@property (nonatomic, assign)BOOL isWebApp;
+@property (nonatomic, strong)NSString *imagePath;
+-(void)rightBtnClick;
+- (CGRect)zoomRectForScale:(float)scale withCenter:(CGPoint)center;
+@end
