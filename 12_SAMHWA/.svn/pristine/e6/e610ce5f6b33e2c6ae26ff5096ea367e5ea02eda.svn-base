@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" colorMatched="YES">
+    <device id="retina6_1" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14490.49"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <tableViewCell contentMode="scaleToFill" selectionStyle="blue" indentationWidth="10" id="2" customClass="NoticeCell">
+            <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+            <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="2" id="RJS-LF-PGp">
+                <rect key="frame" x="0.0" y="0.0" width="320" height="43.5"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Y7k-04-TFX">
+                        <rect key="frame" x="16" y="4" width="203" height="35"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" verticalHuggingPriority="251" text="Label" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9ZW-8s-9Xn">
+                        <rect key="frame" x="227" y="4" width="77" height="35"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="77" id="Qen-Nn-Hew"/>
+                        </constraints>
+                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="9ZW-8s-9Xn" firstAttribute="top" secondItem="Y7k-04-TFX" secondAttribute="top" id="CXN-pj-o4z"/>
+                    <constraint firstAttribute="bottom" secondItem="Y7k-04-TFX" secondAttribute="bottom" constant="4.5" id="WTd-qi-rNE"/>
+                    <constraint firstItem="9ZW-8s-9Xn" firstAttribute="baseline" secondItem="Y7k-04-TFX" secondAttribute="baseline" id="a1R-Hd-eLp"/>
+                    <constraint firstItem="9ZW-8s-9Xn" firstAttribute="leading" secondItem="Y7k-04-TFX" secondAttribute="trailing" constant="8" id="hXv-wT-YRw"/>
+                    <constraint firstItem="Y7k-04-TFX" firstAttribute="top" secondItem="RJS-LF-PGp" secondAttribute="top" constant="4" id="hhj-ur-Ybo"/>
+                    <constraint firstItem="Y7k-04-TFX" firstAttribute="leading" secondItem="RJS-LF-PGp" secondAttribute="leading" constant="16" id="tzG-AH-pcT"/>
+                    <constraint firstItem="9ZW-8s-9Xn" firstAttribute="trailing" secondItem="RJS-LF-PGp" secondAttribute="trailingMargin" id="xLO-pp-8ap"/>
+                </constraints>
+            </tableViewCellContentView>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <connections>
+                <outlet property="contentLbl" destination="Y7k-04-TFX" id="UIw-ok-j28"/>
+                <outlet property="dateLbl" destination="9ZW-8s-9Xn" id="iV5-GA-bOO"/>
+            </connections>
+            <point key="canvasLocation" x="34.782608695652179" y="34.821428571428569"/>
+        </tableViewCell>
+    </objects>
+</document>
