@@ -1,0 +1,51 @@
+//
+//  MFTableViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 27..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFBarcodeScannerViewController.h"
+#import "MFinityAppDelegate.h"
+
+#import "DownloadListViewController.h"
+#import "UIViewController+MJPopupViewController.h"
+
+@interface MFTableViewController : UIViewController<MFBarcodeScannerDelegate, UIAlertViewDelegate,NSURLConnectionDataDelegate,DownloadListDelegate>{
+    
+    NSString *methodType;
+    
+    IBOutlet UITableView *myTableView;
+	IBOutlet UIImageView *imageView;
+    
+    MFinityAppDelegate *appDelegate;
+    
+    UIAlertView *progressAlert;
+    UIProgressView *progressView;
+    
+    NSMutableData *receiveData;
+    NSMutableData *fileData;
+    NSMutableArray *menuArray;
+    
+    NSNumber *totalFileSize;
+    BOOL isCommonDownload;
+    
+    NSString *currentAppNo;
+    NSString *currentAppVersion;
+    NSString *nativeAppMenuNo;
+    NSString *nativeAppURL;
+    NSString *nativeAppVersion;
+    NSString *paramString;
+    
+    NSString *menuKind;
+    NSString *menuType;
+    
+    NSString *kind;
+    
+    BOOL isDMS;
+    BOOL isTabBar;
+}
+@property (nonatomic,strong) NSString *urlString;
+@end

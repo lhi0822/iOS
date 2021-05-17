@@ -1,0 +1,21 @@
+//
+//  LockSettingViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface LockSettingViewController : UIViewController{
+    IBOutlet UIImageView *imageView;
+	IBOutlet UISwitch *switchControl;
+    IBOutlet UIImageView *infoImageView1;
+    IBOutlet UIImageView *infoImageView2;
+	IBOutlet UILabel *label1;
+	IBOutlet UILabel *label2;
+    IBOutlet UILabel *label3;
+}
+
+@end

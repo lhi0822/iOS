@@ -1,0 +1,195 @@
+/*
+ Localizable.strings
+ mFinityTest
+ 
+ Created by Kyeong In Park on 13. 2. 18..
+ Copyright (c) 2013년 Jun hyeong Park. All rights reserved.
+ */
+
+"success" = "Succeed";
+"fail" = "Failed";
+"cancel" = "Cancelled";
+
+"message1" = "Save ID";
+"message2" = "Please enter your ID or PWD.";
+"message3" = "In 3G/4G network, the connection may be unstable.";
+"message4" = "The latest version has been updated.\nWould you like to install it now?";
+"message5" = "Invalid password";
+"message6" = "Authentication required";
+"message7" = "Suspended Device";
+"message8" = "Authentication not matching";
+"message9" = "Please login with the authenticated device only.";
+"message10" = "Suspended User ID";
+"message11" = "The latest version is updated successfully.";
+"message12" = "Server connection failed. Please contact Administrator.";
+"message13" = "temporary network error occurred.";
+"message14" = "Comp. No.";
+"message15" = "Auth. No.";
+"message16" = "Device Authentication is required.";
+"message17" = "Device number will be sent to the server.";
+"message18" = "Incorrect Authentication code";
+"message19" = "Incorrect Company number";
+"message20" = "Authentication Failed.  Please contact Administrator.";
+"message21" = "Initializing in progress";
+"message22" = "The selected application does not exist.";
+"message23" = "Enter Password";
+"message24" = "HWASHIN PLM Password:";
+"message25" = "If you forgot your password, please contact your administrator.";
+"message26" = "System Info.";
+"message27" = "Current version";
+"message28" = "Latest version";
+"message29" = "Lock HWASHIN PLM";
+"message30" = "If you enable \"Lock HWASHIN PLM\",\nthe password will be required\neach time to start HWASHIN PLM";
+"message31" = "If you forgot your password, Please contact your administrator";
+"message32" = "Alert Setup";
+"message33" = "Enable \"Update Alert\"";
+"message34" = "Enable \"Push Alert\"";
+"message35" = "Vibration mode";
+"message36" = "Sound mode";
+"message37" = "Start Page Setup";
+"message38" = "Delete Contents";
+"message39" = "Delete Icon";
+"message40" = "Delete Picture";
+"message41" = "Delete Video";
+"message42" = "App. Initialization";
+"message43" = "Mymenu Setup";
+"message44" = "Password Change";
+"message45" = "current PWD";
+"message46" = "new PWD";
+"message47" = "Confirm new PWD";
+"message48" = "confirm exit";
+"message49" = "Do you want to exit the program?";
+"message50" = "To setup \"Push alert\" in iOS, go to \"Setup\"/Notifications/HWASHIN PLM";
+"message51" = "Confirm";
+"message52" = "Cancel";
+"message53" = "prev";
+"message54" = "Notification";
+"message55" = "Login failed";
+"message56" = "Connection failed";
+"message57" = "Authentication Failed";
+"message58" = "Execution Failed";
+"message59" = "Exit";
+"message60" = "Authentication";
+"message61" = "Please enter your Company No. and Authentication code.";
+"message62" = "Invalid password";
+"message63" = "Please enter password again.";
+"message64" = "No assigned menus.";
+"message65" = "Please, restart HWASHIN PLM to apply";
+"message66" = "Deleted";
+"message67" = "Saved";
+"message68" = "Save Failed.";
+"message69" = "PWD has been changed.";
+"message70" = "New PWD and Confirm PWD don't match.";
+"message71" = "No selected files.";
+"message72" = "Edit";
+"message73" = "All photos will be deleted. Do you want to continue?";
+"message74" = "Selected photos will be deleted. Do you want to continue?";
+"message75" = "Video list";
+"message76" = "Photo list";
+"message77" = "Delete Selected";
+"message78" = "Photo Viewer";
+"message79" = "Video Viewer";
+"message80" = "Upload Completed";
+"message81" = "Do you want to check the photo?";
+"message82" = "Upload Failed";
+"message83" = "Please try again in Wi-Fi network";
+"message84" = "Delete";
+"message85" = "ID";
+"message86" = "PWD";
+"message87" = "SAVE ID";
+"message88" = "This device does not support barcode reading";
+"message89" = "This device does not support camera";
+"message90" = "3G/4G environment";
+"message91" = "Incorrect URL address";
+"message92" = "File not found.";
+"message93" = "Application does not exist.\nWould you like to download?";
+"message94" = "Not the latest version.\nWould you like to update?";
+"message95" = "No Setup file. Please contact your administrator.";
+"message96" = "iOS package configuration is not complete.\nPlease contact your administrator.";
+"message97" = "Undistributed version has been installed.\nDo you want to downgrade?";
+"message98" = "Menu setting is incorrect.\nPlease contact your administrator.";
+"message99" = "Invalid user ID";
+"message100" = "Available On-Line mode only.";
+"message101" = "Offline mode is not available this time. Login Online mode.";
+"message102" = "Offline mode is not active for this user.";
+"message103" = "Web apps need to be upgrade. Try to download after login online.";
+"message104" = "Web apps need to be installed. Try to download after login online.";
+"message105" = "All files are latest.";
+"message106" = "Download completed.";
+"message107" = "Wepapp download";
+"message108" = "Would you like to download webapp?";
+"message109" = "Off-Line mode provides limited functions.";
+"message110" = "Off-Line Password Change";
+"message111" = "Off-Line Webapp download";
+"message112" = "Available On-Line mode only.";
+"message113" = "Web apps need to be upgrade. Try to download after login online.";
+"message114" = "Web apps need to be installed. Try to download after login online.";
+"message115" = "No updates avaliable";
+"message116" = "Delete WebApp ";
+"message117" = "DB Sync";
+"message118" = "HWASHIN PLM does not support the Database Sync in the iOS";
+"message119" = "Network connection error";
+"message120" = "Jailbroken device is not allowed. Please contact Administrator.";
+"message121" = "Administrator message";
+"message122" = "Session has been terminated due to security reasons.";
+"message123" = "Device authentication  deleted. Please have a new authentication.";
+"message124" = "Suspended device";
+"message125" = "Unknown user. Please contact Administator.";
+"message126" = "Suspeneded user";
+"message127" = "Your session is terminated. Please login again.";
+"message128" = "A newer version is available. Please try to update.";
+
+"message129" = "DB Sync";
+"message130" = "Do you want to synchronize?";
+"message131" = "Synchronization failed";
+"message132" = "View Error Log";
+"message133" = "Purge Error Log";
+"message134" = "Error log purged.";
+"message135" = "Error log not found.";
+"message136" = "Databases will be deleted. Do you want to continue?";
+"message137" = "Delete Completed!";
+"message138" = "Administrator e-mail has not been set. Please contact your administrator.";
+"message139" = "DB Sync server not found.  Please contact your administrator.";
+"message140" = "Database not found. DB Sync needed.";
+"message141" = "DB sent to Administrator.";
+"message142" = "Delete Local DB";
+"message143" = "This function is not supported.";
+
+"message144" = "HOST";
+"message145" = "PORT";
+"message146" = "Test Failed";
+"message147" = "Host or port information is incorrect.";
+"message148" = "Test Succeed";
+"message149" = "Connection Information is Saved.";
+
+"message150" = "This is for Connection test. Please enter host url address and port number.";
+
+"message151" = "NAME";
+
+"message152" = "Lost Device";
+"message153" = "Lost Device. HWASHIN PLM will be terminated.";
+
+"message154" = "Font Size";
+"message155" = "Small Font";
+"message156" = "Medium Font";
+"message157" = "Large Font";
+
+"message158" = "Delete All";
+"meesage159" = "This format is not supported.";
+
+"message160" = "Not found DB file.";
+"message161" = "Failed DB file compress.";
+"message162" = "Not DB open";
+
+"message163" = "This function is not supported iOS8.";
+"message164" = "Completed.";
+
+"message165" = "Not execute menu.\n please contact your administrator.";
+"message166" = "Close";
+
+"message168" = "AUTO-LOGIN";
+"message169" = "자동 로그인 해제";
+"message170" = "자동 로그인 설정을 해제하시겠습니까?\n로그인정보가 모두 삭제되며 어플리케이션이 종료됩니다.";
+
+"message201" = "You must allow \"HWASHIN PLM\" to access your location.";
+"message202" = "Free trial has expired.\nplease contact your administrator.";

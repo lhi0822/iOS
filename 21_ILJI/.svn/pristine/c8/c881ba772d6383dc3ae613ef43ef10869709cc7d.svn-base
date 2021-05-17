@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>485185253099-1r41tbtrrvfmitkqd80cvcpltdnq9jam.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.485185253099-1r41tbtrrvfmitkqd80cvcpltdnq9jam</string>
+	<key>API_KEY</key>
+	<string>AIzaSyASQruYIbLvXVLV8l1ZscnmusKKlvFeyHQ</string>
+	<key>GCM_SENDER_ID</key>
+	<string>485185253099</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.ilji.mfinityhd</string>
+	<key>PROJECT_ID</key>
+	<string>iljitech</string>
+	<key>STORAGE_BUCKET</key>
+	<string>iljitech.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:485185253099:ios:9eb7890ee0d9c9786758ae</string>
+	<key>DATABASE_URL</key>
+	<string>https://iljitech.firebaseio.com</string>
+</dict>
+</plist>
