@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="ipad9_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Image Draw View Controller-->
+        <scene sceneID="RJ2-zK-rKw">
+            <objects>
+                <viewController storyboardIdentifier="ImageDrawViewController" useStoryboardIdentifierAsRestorationIdentifier="YES" id="1Ag-x7-NYx" customClass="ImageDrawViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="rs2-v2-TPZ"/>
+                        <viewControllerLayoutGuide type="bottom" id="q4N-0D-cpK"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="ce5-Dc-sef">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cFZ-Qy-Q88">
+                                <rect key="frame" x="0.0" y="70" width="768" height="904"/>
+                                <subviews>
+                                    <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FEQ-9O-fP5">
+                                        <rect key="frame" x="0.0" y="0.0" width="768" height="904"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxX="YES" flexibleMinY="YES" heightSizable="YES" flexibleMaxY="YES"/>
+                                    </imageView>
+                                    <view contentMode="scaleAspectFit" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="R7j-Sn-Ol7" customClass="MainDrawView">
+                                        <rect key="frame" x="0.0" y="0.0" width="768" height="904"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxX="YES" flexibleMinY="YES" heightSizable="YES" flexibleMaxY="YES"/>
+                                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    </view>
+                                </subviews>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </view>
+                            <toolbar opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cWb-oJ-z6W">
+                                <rect key="frame" x="0.0" y="974" width="768" height="50"/>
+                                <items>
+                                    <barButtonItem title="펜" id="LOJ-oZ-n7E">
+                                        <connections>
+                                            <action selector="penClick:" destination="1Ag-x7-NYx" id="kSD-y8-SMF"/>
+                                        </connections>
+                                    </barButtonItem>
+                                    <barButtonItem title="지우개" id="kNl-Xo-Tz8">
+                                        <connections>
+                                            <action selector="eraserClick:" destination="1Ag-x7-NYx" id="Yzs-Wh-5RI"/>
+                                        </connections>
+                                    </barButtonItem>
+                                </items>
+                            </toolbar>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="cFZ-Qy-Q88" firstAttribute="leading" secondItem="cWb-oJ-z6W" secondAttribute="leading" id="CSR-W6-USu"/>
+                            <constraint firstItem="q4N-0D-cpK" firstAttribute="top" secondItem="cWb-oJ-z6W" secondAttribute="bottom" id="HQ1-GP-KZX"/>
+                            <constraint firstAttribute="trailing" secondItem="cWb-oJ-z6W" secondAttribute="trailing" id="NyX-2F-7hA"/>
+                            <constraint firstItem="cFZ-Qy-Q88" firstAttribute="top" secondItem="rs2-v2-TPZ" secondAttribute="bottom" id="Vai-ZD-sBx"/>
+                            <constraint firstItem="cFZ-Qy-Q88" firstAttribute="trailing" secondItem="cWb-oJ-z6W" secondAttribute="trailing" id="acw-Ne-Jzy"/>
+                            <constraint firstItem="cFZ-Qy-Q88" firstAttribute="bottom" secondItem="cWb-oJ-z6W" secondAttribute="top" id="mfD-7o-agH"/>
+                            <constraint firstItem="cWb-oJ-z6W" firstAttribute="leading" secondItem="ce5-Dc-sef" secondAttribute="leading" id="yHG-39-ehf"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" id="3Lj-sF-WLw"/>
+                    <connections>
+                        <outlet property="canvasView" destination="R7j-Sn-Ol7" id="oCS-SO-9Gy"/>
+                        <outlet property="contentView" destination="cFZ-Qy-Q88" id="xtv-Yb-HsW"/>
+                        <outlet property="eraserItem" destination="kNl-Xo-Tz8" id="cyg-zK-TxV"/>
+                        <outlet property="imgCanvas" destination="FEQ-9O-fP5" id="ZiG-if-Qv8"/>
+                        <outlet property="penItem" destination="LOJ-oZ-n7E" id="VuX-gM-ogS"/>
+                        <outlet property="toolBar" destination="cWb-oJ-z6W" id="vqM-e2-1op"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dJT-sI-pPF" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1784.8" y="-7.6461769115442282"/>
+        </scene>
+        <!--Navigation Controller-->
+        <scene sceneID="gtQ-kr-v0c">
+            <objects>
+                <navigationController automaticallyAdjustsScrollViewInsets="NO" id="uCj-Yp-kBU" sceneMemberID="viewController">
+                    <toolbarItems/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="crn-jZ-tPP">
+                        <rect key="frame" x="0.0" y="20" width="768" height="50"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <nil name="viewControllers"/>
+                    <connections>
+                        <segue destination="1Ag-x7-NYx" kind="relationship" relationship="rootViewController" id="N38-8N-rLM"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="zsd-V0-KOv" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="845.60000000000002" y="-7.6461769115442282"/>
+        </scene>
+    </scenes>
+</document>

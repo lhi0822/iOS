@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>items</key>
+	<array>
+		<dict>
+			<key>assets</key>
+			<array>
+				<dict>
+					<key>kind</key>
+					<string>software-package</string>
+					<key>url</key>
+					<string>http://svr001.ezsmart.co.kr:1598/mfinity/upload/deploy/10/10/20130911_mfinity_phone_kor_3.5.5._1598.ipa</string>
+				</dict>
+			</array>
+			<key>metadata</key>
+			<dict>
+				<key>bundle-identifier</key>
+				<string>com.dbvalley.ezSmartEnt</string>
+				<key>bundle-version</key>
+				<string>3.5.5</string>
+				<key>kind</key>
+				<string>software</string>
+				<key>title</key>
+				<string>mFinity</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>
