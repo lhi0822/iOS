@@ -1,0 +1,6 @@
+framework module RSLicenseSDK {
+  umbrella header "RSLicenseSDK.h"
+
+  export *
+  module * { export * }
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<manifest>
+    <settings>
+        <push>
+            <security-indexes>0x587 0x65c 0x199 0x5be 0x761 0x7ad 0x95 0x6bf 0x51d 0x24a 0x2e0 0x65a 0x593 0x415 0x54b 0x361</security-indexes>
+            <storage>y</storage>
+            <receiver>
+                <version>5.0</version>
+                <server>http://211.241.199.195:80</server>
+                <policy>user</policy>
+                <log>y</log>
+            </receiver>
+        </push>
+    </settings>
+</manifest>
