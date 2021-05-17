@@ -1,0 +1,22 @@
+/* 
+  Localizable.strings
+  kocham.consumer
+
+  Created by Jun HyungPark on 2016. 7. 5..
+  Copyright © 2016년 DBValley. All rights reserved.
+*/
+"CANCEL" = "Cancel";
+"OK" = "OK";
+"SUCCESS" = "Success";
+"FAIL" = "Fail";
+"CLOSE" = "Close";
+
+"MFURLSession_Error_404"="Page not found.";
+"MFURLSession_Error_500"="Internal Server Error.";
+"MFURLSession_Error_Title"="Status code is ";
+
+"ixShield_error_title" = "Security Notice";
+"ixShield_error_msg" = "An error has occurred.\nPlease contact application administrator.\n(Error Code : %d)";
+
+"ixShield_alert_msg" = "System tampering and malicious files detected. Please exit the app according to the security policy.";
+

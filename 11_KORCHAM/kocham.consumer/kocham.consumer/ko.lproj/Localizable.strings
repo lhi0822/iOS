@@ -1,0 +1,20 @@
+/* 
+  Localizable.strings
+  kocham.consumer
+
+  Created by Jun HyungPark on 2016. 7. 5..
+  Copyright © 2016년 DBValley. All rights reserved.
+*/
+"CANCEL" = "취소";
+"OK" = "확인";
+"SUCCESS" = "성공";
+"FAIL" = "실패";
+"CLOSE" = "닫기";
+
+"MFURLSession_Error_Title" = "에러코드 ";
+"MFURLSession_Error_404" = "페이지를 찾을 수 없습니다.";
+"MFURLSession_Error_500" = "서버 내부 오류";
+
+"ixShield_error_title" = "보안 알림";
+"ixShield_error_msg" = "에러가 발생했습니다.\n관리자에게 문의 바랍니다.\n(Error Code : %d)";
+"ixShield_alert_msg" = "시스템 변조 및 악성 파일을 탐지하였습니다.\n보안정책에 의거하여 앱을 종료해주시기 바랍니다.";

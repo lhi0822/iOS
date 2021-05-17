@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="15705" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="c0F-S8-l1Y">
+    <device id="retina4_7" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15706"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Barcode Scanner View Controller-->
+        <scene sceneID="eMj-h3-uBP">
+            <objects>
+                <viewController id="vAY-Hb-bL8" customClass="MFBarcodeScannerViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="ne0-Ux-JQh"/>
+                        <viewControllerLayoutGuide type="bottom" id="e3c-Ux-Uqn"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="Jyt-4L-QQZ">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="647"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="EdX-he-079" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1180" y="331"/>
+        </scene>
+        <!--Intro View Controller-->
+        <scene sceneID="Xvt-TA-deE">
+            <objects>
+                <viewController id="c0F-S8-l1Y" customClass="IntroViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="6yi-bN-sbR"/>
+                        <viewControllerLayoutGuide type="bottom" id="Lt9-FU-4iB"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="2UL-QV-6xE">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="splash_image.jpg" translatesAutoresizingMaskIntoConstraints="NO" id="Q8w-b0-jht">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                            </imageView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="whiteLarge" translatesAutoresizingMaskIntoConstraints="NO" id="Ys3-D0-gKs">
+                                <rect key="frame" x="169" y="315" width="37" height="37"/>
+                            </activityIndicatorView>
+                        </subviews>
+                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="Ys3-D0-gKs" firstAttribute="centerX" secondItem="Q8w-b0-jht" secondAttribute="centerX" id="7pn-ox-Mfb"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="centerY" secondItem="Ys3-D0-gKs" secondAttribute="centerY" id="NMt-k0-PhS"/>
+                            <constraint firstAttribute="trailing" secondItem="Q8w-b0-jht" secondAttribute="trailing" id="f1X-nG-7vo"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="leading" secondItem="2UL-QV-6xE" secondAttribute="leading" id="iGY-ud-NyR"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="top" secondItem="2UL-QV-6xE" secondAttribute="top" id="kVw-k9-D3x"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="bottom" secondItem="Lt9-FU-4iB" secondAttribute="top" id="p59-4D-ZTi"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" id="RAu-E0-fKI"/>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <connections>
+                        <outlet property="_imageView" destination="Q8w-b0-jht" id="ayh-ny-BUF"/>
+                        <outlet property="myIndicator" destination="Ys3-D0-gKs" id="TIS-bS-2VT"/>
+                        <segue destination="7rG-bP-m4F" kind="show" identifier="PushWebView" id="Sey-9W-vP5"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="4Qo-oB-0Xa" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-319.19999999999999" y="331.48425787106447"/>
+        </scene>
+        <!--WebView Controller-->
+        <scene sceneID="xK2-F6-kjk">
+            <objects>
+                <viewController id="7rG-bP-m4F" userLabel="WebView Controller" customClass="WebViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="oMe-ax-0U9"/>
+                        <viewControllerLayoutGuide type="bottom" id="yZc-9c-k9V"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="05t-d4-yCF">
+                        <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="GAo-m1-bWX">
+                                <rect key="frame" x="0.0" y="10" width="375" height="657"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                            </view>
+                            <progressView hidden="YES" opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="9WE-XJ-kgf">
+                                <rect key="frame" x="0.0" y="0.0" width="375" height="2"/>
+                            </progressView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="9WE-XJ-kgf" firstAttribute="top" secondItem="oMe-ax-0U9" secondAttribute="bottom" id="7kM-l9-Lyc"/>
+                            <constraint firstItem="GAo-m1-bWX" firstAttribute="leading" secondItem="9WE-XJ-kgf" secondAttribute="leading" id="A9l-Kb-QjG"/>
+                            <constraint firstItem="GAo-m1-bWX" firstAttribute="top" secondItem="05t-d4-yCF" secondAttribute="topMargin" constant="10" id="AM9-xh-0fi"/>
+                            <constraint firstAttribute="trailing" secondItem="GAo-m1-bWX" secondAttribute="trailing" id="Kap-tZ-JKI"/>
+                            <constraint firstItem="GAo-m1-bWX" firstAttribute="leading" secondItem="05t-d4-yCF" secondAttribute="leading" id="Mhc-sA-8Bv"/>
+                            <constraint firstItem="GAo-m1-bWX" firstAttribute="bottom" secondItem="yZc-9c-k9V" secondAttribute="top" id="P9n-bT-Wzg"/>
+                            <constraint firstItem="GAo-m1-bWX" firstAttribute="trailing" secondItem="9WE-XJ-kgf" secondAttribute="trailing" id="Sv8-aL-Gl8"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="progressView" destination="9WE-XJ-kgf" id="iXo-ZJ-hAN"/>
+                        <outlet property="webViewFrame" destination="GAo-m1-bWX" id="PXC-E3-Wkx"/>
+                        <segue destination="vAY-Hb-bL8" kind="presentation" identifier="SHOW_BARCODE" id="ebn-pc-iq7"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Wgs-se-Dnt" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="391.19999999999999" y="328.78560719640183"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="splash_image.jpg" width="1080" height="1920"/>
+    </resources>
+</document>

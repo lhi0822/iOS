@@ -1,0 +1,10 @@
+framework module AMScrollingNavbar {
+  umbrella header "AMScrollingNavbar.h"
+
+  export *
+  module * { export * }
+}
+
+module AMScrollingNavbar.Swift {
+    header "AMScrollingNavbar-Swift.h"
+}

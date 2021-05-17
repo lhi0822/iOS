@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15F34" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="sZS-bb-5YY">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+        <capability name="Aspect ratio constraints" minToolsVersion="5.1"/>
+    </dependencies>
+    <scenes>
+        <!--Navigation Controller-->
+        <scene sceneID="SYa-sW-t5P">
+            <objects>
+                <navigationController id="sZS-bb-5YY" sceneMemberID="viewController">
+                    <simulatedScreenMetrics key="simulatedDestinationMetrics"/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="XvD-2u-vZJ">
+                        <rect key="frame" x="0.0" y="0.0" width="320" height="44"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <connections>
+                        <segue destination="c0F-S8-l1Y" kind="relationship" relationship="rootViewController" id="Ggl-5y-pnW"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="nu4-Hz-5Cx" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-759" y="332"/>
+        </scene>
+        <!--Progress Delegate-->
+        <scene sceneID="tne-QT-ifu">
+            <objects>
+                <viewController id="BYZ-38-t0r" customClass="WebViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="y3c-jy-aDJ"/>
+                        <viewControllerLayoutGuide type="bottom" id="wfy-db-euE"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
+                        <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <webView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="WIq-DV-2wq" customClass="IMTWebView">
+                                <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
+                                <color key="backgroundColor" red="0.36078431370000003" green="0.38823529410000002" blue="0.4039215686" alpha="1" colorSpace="deviceRGB"/>
+                                <connections>
+                                    <outlet property="delegate" destination="BYZ-38-t0r" id="vW0-Yi-l75"/>
+                                    <outlet property="progressDelegate" destination="BYZ-38-t0r" id="gIO-79-XJD"/>
+                                </connections>
+                            </webView>
+                            <button opaque="NO" alpha="0.5" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eFI-0f-Vse">
+                                <rect key="frame" x="0.0" y="446" width="320" height="34"/>
+                                <color key="backgroundColor" white="0.66666666666666663" alpha="1" colorSpace="calibratedWhite"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="eFI-0f-Vse" secondAttribute="height" multiplier="120:11" id="Kh2-CT-LSM"/>
+                                </constraints>
+                                <state key="normal" title="새로고침">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <variation key="default">
+                                    <mask key="constraints">
+                                        <exclude reference="Kh2-CT-LSM"/>
+                                    </mask>
+                                </variation>
+                                <connections>
+                                    <action selector="refresh:" destination="BYZ-38-t0r" eventType="touchUpInside" id="AtB-SJ-1ck"/>
+                                </connections>
+                            </button>
+                            <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="Q1I-MQ-J7H">
+                                <rect key="frame" x="0.0" y="0.0" width="320" height="2"/>
+                            </progressView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="0xa-sP-YyJ"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="trailing" secondItem="eFI-0f-Vse" secondAttribute="trailing" id="5RP-CQ-9rZ"/>
+                            <constraint firstItem="eFI-0f-Vse" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="525" id="8AE-Ei-qEu"/>
+                            <constraint firstItem="eFI-0f-Vse" firstAttribute="bottom" secondItem="wfy-db-euE" secondAttribute="top" id="9aM-OY-Vwl"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="A7p-4Y-Jp7"/>
+                            <constraint firstAttribute="trailing" secondItem="WIq-DV-2wq" secondAttribute="trailing" id="DOf-2D-Q6M"/>
+                            <constraint firstAttribute="trailing" secondItem="WIq-DV-2wq" secondAttribute="trailing" id="Dat-8X-xPn"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="trailing" secondItem="eFI-0f-Vse" secondAttribute="trailing" id="FNe-41-lg6"/>
+                            <constraint firstItem="eFI-0f-Vse" firstAttribute="bottom" secondItem="wfy-db-euE" secondAttribute="top" id="IQv-aB-NIg"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="leading" secondItem="eFI-0f-Vse" secondAttribute="leading" id="NRk-v3-ETz"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="cS1-aA-ESF"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="leading" secondItem="eFI-0f-Vse" secondAttribute="leading" id="l7C-l1-XWq"/>
+                            <constraint firstItem="WIq-DV-2wq" firstAttribute="bottom" secondItem="wfy-db-euE" secondAttribute="top" id="mbT-bb-ysa"/>
+                            <constraint firstItem="Q1I-MQ-J7H" firstAttribute="leading" secondItem="WIq-DV-2wq" secondAttribute="leading" id="mdQ-FO-oIL"/>
+                            <constraint firstItem="Q1I-MQ-J7H" firstAttribute="trailing" secondItem="WIq-DV-2wq" secondAttribute="trailing" id="oBE-XZ-fXj"/>
+                            <constraint firstItem="Q1I-MQ-J7H" firstAttribute="top" secondItem="WIq-DV-2wq" secondAttribute="top" id="vgX-w6-JAb"/>
+                        </constraints>
+                        <variation key="default">
+                            <mask key="constraints">
+                                <exclude reference="A7p-4Y-Jp7"/>
+                                <exclude reference="Dat-8X-xPn"/>
+                                <exclude reference="FNe-41-lg6"/>
+                                <exclude reference="NRk-v3-ETz"/>
+                                <exclude reference="8AE-Ei-qEu"/>
+                                <exclude reference="IQv-aB-NIg"/>
+                            </mask>
+                        </variation>
+                    </view>
+                    <navigationItem key="navigationItem" id="1ae-mn-apT"/>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <simulatedOrientationMetrics key="simulatedOrientationMetrics"/>
+                    <simulatedScreenMetrics key="simulatedDestinationMetrics"/>
+                    <connections>
+                        <outlet property="progressView" destination="Q1I-MQ-J7H" id="XM4-xS-sxZ"/>
+                        <outlet property="uiWebView" destination="WIq-DV-2wq" id="L1P-9G-wOM"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="128" y="332"/>
+        </scene>
+        <!--Intro View Controller-->
+        <scene sceneID="Xvt-TA-deE">
+            <objects>
+                <viewController id="c0F-S8-l1Y" customClass="IntroViewController" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="6yi-bN-sbR"/>
+                        <viewControllerLayoutGuide type="bottom" id="Lt9-FU-4iB"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="2UL-QV-6xE">
+                        <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Q8w-b0-jht">
+                                <rect key="frame" x="0.0" y="0.0" width="320" height="480"/>
+                            </imageView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="whiteLarge" translatesAutoresizingMaskIntoConstraints="NO" id="Ys3-D0-gKs">
+                                <rect key="frame" x="142" y="221" width="37" height="37"/>
+                            </activityIndicatorView>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <constraints>
+                            <constraint firstItem="Ys3-D0-gKs" firstAttribute="centerX" secondItem="Q8w-b0-jht" secondAttribute="centerX" id="2Ql-XU-RVa"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="bottom" secondItem="Lt9-FU-4iB" secondAttribute="top" id="NMJ-W9-ccP"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="top" secondItem="2UL-QV-6xE" secondAttribute="top" id="OJv-Qq-5On"/>
+                            <constraint firstItem="Ys3-D0-gKs" firstAttribute="centerY" secondItem="Q8w-b0-jht" secondAttribute="centerY" id="cvw-er-ZeU"/>
+                            <constraint firstAttribute="trailing" secondItem="Q8w-b0-jht" secondAttribute="trailing" id="jVl-HX-O1R"/>
+                            <constraint firstItem="Q8w-b0-jht" firstAttribute="leading" secondItem="2UL-QV-6xE" secondAttribute="leading" id="yJi-U4-vCu"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" id="RAu-E0-fKI"/>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <connections>
+                        <outlet property="_imageView" destination="Q8w-b0-jht" id="ayh-ny-BUF"/>
+                        <outlet property="myIndicator" destination="Ys3-D0-gKs" id="TIS-bS-2VT"/>
+                        <segue destination="BYZ-38-t0r" kind="push" identifier="PushWebView" id="rdB-7V-XJ3"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="4Qo-oB-0Xa" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-319" y="332"/>
+        </scene>
+    </scenes>
+</document>

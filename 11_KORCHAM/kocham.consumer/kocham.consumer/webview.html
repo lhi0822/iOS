@@ -1,0 +1,125 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Exafe Custom KeySec</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="Content-Style-Type" content="text/css"/>
+
+<script type="text/javascript">
+/**
+ * 보안키패드 호출
+ */
+function startKeypad(keypadType, tagId) {
+	//alert("keypadType : " + keypadType + ", tagId : " + tagId);
+	//document.getElementById(tagId).value = "";
+	//window.location.href = "app://keysec?keypadType=" + keypadType + "&tagId=" + tagId;
+
+
+	var callBack = encodeURIComponent('CBexafeKeySec');
+	var userSpec = encodeURIComponent(tagId);
+	var minLength = 4;
+	var maxLength = 10;
+
+	if(keypadType == 'sec_number'){
+        window.location.href = "mfinity://executeExafeKeySec?callbackFunc="+callBack+"&userSpecific="+userSpec+"&isNum=true"+"&minLength="+minLength+"&maxLength="+maxLength;
+		//window.mfinity.executeExafeKeySec(callBack, userSpec, true, minLength, maxLength);
+	}
+	else if(keypadType == 'sec_text'){
+        window.location.href = "mfinity://executeExafeKeySec?callbackFunc="+callBack+"&userSpecific="+userSpec+"&isNum=false"+"&minLength="+minLength+"&maxLength="+maxLength;
+		//window.mfinity.executeExafeKeySec(callBack, userSpec, false, minLength, maxLength);
+	}
+}
+
+/**
+ * 보안키패드 입력 결과값 리턴
+ */
+function CBexafeKeySec(userSpec, result){
+    var dec_result = decodeURIComponent(result);
+    var jsonObj = JSON.parse(dec_result);
+    //document.getElementsByName(userSpec)[0].value += "********";
+    if(jsonObj.IS_END){
+        alert(jsonObj.VALUE);
+    }else{
+        document.getElementById(userSpec).value = jsonObj.VALUE;
+    }
+    
+
+}
+function getImage(){
+    var callBack = encodeURIComponent('CBgetImage');
+    var userSpec = '';
+    window.location.href = "mfinity://getImage?callbackFunc="+callBack+"&userSpecific="+userSpec;
+    //window.mfinity.getImage(callBack, userSpec);
+}
+function CBgetImage(userSpec, result){
+    document.getElementById('address').value = decodeURIComponent(result);document.getElementById('address').value = decodeURIComponent(result);document.getElementById('address').value = decodeURIComponent(result);
+}
+function getAddress(){
+    var callBack = encodeURIComponent('CBgetAddress');
+    var userSpec = '';
+    window.location.href = "mfinity://getAddress?callbackFunc="+callBack+"&userSpecific="+userSpec;
+    //window.mfinity.getImage(callBack, userSpec);
+}
+function CBgetAddress(userSpec, result){
+    document.getElementById('address').value = decodeURIComponent(result);
+}
+function getDeviceSpec(){
+    var callBack = encodeURIComponent('CBgetDeviceSpec');
+    var userSpec = '';
+    window.location.href = "mfinity://getDeviceSpec?callbackFunc="+callBack+"&userSpecific="+userSpec;
+    //window.mfinity.getImage(callBack, userSpec);
+}
+function CBgetDeviceSpec(userSpec, result){
+    alert(decodeURIComponent(result));
+    //document.getElementById('address').value = decodeURIComponent(result);
+}
+</script>
+</head>
+<body>
+<form name="fm">
+<table>
+	<tr><td colspan="1"><b>Exafe Custom KeySec Demo</b></td></tr>
+	<tr>
+		<td>보안키패드(숫자)</td>
+		<td><input type="text" id="ssn" name="ssn" value="" keysecResult="" readonly="readonly" onclick="javascript:startKeypad('sec_number', id);" /></td>
+		
+	</tr>
+	<tr>
+		<td>보안키패드(문자)</td>
+		<td><input type="text" id="passwd" name="passwd" value="" keysecResult="" readonly="readonly" onclick="javascript:startKeypad('sec_text', id);" /></td>
+        
+	</tr>
+    <tr>
+        <td>GetImage</td>
+        <td><input onclick="javascript:getImage();" value="Get Image" type="button"><br></td>
+    </tr>
+    <tr>
+        <td>GetImage 경로</td>
+        <td><input type="text" id="imagepath" name="imagepath" value=""  readonly="readonly" /></td>
+        
+    </tr>
+    <tr>
+        <td>GetAddress</td>
+        <td><input onclick="javascript:getAddress();" value="Get Address" type="button"><br></td>
+    </tr>
+    <tr>
+        <td>GetAddress 정보</td>
+        <td><input type="text" id="address" name="address" value=""  readonly="readonly" /></td>
+        
+    </tr>
+    <tr>
+        <td>GetDeviceSpec</td>
+        <td><input onclick="javascript:getDeviceSpec();" value="Get DeviceSpec" type="button"><br></td>
+    </tr>
+    <tr>
+        <td>GetDeviceSpec</td>
+        <td><input type="text" id="deviceSpec" name="deviceSpec" value=""  readonly="readonly" /></td>
+        
+    </tr>
+</table>
+</form>
+</body>
+</html>
