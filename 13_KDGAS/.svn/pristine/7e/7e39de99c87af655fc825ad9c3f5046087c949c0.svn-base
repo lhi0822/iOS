@@ -1,0 +1,227 @@
+//
+//  AppDelegate.m
+//  mfinity-consumer
+//
+//  Created by Jun HyungPark on 2015. 6. 5..
+//  Copyright (c) 2015년 DBValley. All rights reserved.
+//
+
+#import "AppDelegate.h"
+#import "KeychainItemWrapper.h"
+@interface AppDelegate ()
+
+@end
+
+@implementation AppDelegate
+@synthesize user_no=_user_no;
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Override point for customization after application launch.
+     //[[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleLightContent];
+    _kiccURL = @"";
+    _comp_no = @"10";
+    _naviFontColor=@"#F5F5F5";
+    _naviBarColor=@"#6B6A6B";
+    _naviShadowColor=@"#777777";
+    _naviShadowOffset=@"2";
+    _subBgImagePath=[[[NSBundle mainBundle] resourcePath]stringByAppendingPathComponent:@"kd_bg.png"];;
+    _subFontColor=@"#737373";
+    _naviIsShadow=@"N";
+    _subIsShadow=@"N";
+    _AES256Key=@"E3Z2S1M5A9R8T1F3E2E4L31504081532";
+    _subShadowOffset=@"1";
+    _subShadowColor=@"1";
+    _mainFontColor=@"#737373";
+    //_main_url=@"http://ezpro1.mfrontiers.com:1598/dataservice41";
+    _main_url=@"https://app.kdgas.co.kr/dataservice41";
+    NSFileManager *manager = [NSFileManager defaultManager];
+    NSString *documentPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentPath = [documentPath stringByAppendingPathComponent:_comp_no];
+    [manager createDirectoryAtPath:documentPath withIntermediateDirectories:NO attributes:nil error:nil];
+    documentPath = [documentPath stringByAppendingPathComponent:@"photo"];
+    [manager createDirectoryAtPath:documentPath withIntermediateDirectories:NO attributes:nil error:nil];    
+    [[UIApplication sharedApplication] setStatusBarStyle:UIStatusBarStyleDefault];
+    [self.window setBackgroundColor:[UIColor blackColor]];
+    [[UIApplication sharedApplication]setApplicationIconBadgeNumber:0];
+    if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) {
+        [[UIApplication sharedApplication] registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge) categories:nil]];
+        [[UIApplication sharedApplication] registerForRemoteNotifications];
+        
+        
+    }else{
+        [[UIApplication sharedApplication] registerForRemoteNotificationTypes:
+         (UIRemoteNotificationTypeNewsstandContentAvailability|
+          UIRemoteNotificationTypeBadge |
+          UIRemoteNotificationTypeSound |
+          UIRemoteNotificationTypeAlert)];
+    }
+    
+    return YES;
+}
+- (BOOL)application:application handleOpenURL:(NSURL *)url{
+
+    NSLog(@"url scheme url : %@",url);
+    NSString *str = url.absoluteString;
+    NSArray *arr = [str componentsSeparatedByString:@"?"];
+    NSString *param = [arr objectAtIndex:1];
+    
+    
+    NSString *methods = [arr objectAtIndex:0];
+    NSArray *arr5 = [methods componentsSeparatedByString:@"://"];
+    NSString *methodName = [arr5 objectAtIndex:1];
+    
+    if ([methodName isEqualToString:@"result"]) {
+        NSLog(@"param : %@",param);
+    }else{
+        NSArray *arr2 = [param componentsSeparatedByString:@","];
+        NSString *type = [arr2 objectAtIndex:0];
+        NSString *certNo = [arr2 objectAtIndex:1];
+        NSArray *arr3 = [type componentsSeparatedByString:@"="];
+        NSString *typeVal = [arr3 objectAtIndex:1];
+        NSArray *arr4 = [certNo componentsSeparatedByString:@"="];
+        NSString *certNoVal = [arr4 objectAtIndex:1];
+        NSLog(@"typeVal : %@",typeVal);
+        NSLog(@"certVal : %@",certNoVal);
+        if ([typeVal isEqualToString:@"wap"]) {
+            _kiccURL = [NSString stringWithFormat:@"https://sp.easypay.co.kr/isp/IspResAction.do?m_cert_no=%@",certNoVal];
+        }else{
+            _kiccURL = [NSString stringWithFormat:@"https://sp.easypay.co.kr/isp/IspCancelAction.do?m_cert_no=%@",certNoVal];
+        }
+    }
+    
+    
+    
+    return YES;
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application {
+    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+#pragma mark
+#pragma mark Push Delegate method
+-(void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken{
+    if (@available(iOS 13.0, *)) {
+        _pushToken = [self stringFromDeviceToken:deviceToken];
+        
+    } else {
+        _pushToken = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+        _pushToken = [_pushToken stringByReplacingOccurrencesOfString:@" " withString:@""];
+    }
+    NSLog(@"pushToken : %@",_pushToken);
+}
+- (NSString *)stringFromDeviceToken:(NSData *)deviceToken {
+    NSUInteger length = deviceToken.length;
+    if (length == 0) {
+        return nil;
+    }
+    const unsigned char *buffer = deviceToken.bytes;
+    NSMutableString *hexString  = [NSMutableString stringWithCapacity:(length * 2)];
+    for (int i = 0; i < length; ++i) {
+        [hexString appendFormat:@"%02x", buffer[i]];
+    }
+    return [hexString copy];
+}
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult result))handler{
+    NSLog(@"push message : %@",userInfo);
+    UIApplicationState state = [application applicationState];
+    
+    if (state==UIApplicationStateActive) {
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+        AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+        NSDictionary *aps = [userInfo valueForKey:@"aps"];
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"알림" message:[aps objectForKey:@"alert"] delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+        [[UIApplication sharedApplication]setApplicationIconBadgeNumber:0];
+    }
+    
+    
+}
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    NSLog(@"deviceToken error : %@", error);
+}
++ (NSString *) getUUID
+{
+    // initialize keychaing item for saving UUID.
+    KeychainItemWrapper *wrapper = [[KeychainItemWrapper alloc] initWithIdentifier:@"UUID" accessGroup:nil];
+    
+    NSString *uuid = [wrapper objectForKey:(__bridge id)(kSecAttrAccount)];
+    
+    if( uuid == nil || uuid.length == 0)
+    {
+        // if there is not UUID in keychain, make UUID and save it.
+        CFUUIDRef uuidRef = CFUUIDCreate(NULL);
+        CFStringRef uuidStringRef = CFUUIDCreateString(NULL, uuidRef);
+        CFRelease(uuidRef);
+        uuid = [NSString stringWithString:(__bridge NSString *) uuidStringRef];
+        CFRelease(uuidStringRef);
+        
+        // save UUID in keychain
+        [wrapper setObject:uuid forKey:(__bridge id)(kSecAttrAccount)];
+    }
+    
+    return uuid;
+}
++ (NSDictionary *)getAllValueUrlDecoding:(NSDictionary *)dic{
+    NSMutableDictionary *resultDic = [[NSMutableDictionary alloc]init];
+    for (NSString *key in [dic allKeys]) {
+        NSString *oValue = [dic objectForKey:key];
+        oValue =[oValue stringByReplacingOccurrencesOfString:@"+" withString:@"%20"];
+        [resultDic setObject:[oValue stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding] forKey:key];
+    }
+    return resultDic;
+}
+- (UIColor *) myRGBfromHex: (NSString *) code {
+    
+    NSString *str = [[code stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] uppercaseString];
+    if ([str length] < 6)  // 일단 6자 이하면 말이 안되니까 검은색을 리턴해주자.
+        return [UIColor blackColor];
+    
+    // 0x로 시작하면 0x를 지워준다.
+    if ([str hasPrefix:@"0X"])
+        str = [str substringFromIndex:2];
+    
+    // #으로 시작해도 #을 지워준다.
+    
+    if ([str hasPrefix:@"#"])
+        str = [str substringFromIndex:1];
+    if ([str length] != 6) //그랫는데도 6자 이하면 이것도 이상하니 그냥 검은색을 리턴해주자.
+        return [UIColor blackColor];
+    NSRange range;
+    range.location = 0;
+    range.length = 2;
+    NSString *rcolorString = [str substringWithRange:range];
+    range.location = 2;
+    NSString *gcolorString = [str substringWithRange:range];
+    range.location = 4;
+    NSString *bcolorString = [str substringWithRange:range];
+    unsigned int red, green, blue;
+    [[NSScanner scannerWithString: rcolorString] scanHexInt:&red];
+    [[NSScanner scannerWithString: gcolorString] scanHexInt:&green];
+    [[NSScanner scannerWithString: bcolorString] scanHexInt:&blue];
+    
+    
+    return [UIColor colorWithRed:((float) red / 255.0f)
+                           green:((float) green / 255.0f)
+                            blue:((float) blue / 255.0f)
+                           alpha:1.0f];
+}
+#pragma mark
+@end

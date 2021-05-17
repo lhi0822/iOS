@@ -1,0 +1,17 @@
+//
+//  IntroViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 23..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface IntroViewController : UIViewController{
+    IBOutlet UIImageView	*imageView;
+	int count;
+	IBOutlet UIActivityIndicatorView *myIndicator;
+}
+
+@end

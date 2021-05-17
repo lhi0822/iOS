@@ -1,0 +1,48 @@
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12000">
+    <TEXT>Sync agent has been started</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12008">
+    <TEXT>Apply has started for database &quot;default&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12008">
+    <TEXT>Apply has started for database &quot;SYNCFOD&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12008">
+    <TEXT>Apply has started for database &quot;SYNCINS&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12013">
+    <TEXT>Evaluated network, name: &quot;WIFI&quot;, speed: 54,000,000 bps, delay: -1 ms</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12011">
+    <TEXT>Network has changed from &quot;No network&quot; to &quot;WIFI&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12009">
+    <TEXT>Apply has finished for database &quot;SYNCFOD&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12009">
+    <TEXT>Apply has finished for database &quot;SYNCINS&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12009">
+    <TEXT>Apply has finished for database &quot;default&quot;</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12013">
+    <TEXT>Evaluated network, name: &quot;WIFI&quot;, speed: 54,000,000 bps, delay: -1 ms</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12013">
+    <TEXT>Evaluated network, name: &quot;WIFI&quot;, speed: 54,000,000 bps, delay: -1 ms</TEXT>
+</MSG>
+
+<MSG time="2012-09-25 19:38:01" type="info" id="12013">
+    <TEXT>Evaluated network, name: &quot;WIFI&quot;, speed: 54,000,000 bps, delay: -1 ms</TEXT>
+</MSG>

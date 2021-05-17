@@ -1,0 +1,282 @@
+//
+//  LockInsertView.m
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import "LockInsertView.h"
+#import "MFinityAppDelegate.h"
+#import <SystemConfiguration/SystemConfiguration.h>
+#import <dlfcn.h>
+#import <mach/port.h>
+#import <mach/kern_return.h>
+#import "FBEncryptorAES.h"
+@interface LockInsertView ()
+
+@end
+
+@implementation LockInsertView
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    int fontSize = 17;
+    
+    switch ([prefs integerForKey:@"FONT_SIZE"]) {
+        case 1:
+            fontSize = fontSize+5;
+            break;
+        case 2:
+            fontSize = fontSize+10;
+            break;
+        default:
+            break;
+    }
+	MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+	NSData *decryptData = [[NSData dataWithContentsOfFile:appDelegate.subBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *bgImage = [UIImage imageWithData:decryptData];
+    NSData *lDecryptData = [[NSData dataWithContentsOfFile:appDelegate.lSubBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *lBgImage = [UIImage imageWithData:lDecryptData];
+	UIColor *color = [appDelegate myRGBfromHex:appDelegate.subFontColor];
+	[label1 setTextColor:color];
+	[label2 setTextColor:color];
+    [label3 setTextColor:color];
+    label1.text = NSLocalizedString(@"message23", @"");
+    label2.text = NSLocalizedString(@"message24", @"");
+    label3.text = NSLocalizedString(@"message25", @"");
+    [confirmBtn setTitle:NSLocalizedString(@"message51", @"확인") forState:UIControlStateNormal];
+    [exitBtn setTitle:NSLocalizedString(@"message59", @"종료") forState:UIControlStateNormal];
+    exitBtn.backgroundColor = [appDelegate myRGBfromHex:[prefs objectForKey:@"LOGINONCOLOR"]];
+    confirmBtn.backgroundColor = [appDelegate myRGBfromHex:[prefs objectForKey:@"LOGINONCOLOR"]];
+    
+    UIInterfaceOrientation orientation = self.interfaceOrientation;
+    if ((orientation == UIDeviceOrientationLandscapeLeft)||(orientation == UIDeviceOrientationLandscapeRight)) {
+        if (lBgImage==nil) {
+            lBgImage = [UIImage imageNamed:@"w_default2.png"];
+        }
+        imageView.image = lBgImage;
+        label1.frame = CGRectMake(209, 0, 618, 123);
+        label2.frame = CGRectMake(291, 131, 454, 110);
+        label3.frame = CGRectMake(181, 435, 675, 64);
+        passWordField.frame = CGRectMake(354, 274, 329, 31);
+        confirmBtn.frame = CGRectMake(375, 338, 112, 37);
+        exitBtn.frame = CGRectMake(554, 338, 112, 37);
+    } else{
+        if (bgImage==nil) {
+            bgImage = [UIImage imageNamed:@"default2.png"];
+        }
+        imageView.image = bgImage;
+        label1.frame = CGRectMake(75, 50, 618, 123);
+        label2.frame = CGRectMake(157, 210, 454, 110);
+        label3.frame = CGRectMake(47, 623, 675, 64);
+        passWordField.frame = CGRectMake(220, 386, 329, 31);
+        confirmBtn.frame = CGRectMake(236, 483, 112, 37);
+        exitBtn.frame = CGRectMake(424, 483, 112, 37);
+    }
+    
+}
+-(void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration{
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    NSData *decryptData = [[NSData dataWithContentsOfFile:appDelegate.subBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *bgImage = [UIImage imageWithData:decryptData];
+    NSData *lDecryptData = [[NSData dataWithContentsOfFile:appDelegate.lSubBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *lBgImage = [UIImage imageWithData:lDecryptData];
+    if ((toInterfaceOrientation == UIDeviceOrientationLandscapeLeft)||(toInterfaceOrientation == UIDeviceOrientationLandscapeRight)) {
+        if (lBgImage==nil) {
+            lBgImage = [UIImage imageNamed:@"w_default2.png"];
+        }
+        imageView.image = lBgImage;
+        label1.frame = CGRectMake(209, 0, 618, 123);
+        label2.frame = CGRectMake(291, 131, 454, 110);
+        label3.frame = CGRectMake(181, 435, 675, 64);
+        passWordField.frame = CGRectMake(354, 274, 329, 31);
+        confirmBtn.frame = CGRectMake(375, 338, 112, 37);
+        exitBtn.frame = CGRectMake(554, 338, 112, 37);
+    } else{
+        if (bgImage==nil) {
+            bgImage = [UIImage imageNamed:@"default2.png"];
+        }
+        imageView.image = bgImage;
+        label1.frame = CGRectMake(75, 50, 618, 123);
+        label2.frame = CGRectMake(157, 210, 454, 110);
+        label3.frame = CGRectMake(47, 623, 675, 64);
+        passWordField.frame = CGRectMake(220, 386, 329, 31);
+        confirmBtn.frame = CGRectMake(236, 483, 112, 37);
+        exitBtn.frame = CGRectMake(424, 483, 112, 37);
+    }
+}
+#pragma mark
+#pragma mark URLConnection
+-(void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response{
+    //NSHTTPURLResponse *HTTPresponse = (NSHTTPURLResponse *)response;
+	//NSInteger statusCode = [HTTPresponse statusCode];
+    NSString *urlStr = connection.currentRequest.URL.absoluteString;
+    NSArray *tempArr = [[urlStr lastPathComponent] componentsSeparatedByString:@"?"];
+    NSString *methodName = [tempArr objectAtIndex:0];
+    if ([methodName isEqualToString:@"MLogout"]) {
+        exit(0);
+    }else if([methodName isEqualToString:@"MUnlockSession"]){
+        
+    }
+}
+-(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data{
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    NSString *urlStr = connection.currentRequest.URL.absoluteString;
+    NSArray *tempArr = [[urlStr lastPathComponent] componentsSeparatedByString:@"?"];
+    NSString *methodName = [tempArr objectAtIndex:0];
+    NSError *error;
+    NSDictionary *dic;
+    if ([methodName isEqualToString:@"MUnlockSession"]) {
+        @try {
+            NSString *encString =[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+            NSString *decString ;
+            if (appDelegate.isAES256) {
+                decString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+            }
+            else{
+                decString = encString;
+            }
+            
+            dic = [NSJSONSerialization JSONObjectWithData:[decString dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&error];
+            
+        }
+        @catch (NSException *exception) {
+            NSLog(@"exception : %@",exception);
+        }
+        NSLog(@"dic : %@",dic);
+        if ([[dic objectForKey:@"V0"]isEqualToString:@"True"]) {
+            [self dismissViewControllerAnimated:YES completion:nil];
+        }
+    }
+}
+#pragma mark
+#pragma mark Control Handler
+- (IBAction) exitButton {
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+	NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:[NSURL URLWithString:[NSString stringWithFormat:@"%@/MLogout",appDelegate.main_url]]];
+    [request setHTTPMethod:@"POST"];
+    NSURLConnection *conn = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+    [conn start];
+    
+	//exit(0);
+}
+-(BOOL)textFieldShouldReturn:(UITextField *)textField {
+    
+	if ([textField isEqual:passWordField]) {
+		[passWordField resignFirstResponder];
+		
+	}
+	return YES;
+}
+-(IBAction) textFieldDoneEditing:(id)sender{
+	[sender resignFirstResponder];
+	[self okButton];
+}
+- (NSString *) serialNumber
+{
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    
+    if ([prefs objectForKey:@"UUID"] == nil) {
+        [prefs setObject:[[[UIDevice currentDevice] identifierForVendor] UUIDString] forKey:@"UUID"];
+        [prefs synchronize];
+    }
+    
+    return [prefs objectForKey:@"UUID"];
+    /*
+	NSString *serialNumber = nil;
+	
+	void *IOKit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_NOW);
+	if (IOKit)
+	{
+		mach_port_t *kIOMasterPortDefault = dlsym(IOKit, "kIOMasterPortDefault");
+		CFMutableDictionaryRef (*IOServiceMatching)(const char *name) = dlsym(IOKit, "IOServiceMatching");
+		mach_port_t (*IOServiceGetMatchingService)(mach_port_t masterPort, CFDictionaryRef matching) = dlsym(IOKit, "IOServiceGetMatchingService");
+		CFTypeRef (*IORegistryEntryCreateCFProperty)(mach_port_t entry, CFStringRef key, CFAllocatorRef allocator, uint32_t options) = dlsym(IOKit, "IORegistryEntryCreateCFProperty");
+		kern_return_t (*IOObjectRelease)(mach_port_t object) = dlsym(IOKit, "IOObjectRelease");
+		
+		if (kIOMasterPortDefault && IOServiceGetMatchingService && IORegistryEntryCreateCFProperty && IOObjectRelease)
+		{
+			mach_port_t platformExpertDevice = IOServiceGetMatchingService(*kIOMasterPortDefault, IOServiceMatching("IOPlatformExpertDevice"));
+			if (platformExpertDevice)
+			{
+				CFTypeRef platformSerialNumber = IORegistryEntryCreateCFProperty(platformExpertDevice, CFSTR("IOPlatformSerialNumber"), kCFAllocatorDefault, 0);
+				if (CFGetTypeID(platformSerialNumber) == CFStringGetTypeID())
+				{
+					serialNumber = [NSString stringWithString:(__bridge NSString*)platformSerialNumber];
+					CFRelease(platformSerialNumber);
+				}
+				IOObjectRelease(platformExpertDevice);
+			}
+		}
+		dlclose(IOKit);
+	}
+	
+	return serialNumber;
+     */
+}
+- (IBAction) okButton {
+	MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    NSString *dvcid = [self serialNumber];
+    UIDevice *myDevice = [UIDevice currentDevice];
+    NSString *osName = @"iOS";
+    NSString *encodingID = [FBEncryptorAES encryptBase64String:appDelegate.user_id
+                                                     keyString:appDelegate.AES256Key
+                                                 separateLines:NO];
+    
+    NSString *encodingPWD = [FBEncryptorAES encryptBase64String:appDelegate.passWord
+                                                      keyString:appDelegate.AES256Key
+                                                  separateLines:NO];
+    encodingID = [encodingID urlEncodeUsingEncoding:NSUTF8StringEncoding];
+    encodingPWD = [encodingPWD urlEncodeUsingEncoding:NSUTF8StringEncoding];
+    NSString *urlString =[NSString stringWithFormat:@"%@/MUnlockSession",appDelegate.main_url];
+    NSString *param;
+    
+    if (appDelegate.isAES256) {
+        
+        param = [[NSString alloc]initWithFormat:@"DEV_ID=%@&DEV_OS=%@&DEMO_FLAG=%@&CUSER_NO=%@&userId=%@&passwd=%@&COMP_NO=%@&PUSH_ID1=%@&PUSH_ID2=-&encType=AES256",dvcid,osName,appDelegate.noAuth,appDelegate.user_no,encodingID,encodingPWD,appDelegate.comp_no,appDelegate.appDeviceToken];
+        
+    }else{
+        param = [[NSString alloc]initWithFormat:@"DEV_ID=%@&DEV_OS=%@&DEMO_FLAG=%@&CUSER_NO=%@&userId=%@&passwd=%@&COMP_NO=%@&PUSH_ID1=%@&PUSH_ID2=-",dvcid,osName,appDelegate.noAuth,appDelegate.user_no,encodingID,encodingPWD,appDelegate.comp_no,appDelegate.appDeviceToken];
+    }
+    
+    urlString = [urlString stringByReplacingOccurrencesOfString:@" " withString:@"%20"];
+    NSData *postData = [param dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    
+	if ([passWordField.text isEqualToString:appDelegate.passWord] ) {
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:[NSURL URLWithString:urlString]];
+        [request setHTTPMethod:@"POST"];
+        [request setHTTPBody: postData];
+        [request setTimeoutInterval:10.0];
+        NSURLConnection *conn = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+        [conn start];
+        //[self dismissViewControllerAnimated:YES completion:nil];
+        
+	}else {
+		[passWordField resignFirstResponder];
+		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:NSLocalizedString(@"message62", @"") message:NSLocalizedString(@"message63", @"") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles:nil];
+		[alert show];
+		
+	}
+    
+}
+#pragma mark
+#pragma mark
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+@end

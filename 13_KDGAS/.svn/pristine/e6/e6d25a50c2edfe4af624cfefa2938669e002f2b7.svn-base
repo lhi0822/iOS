@@ -1,0 +1,65 @@
+//
+//  WebViewController.h
+//  mfinity-consumer
+//
+//  Created by Jun HyungPark on 2015. 6. 8..
+//  Copyright (c) 2015년 DBValley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <CoreLocation/CoreLocation.h>
+#import <MessageUI/MessageUI.h>
+#import "IMTWebView.h"
+#import "DataLogger.h"
+#import <WebKit/WebKit.h>
+
+@interface WebViewController : UIViewController<UIWebViewDelegate,UIScrollViewDelegate,IMTWebViewProgressDelegate,UIImagePickerControllerDelegate,UINavigationControllerDelegate,MFMessageComposeViewControllerDelegate,CLLocationManagerDelegate, WKNavigationDelegate,WKUIDelegate,WKScriptMessageHandler>{
+    NSString *menuKind;
+    NSString *menuType;
+    NSString *nativeAppURL;
+    
+    NSString *paramString;
+    NSString *nativeAppMenuNo;
+    NSString *currentAppVersion;
+    
+    IBOutlet IMTWebView *_webView;
+    IBOutlet UIToolbar *_toolBar;
+    BOOL tap;
+    BOOL hideNav;
+    BOOL mustShowNav;
+    
+    NSString *dbDirectoryPath;
+    int count;
+    int endCount;
+    BOOL isCamera;
+    UIImagePickerController *picker;
+    DataLogger *_myDataLogger;
+    CMMotionManager *motionManager;
+    CLLocationManager *locationManager;
+    NSString *sensorString;
+    NSMutableData *histData;
+    
+//    WKWebView *wkWebView;
+    
+}
+
+//@property (weak, nonatomic) IBOutlet WKWebView *wkWebView;
+@property (nonatomic, strong)WKWebView *wkWebView;
+@property (nonatomic, strong)NSMutableArray *webViews;
+@property (nonatomic, strong)NSMutableArray *createdWKWebViews;
+@property (weak, nonatomic) IBOutlet UIView *webViewFrame;
+
+@property (nonatomic, strong)NSMutableDictionary *callBackDic;
+@property (nonatomic, retain)NSString *callbackFunc;
+@property (nonatomic, retain)NSString *userSpecific;
+@property (nonatomic, retain)NSString *imageSize;
+@property (nonatomic, retain)NSString *imageFormat;
+@property (nonatomic, retain) IBOutlet UIProgressView *progressView;
+@property (nonatomic, strong)NSString *startURL;
+@property (nonatomic, strong)NSString *baseURL;
+-(IBAction)goBack:(id)sender;
+-(IBAction)goForward:(id)sender;
+-(IBAction)refresh:(id)sender;
+-(void)signSave:(NSString *)fileName :(NSString *)userSpecific :(NSString *)callbackFunc;
+-(void)signSave:(NSString *)fileName;
+@end

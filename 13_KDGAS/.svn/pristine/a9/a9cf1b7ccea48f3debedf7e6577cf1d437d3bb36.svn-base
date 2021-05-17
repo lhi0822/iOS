@@ -1,0 +1,1797 @@
+//
+//  WebViewController.m
+//  mfinity-consumer
+//
+//  Created by Jun HyungPark on 2015. 6. 8..
+//  Copyright (c) 2015년 DBValley. All rights reserved.
+//
+
+#import "WebViewController.h"
+#import "IntroViewController.h"
+#import "SVProgressHUD.h"
+#import "sqlite3.h"
+#import "AppDelegate.h"
+#import "SignPadViewController.h"
+#import "ImageViewController.h"
+#import "UIDevice-Hardware.h"
+#import <CoreTelephony/CTCarrier.h>
+#import <CoreTelephony/CTTelephonyNetworkInfo.h>
+#import <mach/port.h>
+#import <mach/kern_return.h>
+#import <mach/mach.h>
+#import <mach/mach_host.h>
+#define DOWNLOAD_ROW_SIZE 140
+#define DOWNLOAD_ROW_INCREASE_SIZE 88
+#define DOWNLOAD_WIDTH 300
+#define DOWNLOAD_HEIGHT 320
+#define IS_OS_8_OR_LATER ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0)
+@interface WebViewController (){
+    BOOL isToolBar;
+    AppDelegate *appDelegate;
+    NSMutableData *receiveData;
+}
+
+@end
+
+
+@implementation WebViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pushNotificationReceived:) name:@"ExecutePush" object:self];
+    
+    NSFileManager *manager = [NSFileManager defaultManager];
+    NSLog(@"is file : %d",[manager isReadableFileAtPath:_startURL]);
+    //[self performSegueWithIdentifier: @"NextScreen2" sender: self];
+    // Do any additional setup after loading the view from its nib.
+    appDelegate = (AppDelegate *)[[UIApplication sharedApplication]delegate];
+    isToolBar = NO;
+    //UITapGestureRecognizer *webViewTapped = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(tapAction:)];
+    //webViewTapped.numberOfTapsRequired = 1;
+    //webViewTapped.delegate = self;
+    _webView.scalesPageToFit = NO;
+    _webView.mediaPlaybackRequiresUserAction = NO;
+    _webView.allowsInlineMediaPlayback = YES;
+    _webView.delegate = self;
+    _webView.progressDelegate = self;
+    [_webView sizeToFit];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidBecomeActive:) name:@"UIApplicationDidBecomeActiveNotification" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationWillEnterForeground:) name:@"UIApplicationWillEnterForegroundNotification" object:nil];
+    NSString *str = @"http://svr001.ezsmart.co.kr/kdgas/";
+    NSLog(@"_startURL : %@",_startURL);
+    
+    NSLog(@"startURL length : %ld",(unsigned long)[_startURL length]);
+    NSLog(@"str length : %ld",(unsigned long)[str length]);
+    [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:_startURL]]];
+    //[_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:str]]];
+    
+}
+-(void)viewDidAppear:(BOOL)animated{
+    NSLog(@"WebViewController viewDidAppear");
+    [super viewDidAppear:animated];
+    dbDirectoryPath = [self makeDBFile];
+}
+-(void)viewWillAppear:(BOOL)animated{
+    NSLog(@"WebViewController viewWillAppear");
+    [super viewWillAppear:animated];
+    dbDirectoryPath = [self makeDBFile];
+}
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+- (void)applicationDidBecomeActive:(NSNotification *)notification{
+    NSLog(@"applicationDidBecomeActive : %@",notification);
+    if (![appDelegate.kiccURL isEqualToString:@""]) {
+        [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:appDelegate.kiccURL]]];
+        appDelegate.kiccURL = @"";
+    }
+}
+- (void)applicationWillEnterForeground:(NSNotification *)notification{
+    NSLog(@"applicationWillEnterForeground : %@",notification);
+}
+-(NSDictionary *)getParameters:(NSString *)query{
+    NSArray *params = [query componentsSeparatedByString:@"&"];
+    NSMutableDictionary *returnDic = [[NSMutableDictionary alloc]init];
+    for (int i=0; i<[params count]; i++) {
+        NSArray *tmpArr = [[params objectAtIndex:i] componentsSeparatedByString:@"="];
+        NSString *keyString = [NSString urlDecodeString:[tmpArr objectAtIndex:0]];
+        NSString *valueString = [NSString urlDecodeString:[tmpArr objectAtIndex:1]];
+        [returnDic setObject:valueString forKey:keyString];
+    }
+    
+    return returnDic;
+    
+}
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
+{
+    return YES;
+}
+- (void)tapAction:(UITapGestureRecognizer *)sender
+{
+    isToolBar = !isToolBar;
+    // Get the specific point that was touched
+    //CGPoint point = [sender locationInView:self.view];
+    [_toolBar setHidden:isToolBar];
+}
+-(IBAction)goBack:(id)sender{
+    [_webView goBack];
+}
+-(IBAction)goForward:(id)sender{
+    [_webView goForward];
+}
+-(IBAction)refresh:(id)sender{
+    [_webView reload];
+}
+
+-(void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error{
+    self.progressView.hidden = YES;
+}
+
+- (void)webView:(IMTWebView *)_imWebView didReceiveResourceNumber:(int)resourceNumber totalResources:(int)totalResources {
+    
+    [self.progressView setProgress:((float)resourceNumber) / ((float)totalResources)];
+    if (resourceNumber == totalResources) {
+        _imWebView.resourceCount = 0;
+        _imWebView.resourceCompletedCount = 0;
+    }
+}
+- (BOOL) webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType{
+    NSLog(@"[request URL] : %@",[request URL]);
+    //NSLog(@"request url : %@",[[request URL] absoluteURL]);
+    
+    if (UIWebViewNavigationTypeLinkClicked == navigationType || UIWebViewNavigationTypeOther == navigationType) {
+        ////NSLog(@"a tag url : %@",[[request URL] absoluteURL]);
+        if ([[[request URL] scheme]isEqualToString:@"ezmovetab"]) {
+            self.tabBarController.selectedIndex = [[[request URL] host] intValue]-1;
+            return NO;
+        }else if([[[request URL] scheme]isEqualToString:@"mfnp"]||[[[request URL] scheme]isEqualToString:@"mfinity"]){
+            
+            NSString *host = [[request URL] host];
+            NSLog(@"host : %@", host);
+            NSURL *url = [request URL];
+
+            if([host isEqualToString:@"movetab"]){
+                self.tabBarController.selectedIndex = [[[request URL] host] intValue]-1;
+                
+            }else if([host isEqualToString:@"executeBackKeyEvent"]){
+                UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"executeBackKeyEvent" message:NSLocalizedString(@"message143", @"지원하지 않는 기능입니다.") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles: nil];
+                [alertView show];
+                /*
+                 NSDictionary *dic = [self getParameters:[url query]];
+                 NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                 NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                 [self executeBackKeyEvent:callBackFunc :userSpecific];
+                 */
+                
+            }else if([host isEqualToString:@"executeBarcode"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeBarcode:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeCamera"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeCamera:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeDatagate"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                NSString *dbConfigKey = [dic objectForKey:@"dbConfigKey"];
+                NSString *sprocName = [dic objectForKey:@"sprocName"];
+                NSString *args = [dic objectForKey:@"args"];
+                [self executeDataGate:callBackFunc :userSpecific :dbConfigKey :sprocName :args];
+                
+            }else if([host isEqualToString:@"executeExitWebBrowser"]){
+                [self executeExitWebBrowser];
+                
+            }else if([host isEqualToString:@"executeExternalBrowser"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *url = [dic objectForKey:@"url"];
+                [self executeExternalBrowser:url];
+                
+            }else if([host isEqualToString:@"executeFileUpload"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *fileType = [dic objectForKey:@"fileType"];
+                NSString *fileName = [dic objectForKey:@"fileName"];
+                NSString *upLoadPath = [dic objectForKey:@"upLoadpath"];
+                [self executeFileUpload:fileType :fileName :upLoadPath];
+                
+            }else if([host isEqualToString:@"executeMenu"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *menuNo = [dic objectForKey:@"menuNo"];
+                [self executeMenu:menuNo];
+                
+            }else if([host isEqualToString:@"executeNonQuery"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *dbName = [dic objectForKey:@"dbName"];
+                NSString *selectStmt = [dic objectForKey:@"sqlStmt"];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeNonQuery:dbName :selectStmt :callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeNotification"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *useVibrator = [dic objectForKey:@"useVibrator"];
+                NSString *useBeep = [dic objectForKey:@"useBeep"];
+                NSString *time = [dic objectForKey:@"time"];
+                [self executeNotification:useVibrator :useBeep :time];
+                
+            }else if([host isEqualToString:@"executeProgressDialogStart"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                [self executeProgressDialogStart:[dic objectForKey:@"title"] :[dic objectForKey:@"msg"]];
+                
+            }else if([host isEqualToString:@"executeProgressDialogStop"]){
+                [self executeProgressDialogStop];
+                
+            }else if([host isEqualToString:@"executePush"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *msg = [dic objectForKey:@"msg"];
+                NSString *userList = [dic objectForKey:@"userList"];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executePush:callBackFunc :userSpecific :userList :msg];
+                
+            }else if([host isEqualToString:@"executeRecognizeSpeech"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeRecognizeSpeech:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeRetrieve"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *dbName = [dic objectForKey:@"dbName"];
+                NSString *selectStmt = [dic objectForKey:@"selectStmt"];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeRetrieve:dbName :selectStmt :callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeSignpad"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self executeSignpad:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"executeSms"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                NSString *msg = [dic objectForKey:@"msg"];
+                NSString *userList = [dic objectForKey:@"userList"];
+                [self executeSms:callBackFunc :userSpecific :msg :userList];
+                
+            }else if([host isEqualToString:@"executeCropCamera"]){
+                //mfnp.executeCropCamera('pageMethod.CBCamera', 'pic01_Btn', '1500', 'jpg');
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                NSString *size = [dic objectForKey:@"size"];
+                _imageFormat = [dic objectForKey:@"format"];
+                [self executeCropCameraCallBackFunc:callBackFunc userSpecific:userSpecific size:size];
+                
+            }else if([host isEqualToString:@"executeImageViewer"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *imagePath= [dic objectForKey:@"imagePath"];
+                [self executeImageViewer:imagePath];
+                NSLog(@"imagePath : %@",imagePath);
+                
+            }else if([host isEqualToString:@"executeUrl"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *url = [dic objectForKey:@"url"];
+                [self executeUrl:url];
+            }
+            
+            else if([host isEqualToString:@"getDeviceInfo"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                NSString *specName = [dic objectForKey:@"specName"];
+                if (specName!=nil) {
+                    [self getDeviceSpec:callBackFunc :userSpecific :specName];
+                }else{
+                    [self getDeviceSpec:callBackFunc :userSpecific];
+                }
+                
+            }else if([host isEqualToString:@"getDeviceSpec"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                NSString *specName = [dic objectForKey:@"specName"];
+                if (specName!=nil) {
+                    [self getDeviceSpec:callBackFunc :userSpecific :specName];
+                }else{
+                    [self getDeviceSpec:callBackFunc :userSpecific];
+                }
+                
+            }else if([host isEqualToString:@"getAccelerometer"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getAccelerometer:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getCheckSession"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getCheckSession:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getConvertImageToBase64"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *imagePath = [dic objectForKey:@"imagePath"];
+                [self getConvertImageToBase64:callBackFunc :imagePath];
+            }else if([host isEqualToString:@"getFileList"]){
+                //NSDictionary *dic = [self getParameters:[url query]];
+                
+            }else if([host isEqualToString:@"getFilePath"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getFilePath:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getGpsLocation"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getGpsLocation:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getGyroscope"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getGyroscope:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getMagneticField"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getMagneticField:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getMenuLocation"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getMenuLocation:callBackFunc:userSpecific];
+                
+            }else if([host isEqualToString:@"getNetworkStatus"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getNetworkStatus:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getOrientation"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getOrientation:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getProximity"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSLog(@"dic : %@",dic);
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                
+                [self getProximity:callBackFunc :userSpecific];
+                
+            }else if([host isEqualToString:@"getUserInfo"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self getUserInfo:callBackFunc :userSpecific];
+                
+            }
+            
+            else if([host isEqualToString:@"setBackKeyEvent"]){
+                UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"setBackKeyEvent" message:NSLocalizedString(@"message143", @"지원하지 않는 기능입니다.") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles: nil];
+                [alertView show];
+                /*
+                 NSDictionary *dic = [self getParameters:[url query]];
+                 NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                 NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                 NSString *backkeyMode = [dic objectForKey:@"backkeyMode"];
+                 [self setBackKeyEvent:callBackFunc :userSpecific :backkeyMode];
+                 */
+            }else if([host isEqualToString:@"setFileNames"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *fileList = [dic objectForKey:@"fileList"];
+                [self setFileNames:fileList];
+                
+            }
+            
+            else if([host isEqualToString:@"isRoaming"]){
+                NSDictionary *dic = [self getParameters:[url query]];
+                NSString *callBackFunc = [dic objectForKey:@"callbackFunc"];
+                NSString *userSpecific = [dic objectForKey:@"userSpecific"];
+                [self isRoaming:callBackFunc :userSpecific];
+                
+            }
+            
+            return NO;
+        }
+        else {
+            return YES;
+        }
+    }
+    return YES;
+    
+}
+
+-(void)webViewDidFinishLoad:(UIWebView *)webView{
+    self.progressView.hidden = YES;
+    [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:NO];
+}
+-(void)pushNotificationReceived:(NSNotification *)notification{
+    NSDictionary *userInfo = notification.userInfo;
+    NSString *menuNo = [userInfo objectForKey:@"menuNo"];
+    [self getExecuteMenuInfo:menuNo];
+    
+}
+- (NSString *)makeDBFile{
+    NSLog(@"[makeDBFile]");
+    NSString *libraryPath = [NSHomeDirectory() stringByAppendingPathComponent:@"Library"];
+    libraryPath = [libraryPath stringByAppendingPathComponent:@"Application Support"];
+    libraryPath = [libraryPath stringByAppendingPathComponent:@"dbvalley"];
+    libraryPath = [libraryPath stringByAppendingPathComponent:@"sqlite_db"];
+    NSString *userPath = [libraryPath stringByAppendingPathComponent:[appDelegate.comp_no uppercaseString]];
+    NSString *dbFilePath = [libraryPath stringByAppendingPathComponent:@"mFinity.db"];
+    NSLog(@"dbFilePath : %@",dbFilePath);
+    NSFileManager *manager = [[NSFileManager alloc] init];
+    NSString *filePath = [[NSBundle mainBundle] pathForResource:@"mFinity.sqlite" ofType:nil];
+    NSError *error;
+    
+    if (![manager isReadableFileAtPath:userPath]) {
+        [manager createDirectoryAtPath:userPath withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    if (![manager isReadableFileAtPath:dbFilePath]) {
+        [manager copyItemAtPath:filePath toPath:dbFilePath error:&error];
+    }
+    
+    return dbFilePath;
+}
+#pragma mark
+#pragma mark URLConnectionDelegate
+-(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error{
+    
+    [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:FALSE];
+    
+    NSLog(@"error url : %@",connection.currentRequest.URL);
+    NSLog(@"error : %@",error);
+    UIAlertView* alert=[[UIAlertView alloc] initWithTitle:NSLocalizedString(@"message56", @"") message:NSLocalizedString(@"message13", @"") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles:nil];
+    [alert show];
+}
+-(void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response{
+    [receiveData setLength:0];
+    NSLog(@"response : %@",response);
+}
+-(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data{
+    NSString *urlStr = connection.currentRequest.URL.absoluteString;
+    NSArray *methodArr = [[urlStr lastPathComponent] componentsSeparatedByString:@"?"];
+    NSString *methodName = [methodArr objectAtIndex:0];
+    if ([methodName isEqualToString:@"addMenuHist"]) {
+        [histData appendData:data];
+    }else{
+        [receiveData appendData:data];
+    }
+}
+-(void)connectionDidFinishLoading:(NSURLConnection *)connection{
+    NSString *urlStr = connection.currentRequest.URL.absoluteString;
+    NSArray *methodArr = [[urlStr lastPathComponent] componentsSeparatedByString:@"?"];
+    NSString *methodName = [methodArr objectAtIndex:0];
+    
+    if ([methodName isEqualToString:@"DataGate3"]) {
+        NSString *encString =[[NSString alloc]initWithData:receiveData encoding:NSUTF8StringEncoding];
+        NSString *decString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+        
+        
+        NSError *error;
+        NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:[decString dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&error];
+        if ([dic objectForKey:@"ERROR"]!=nil) {
+            UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DataGate Error" message:[dic objectForKey:@"ERROR"] delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"확인") otherButtonTitles: nil];
+            [alertView show];
+            
+        }
+        NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",
+                               [self.callBackDic objectForKey:@"callBackFunc"],
+                               [self.callBackDic objectForKey:@"userSpecific"],
+                               decString];
+        NSLog(@"jsCommand : %@",jsCommand);
+        [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+        
+    }else if([methodName isEqualToString:@"sendPushService"]){
+        NSString *encString =[[NSString alloc]initWithData:receiveData encoding:NSUTF8StringEncoding];
+        NSString *decString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+        
+        NSError *error;
+        NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:[decString dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&error];
+        
+        NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",
+                               [self.callBackDic objectForKey:@"callBackFunc"],
+                               [self.callBackDic objectForKey:@"userSpecific"],
+                               [dic objectForKey:@"V1"]];
+        
+        NSLog(@"jsCommand : %@",jsCommand);
+        [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+        
+    }else if([methodName isEqualToString:@"CheckSession"]){
+        NSString *encString =[[NSString alloc]initWithData:receiveData encoding:NSUTF8StringEncoding];
+        /*
+         if (appDelegate.isAES256) {
+         encString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+         }
+         else{
+         encString = encString;
+         }*/
+        NSError *error;
+        NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:[encString dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingMutableContainers error:&error];
+        
+        NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",
+                               [self.callBackDic objectForKey:@"callBackFunc"],
+                               [self.callBackDic objectForKey:@"userSpecific"],
+                               [dic objectForKey:@"V0"]];
+        
+        NSLog(@"jsCommand : %@",jsCommand);
+        [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+        
+    }else if([methodName isEqualToString:@"addMenuHist"]) {
+        NSDictionary *dic;
+        NSError *error;
+        @try {
+            // if AES256
+            NSString *encString =[[NSString alloc]initWithData:histData encoding:NSUTF8StringEncoding];
+            NSString *decString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+            
+            NSLog(@"WebViewController encString : %@",encString);
+            NSLog(@"WebViewController decString : %@",decString);
+            dic = [NSJSONSerialization JSONObjectWithData:[decString dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&error];
+            NSLog(@"WebViewController addMenuHist dic : %@",dic);
+            // if nomal
+            //dic = [NSJSONSerialization JSONObjectWithData:receiveData options:kNilOptions error:&error];
+        }
+        @catch (NSException *exception) {
+            NSLog(@"exception : %@",exception);
+        }
+        [SVProgressHUD dismiss];
+        if ([[dic objectForKey:@"V0"]isEqualToString:@"True"]) {
+            //[self menuHandler];
+        }else{
+            UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:NSLocalizedString(@"message121", @"") message:NSLocalizedString(@"message127", @"") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles: nil];
+            [alertView show];
+        }
+        
+    } else if([methodName isEqualToString:@"GetExecuteMenuInfo"]){
+        NSString *encString =[[NSString alloc]initWithData:receiveData encoding:NSUTF8StringEncoding];
+        NSString *decString = [encString AES256DecryptWithKeyString:appDelegate.AES256Key];
+        NSError *error;
+        NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:[decString dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&error];
+        NSLog(@"WebViewController GetExecuteMenuInfo dic : %@",dic);
+        if ([[dic objectForKey:@"V0"] isEqualToString:@"True"]) {
+            NSString *menu_no = [dic objectForKey:@"V3"];
+            
+            NSString *target_url = [dic objectForKey:@"V6"];
+            
+            NSString *param_String = [dic objectForKey:@"V6_1"];
+            
+            NSData *param_data = [param_String dataUsingEncoding:NSUTF8StringEncoding];
+            menuKind = @"P";
+            
+            //appDelegate.menu_title = [dic objectForKey:@"V9"];
+            
+            menuType = [dic objectForKey:@"V10"];
+            
+            NSString *versionFromServer = [dic objectForKey:@"V12"];
+            
+            nativeAppURL = [dic objectForKey:@"V13"];
+            
+            //_isDMS = [[dic objectForKey:@"V16"] isEqualToString:@"Y"];
+            //_isTabBar = [[dic objectForKey:@"V17"] isEqualToString:@"Y"];
+            
+            paramString = @"";
+            //appDelegate.menu_no = menu_no;
+            nativeAppMenuNo = menu_no;
+            currentAppVersion = versionFromServer;
+            appDelegate.target_url = target_url;
+            
+            NSDictionary *paramDic = [NSJSONSerialization JSONObjectWithData:param_data options:kNilOptions error:&error];
+            @try {
+                for(int i=1; i<=[paramDic count]; i++){
+                    NSDictionary *subParamDic = [paramDic objectForKey:[NSString stringWithFormat:@"%d",i]];
+                    paramString = [paramString stringByAppendingFormat:@"%@",[[subParamDic objectForKey:@"PARAM_KEY"] urlEncodeUsingEncoding:NSUTF8StringEncoding]];
+                    paramString = [paramString stringByAppendingFormat:@"="];
+                    paramString = [paramString stringByAppendingFormat:@"%@",[[subParamDic objectForKey:@"PARAM_VAL"] urlEncodeUsingEncoding:NSUTF8StringEncoding]];
+                    paramString = [paramString stringByAppendingFormat:@"&"];
+                }
+                if ([[paramString substringFromIndex:paramString.length-1] isEqualToString:@"&"]) {
+                    paramString = [paramString substringToIndex:paramString.length-1];
+                }
+                
+            }
+            @catch (NSException *exception) {
+                //NSLog(@"exception : %@",[exception name]);
+            }
+        }else{
+            
+        }
+        [SVProgressHUD dismiss];
+        
+    }else{
+        UIImageWriteToSavedPhotosAlbum([UIImage imageWithData:receiveData], nil, nil, nil);
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:nil message:@"사진이 앨범에 저장되었습니다." delegate:nil cancelButtonTitle:NSLocalizedString(@"message51", @"확인") otherButtonTitles: nil];
+        [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:FALSE];
+        [alertView show];
+    }
+    receiveData = nil;
+}
+
+#pragma mark
+#pragma mark MFNP (Execute)
+
+-(void)executeBarcode:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    [self barCodeReaderOpen];
+}
+-(void)executeCamera:(NSString *)callBackFunc :(NSString *)userSpecific{
+    //AppDelegate *appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    isCamera = YES;
+    if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+        picker = [[UIImagePickerController alloc] init];
+        picker.delegate = self;
+        picker.allowsEditing = YES;
+        picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+        NSLog(@"picker : %@",picker);
+        
+        [self presentViewController:picker animated:YES completion:NULL];
+    }else{
+        UIAlertView *myAlertView = [[UIAlertView alloc] initWithTitle:@"Error"
+                                                              message:@"Device has no camera"
+                                                             delegate:nil
+                                                    cancelButtonTitle:@"OK"
+                                                    otherButtonTitles: nil];
+        
+        [myAlertView show];
+    }
+}
+-(void)executeCropCameraCallBackFunc:(NSString *)callBackFunc userSpecific:(NSString *)userSpecific size:(NSString *)size{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+
+    _imageSize = size;
+    isCamera = YES;
+    if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+        picker = [[UIImagePickerController alloc] init];
+        picker.delegate = self;
+        //picker.allowsEditing = YES;
+        picker.sourceType = UIImagePickerControllerSourceTypeCamera;
+        NSLog(@"picker : %@",picker);
+        
+        [self presentViewController:picker animated:YES completion:NULL];
+    }else{
+        UIAlertView *myAlertView = [[UIAlertView alloc] initWithTitle:@"Error"
+                                                              message:@"Device has no camera"
+                                                             delegate:nil
+                                                    cancelButtonTitle:@"OK"
+                                                    otherButtonTitles: nil];
+        
+        [myAlertView show];
+    }
+}
+-(void)executeDataGate:(NSString *)callBackFunc :(NSString *)userSpecific :(NSString *)dbConfigKey :(NSString *)sprocName :(NSString *)args{
+    _callBackDic = [[NSMutableDictionary alloc]init];
+    [_callBackDic setValue:[callBackFunc urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"callBackFunc"];
+    [_callBackDic setValue:[userSpecific urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"userSpecific"];
+    [_callBackDic setValue:[dbConfigKey urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"dbConfigKey"];
+    [_callBackDic setValue:[sprocName urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"sprocName"];
+    [_callBackDic setValue:[args urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"args"];
+    NSString *_dbConfigKey = [dbConfigKey AES256EncryptWithKeyString:@""];
+    NSString *_sprocName = [sprocName AES256EncryptWithKeyString:@""];
+    NSString *_args = [args AES256EncryptWithKeyString:@""];
+    NSString *_compNo = [@"10" AES256EncryptWithKeyString:@""];
+    //    NSString *_dbConfigKey =[FBEncryptorAES encryptBase64String:dbConfigKey
+    //                                                      keyString:appDelegate.AES256Key
+    //                                                  separateLines:NO];
+    //    NSString *_sprocName =[FBEncryptorAES encryptBase64String:sprocName
+    //                                                    keyString:appDelegate.AES256Key
+    //                                                separateLines:NO];
+    //    NSString *_args =[FBEncryptorAES encryptBase64String:args
+    //                                               keyString:appDelegate.AES256Key
+    //                                           separateLines:NO];
+    //    NSString *_compNo =[FBEncryptorAES encryptBase64String:appDelegate.comp_no
+    //                                                 keyString:appDelegate.AES256Key
+    //                                             separateLines:NO];
+    
+    NSString *mainString = [appDelegate.main_url stringByReplacingOccurrencesOfString:@"dataservice41" withString:@""];
+    //NSString *mainString = @"http://192.168.0.54:1598/";
+    NSString *urlString = [NSString stringWithFormat:@"%@dataGateListener/DataGate3",mainString];
+    NSString *param = [[NSString alloc]initWithFormat:@"jsonPCallback=?&dbConfigKey=%@&sprocName=%@&args=%@&jsonPCallback?&compNo=%@&encType=AES256",[_dbConfigKey urlEncodeUsingEncoding:NSUTF8StringEncoding],[_sprocName urlEncodeUsingEncoding:NSUTF8StringEncoding],[_args urlEncodeUsingEncoding:NSUTF8StringEncoding],[_compNo urlEncodeUsingEncoding:NSUTF8StringEncoding]];
+    NSLog(@"paramString : %@",param);
+    NSData *postData = [param dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:[NSURL URLWithString:urlString]];
+    [request setHTTPMethod:@"POST"];
+    [request setHTTPBody: postData];
+    [request setTimeoutInterval:10.0];
+    NSURLConnection *urlConnection = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+    if (urlConnection) {
+        receiveData = [NSMutableData data];
+        [urlConnection start];
+    }
+}
+-(void)executeExitWebBrowser{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+-(void)executeExternalBrowser:(NSString *)url{
+    [[UIApplication sharedApplication] openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
+}
+-(void)executeFileUpload:(NSString *)fileType :(NSString *)fileName :(NSString *)upLoadPath{
+    //    FileUploadViewController *vc = [[FileUploadViewController alloc]init];
+    //    NSArray *valueArray = [[NSArray alloc]initWithObjects:fileName,upLoadPath, nil];
+    //    NSArray *keyArray = [[NSArray alloc]initWithObjects:@"fileName",@"upLoadPath", nil];
+    //    NSMutableDictionary *subDic = [[NSMutableDictionary alloc]initWithObjects:valueArray forKeys:keyArray];
+    //    NSMutableDictionary *dic = [[NSMutableDictionary alloc]initWithObjects:[[NSArray alloc]initWithObjects:subDic, nil] forKeys:[[NSArray alloc]initWithObjects:@"0", nil]];
+    //    vc.uploadInfo = dic;
+    //    UINavigationController *nvc = [[UINavigationController alloc]initWithRootViewController:vc];
+    //    [self presentViewController:nvc animated:YES completion:nil];
+}
+-(void)executeImageViewer :(NSString *)imagePath{
+    ImageViewController *lvc = [self.storyboard instantiateViewControllerWithIdentifier:@"ImageViewController"];
+    lvc.imagePath = imagePath;
+    [self.navigationController pushViewController:lvc animated:YES];
+}
+-(void)executeMenu:(NSString *)menuNo{
+    [self getExecuteMenuInfo:menuNo];
+}
+-(void)executeNonQuery:(NSString *)dbName :(NSString *)selectStmt :(NSString *)callBackFunc :(NSString *)userSpecific{
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if (![fileManager isReadableFileAtPath:dbDirectoryPath]) {
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:@"DB파일을 찾을 수 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+        //[[TKAlertCenter defaultCenter] postAlertWithMessage:NSLocalizedString(@"message160", @"DB파일을 찾을 수 없습니다.")];
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+    
+    sqlite3 *database;
+    
+    NSString *returnStr = @"";
+    if (sqlite3_open([dbDirectoryPath UTF8String], &database) == SQLITE_OK) {
+        NSString *sql2 = [NSString urlDecodeString:selectStmt];
+        NSLog(@"sql2 : %@",sql2);
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(database));
+                
+                NSString *str = [NSString stringWithUTF8String:sqlite3_errmsg(database)];
+                returnStr = @"{\"RESULT\":\"FAILED\",\"MESSAGE\":\"";
+                returnStr = [returnStr stringByAppendingString:NSLocalizedString(str, @"")];
+                returnStr = [returnStr stringByAppendingString:@"\"}"];
+                //UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:str delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+                //[alertView show];
+                
+            }else{
+                returnStr = @"{\"RESULT\":\"SUCCEED\"}";
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+                NSLog(@"SQL Error : %s",sqlite3_errmsg(database));
+                NSString *str = [NSString stringWithUTF8String:sqlite3_errmsg(database)];
+                returnStr = @"{\"RESULT\":\"FAILED\",\"MESSAGE\":\"";
+                returnStr = [returnStr stringByAppendingString:NSLocalizedString(str, @"")];
+                returnStr = [returnStr stringByAppendingString:@"\"}"];
+                //UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:str delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+                //[alertView show];
+            }
+            
+            
+            
+        }else {
+            NSLog(@"not SQLITE_OK");
+            NSString *str = [NSString stringWithUTF8String:sqlite3_errmsg(database)];
+            returnStr = @"{\"RESULT\":\"FAILED\",\"MESSAGE\":\"";
+            returnStr = [returnStr stringByAppendingString:NSLocalizedString(str, @"")];
+            returnStr = [returnStr stringByAppendingString:@"\"}"];
+            //UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:str delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+            //[alertView show];
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+    }else{
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:@"DB 파일을 열 수 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+    }
+    
+    sqlite3_close(database);
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@', '%@');",callBackFunc,[userSpecific URLEncode],[returnStr URLEncode]];
+    NSLog(@"executeNonQuery : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+    
+}
+-(void)executeNotification:(NSString *)useVibrator :(NSString *)useBeep :(NSString *)timer{
+    count=0;
+    endCount=[timer intValue];
+    
+    NSMutableDictionary *userInfo = [[NSMutableDictionary alloc]initWithObjectsAndKeys:useVibrator,@"useVibrator",useBeep,@"useBeep", nil];
+    [NSTimer scheduledTimerWithTimeInterval:1.0f
+                                     target:self
+                                   selector:@selector(handleTimer:)
+                                   userInfo:userInfo
+                                    repeats:YES];
+    
+}
+-(void) handleTimer:(NSTimer *)timer {
+    count++;
+    
+    if (count==endCount) {
+        count=0;
+        
+        if ([[timer.userInfo objectForKey:@"useVibrator"] isEqualToString:@"TRUE"]) {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+            AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+        }
+        if ([[timer.userInfo objectForKey:@"useBeep"] isEqualToString:@"TRUE"]) {
+            AudioServicesPlaySystemSound(1106);
+            //AudioServicesPlayAlertSound(1057);
+        }
+        [timer invalidate];
+    }
+}
+-(void)executeProgressDialogStart:(NSString *)title :(NSString *)msg{
+    [SVProgressHUD showWithStatus:msg];
+}
+-(void)executeProgressDialogStop{
+    [SVProgressHUD dismiss];
+}
+-(void)executePush:(NSString *)callBackFunc :(NSString *)userSpecific :(NSString *)userList :(NSString *)message{
+    /*
+     NSError *error;
+     NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:[userList dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&error];
+     NSString *urlString = [NSString stringWithFormat:@"%@/sendPushService",appDelegate.main_url];
+     //NSString *urlString = @"http://192.168.0.54:1598/dataservice41/sendPushService";
+     NSLog(@"urlString : %@",urlString);
+     NSLog(@"message : %@",message);
+     NSLog(@"userList : %@",dic);
+     
+     NSString *paramString = [NSString stringWithFormat:@"encType=AES256&mode=C&msg=%@&userList=%@",message,dic];
+     
+     NSData *paramData = [paramString dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+     _callBackDic = [[NSMutableDictionary alloc]init];
+     [_callBackDic setValue:[callBackFunc urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"callBackFunc"];
+     [_callBackDic setValue:[userSpecific urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"userSpecific"];
+     
+     NSURL *url = [NSURL URLWithString:urlString];
+     NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];
+     [request setHTTPMethod:@"POST"];
+     [request setHTTPBody: paramData];
+     [request setTimeoutInterval:10.0];
+     
+     NSURLConnection *conn = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+     if (conn) {
+     receiveData = [NSMutableData data];
+     }
+     */
+}
+-(void) executeRecognizeSpeech:(NSString *)callBackFunc :(NSString *)userSpecific{
+    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"executeRecognizeSpeech" message:NSLocalizedString(@"message143", @"지원하지 않는 기능입니다.") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles: nil];
+    [alertView show];
+}
+-(void)executeRetrieve:(NSString *)dbName :(NSString *)selectStmt :(NSString *)callBackFunc :(NSString *)userSpecific{
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSLog(@"dbDirectoryPath : %@",dbDirectoryPath);
+    if (![fileManager isReadableFileAtPath:dbDirectoryPath]) {
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:@"DB파일을 찾을 수 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+        //[self.navigationController popViewControllerAnimated:YES];
+    }
+    NSString *returnStr = @"";
+    //NSMutableDictionary *returnDic = [[NSMutableDictionary alloc]init];
+    sqlite3 *database;
+    if (sqlite3_open([dbDirectoryPath UTF8String], &database) == SQLITE_OK) {
+        NSString *sql2 = selectStmt;
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        int i=0;
+        
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            returnStr = @"{\"RESULT\":\"SUCCEED\",";
+            
+            //NSMutableDictionary *row = [[NSMutableDictionary alloc]init];
+            
+            int rowCount = 0;
+            returnStr = [returnStr stringByAppendingFormat:@"\"DATASET\":{"];
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                NSString *LKey = [NSString stringWithFormat:@"ROW%d",i++];
+                
+                returnStr = [returnStr stringByAppendingFormat:@"\"%@\":{",LKey];
+                //NSMutableDictionary *dataSet = [[NSMutableDictionary alloc]init];
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                        
+                    }
+                    returnStr = [returnStr stringByAppendingFormat:@"\"%@\":\"%@\",",keyString,valueString];
+                }
+                returnStr = [returnStr substringToIndex:returnStr.length-1];
+                returnStr = [returnStr stringByAppendingFormat:@"},"];
+            }
+            returnStr = [returnStr substringToIndex:returnStr.length-1];
+            returnStr = [returnStr stringByAppendingFormat:@"}}"];
+            
+        }else {
+            NSLog(@"not SQLITE_OK");
+            NSString *str = [NSString stringWithUTF8String:sqlite3_errmsg(database)];
+            returnStr = @"{\"RESULT\":\"FAILED\",\"MESSAGE\":\"";
+            returnStr = [returnStr stringByAppendingString:NSLocalizedString(str, @"")];
+            returnStr = [returnStr stringByAppendingString:@"\"}"];
+            //UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:str delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+            //[alertView show];
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"DB Error" message:@"DB 파일을 열 수 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+    }
+    
+    sqlite3_close(database);
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@', '%@');",callBackFunc,[userSpecific URLEncode],[returnStr URLEncode]];
+    NSLog(@"executeRetrive : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)executeSignpad:(NSString *)callBackFunc :(NSString *)userSpecific{
+    SignPadViewController *vc = [[SignPadViewController alloc]init];
+    vc.userSpecific = userSpecific;
+    vc.callbackFunc = callBackFunc;
+    UINavigationController *nvc = [[UINavigationController alloc]initWithRootViewController:vc];
+    //[self.navigationController pushViewController:vc animated:YES];
+    [self presentViewController:nvc animated:YES completion:nil];
+}
+-(void) executeSms:(NSString *)callBackFunc :(NSString *)userSpecific :(NSString *)msg :(NSString *)userList{
+    _callBackDic = [[NSMutableDictionary alloc]init];
+    [_callBackDic setValue:[callBackFunc urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"callBackFunc"];
+    [_callBackDic setValue:[userSpecific urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"userSpecific"];
+    
+    NSError *error;
+    NSDictionary *dataDic = [NSJSONSerialization JSONObjectWithData:[userList dataUsingEncoding: NSUTF8StringEncoding] options:kNilOptions error:&error];
+    MFMessageComposeViewController *controller = [[MFMessageComposeViewController alloc] init];
+    NSMutableArray *array = [[NSMutableArray alloc]init];
+    for (NSString *user in [dataDic allValues]) {
+        NSString *inValue = [user stringByReplacingOccurrencesOfString:@"-" withString:@""];
+        [array addObject:inValue];
+    }
+    if([MFMessageComposeViewController canSendText])
+    {
+        controller.body = msg;
+        controller.recipients = array;
+        controller.messageComposeDelegate = self;
+        [self presentViewController:controller animated:YES completion:nil];
+    }
+}
+- (void)executeUrl:(NSString *)url{
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:@"webapp"];
+    NSString *returnPath = [documentFolder stringByAppendingPathComponent:appDelegate.menuNo];
+    returnPath = [returnPath stringByAppendingPathComponent:url];
+    [_webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:returnPath]]];
+}
+
+#pragma mark MFNP (Get)
+-(void)getAccelerometer:(NSString *)callBackFunc :(NSString *)userSpecific{
+    // Create a CMMotionManager
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    _myDataLogger = [[DataLogger alloc] init];
+    [_myDataLogger setLogUserAccelerationData:YES];
+    [_myDataLogger startLoggingMotionData];
+    [self performSelector:@selector(stopAccelerometer) withObject:self afterDelay:1.0];
+}
+-(void)stopAccelerometer{
+    [_myDataLogger stopLoggingMotionDataAndSave];
+    
+    NSArray *accelorInfo = [_myDataLogger.userAccelerationString componentsSeparatedByString:@","];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@','%@','%@');",_callbackFunc,[_userSpecific URLEncode],[[accelorInfo objectAtIndex:1] URLEncode],[[accelorInfo objectAtIndex:2] URLEncode],[[accelorInfo objectAtIndex:3] URLEncode]];
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void) getCheckSession:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callBackDic = [[NSMutableDictionary alloc]init];
+    [_callBackDic setValue:[callBackFunc urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"callBackFunc"];
+    [_callBackDic setValue:[userSpecific urlEncodeUsingEncoding:NSUTF8StringEncoding] forKey:@"userSpecific"];
+    
+    NSString *sessionURL = [NSString stringWithFormat:@"%@/CheckSession",appDelegate.main_url];
+    NSURL *url = [NSURL URLWithString:sessionURL];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];
+    [request setHTTPMethod:@"POST"];
+    [request setTimeoutInterval:10.0];
+    
+    NSURLConnection *conn = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+    if (conn) {
+        receiveData = [NSMutableData data];
+    }
+}
+-(void)getConvertImageToBase64:(NSString *)callBackFunc :(NSString *)imagePath {
+    /*
+     Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+     ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream);
+     byte[] image = outStream.toByteArray();
+     String fileImageBase64 = Base64.encodeToString(image, 0);
+     
+     JSONObject json = new JSONObject();
+     File file = new File(imagePath);
+     json.put("title",file.getName().toString());
+     json.put("value", fileImageBase64);
+     
+     String result = "javascript:"+callbackFunc+"('"+json+"')";
+     Message msg = mfnpHandler.obtainMessage();
+     msg.what = 6;
+     msg.obj = result;
+     mfnpHandler.sendMessage(msg);
+     */
+    
+    //NSString *_imagePath = [self getPhotoFilePath];
+    //_imagePath = [_imagePath stringByAppendingFormat:@"/%@",];
+    //_imagePath = [_imagePath stringByAppendingPathExtension:imagePath];
+    NSData *imageData = [NSData dataWithContentsOfFile:imagePath];
+    NSString *base64 = [imageData base64EncodedStringWithOptions:NSDataBase64Encoding64CharacterLineLength];
+    
+    
+    NSMutableDictionary *returnDic = [[NSMutableDictionary alloc]init];
+    [returnDic setObject:[imagePath lastPathComponent] forKey:@"title"];
+    [returnDic setObject:base64 forKey:@"value"];
+    
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:returnDic
+                                                       options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
+                                                         error:&error];
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    jsonString = [jsonString URLEncode];
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@');",callBackFunc,[jsonString URLEncode]];
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getDeviceSpec:(NSString *)callBackFunc :(NSString *)userSpecific :(NSString *)specName{
+    NSDictionary *deviceSpec = [self getDeviceSpec];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[[deviceSpec objectForKey:specName] URLEncode]];
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getDeviceSpec:(NSString *)callBackFunc :(NSString *)userSpecific{
+    NSString *spec = [self getJsonStringByDictionary:[self getDeviceSpec]];
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[spec urlEncodeUsingEncoding:NSUTF8StringEncoding]];
+    NSLog(@"deviceSpec command : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(NSDictionary *)getDeviceSpec{
+    UIDevice *myDevice = [UIDevice currentDevice];
+    NSString *osName = myDevice.systemName;
+    NSString *osVersion = myDevice.systemVersion;
+    // 통신사
+    CTTelephonyNetworkInfo *networkInfo = [[CTTelephonyNetworkInfo alloc] init];
+    CTCarrier *carrier = [networkInfo subscriberCellularProvider];
+    // Get carrier name
+    NSString *carrierName = [carrier carrierName];
+    
+    NSString *production = @"Apple";
+    //해상도
+    CGRect screen = [[UIScreen mainScreen]bounds];
+    CGFloat screenWidth = screen.size.width;
+    CGFloat screenHeight = screen.size.height;
+    if ([self retinaDisplayCapable]) {
+        screenHeight = screenHeight*2;
+        screenWidth = screenWidth*2;
+    }
+    NSString *width = [NSString stringWithFormat:@"%f",screenWidth];
+    width = [width stringByDeletingPathExtension];
+    NSString *height = [NSString stringWithFormat:@"%f",screenHeight];
+    height = [height stringByDeletingPathExtension];
+    NSString *resolution = [width stringByAppendingString:@"*"];
+    resolution = [resolution stringByAppendingString:height];
+    
+    //가속도 센서
+    NSString *isAccelerometer = @"";
+    if ([self accelerometerAvailable]) {
+        isAccelerometer = @"YES";
+    }else{
+        isAccelerometer = @"NO";
+    }
+    //g센서
+    
+    NSString *isGyroscope = @"";
+    if ([self gyroscopeAvailable]) {
+        isGyroscope = @"YES";
+    }else{
+        isGyroscope = @"NO";
+    }
+    
+    //자기장센서
+    NSString *isMagnetometer = @"";
+    if ([self compassAvailable]) {
+        isMagnetometer = @"YES";
+    }else{
+        isMagnetometer = @"NO";
+    }
+    
+    //방향센서
+    NSString *isDirection = @"";
+    if ([self accelerometerAvailable]) {
+        isDirection = @"YES";
+    }else{
+        isDirection = @"NO";
+    }
+    
+    //근접센서
+    NSString *isProximity = @"";
+    UIDevice *device = [UIDevice currentDevice];
+    if(device.proximityMonitoringEnabled){
+        isProximity = @"YES";
+    }else{
+        isProximity = @"NO";
+    }
+    
+    //gps
+    NSString *isGPS = @"";
+    if ([self gpsAvailable]) {
+        isGPS = @"YES";
+    }else{
+        isGPS = @"NO";
+    }
+    //camera
+    //NSString *isCamera = [self isValue:@"still-camera"];
+    NSString *_isCamera = @"";
+    if ([self linearCameraAvailable]) {
+        _isCamera = @"YES";
+    }else{
+        _isCamera = @"NO";
+    }
+    //front_camera
+    //NSString *isFrontCamera = [self isValue:@"front-facing-camera"];
+    NSString *isFrontCamera = @"";
+    if ([self frontCameraAvailable]) {
+        isFrontCamera = @"YES";
+    }else{
+        isFrontCamera = @"NO";
+    }
+    
+    //cpu core
+    NSString *coreCount = [NSString stringWithFormat:@"%d",[self countCores]];
+    
+    NSString *appType = @"Phone";
+    
+    NSString *appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
+    
+    NSString *modelName = [[UIDevice currentDevice] platformString];
+    NSString *dvcID = [AppDelegate getUUID];
+    NSMutableDictionary *returnDic = [[NSMutableDictionary alloc]init];
+    [returnDic setObject:dvcID  forKey:@"DEVICE_ID"];
+    [returnDic setObject:modelName  forKey:@"MODEL_NAME"];
+    [returnDic setObject:coreCount  forKey:@"CPU_CORE"];
+    [returnDic setObject:production forKey:@"MANUFACTURER"];
+    [returnDic setObject:resolution forKey:@"RESOLUTION"];
+    
+    [returnDic setObject:isAccelerometer forKey:@"ACCELEROMETER"];
+    [returnDic setObject:isGyroscope forKey:@"GYROSCOPE"];
+    [returnDic setObject:isMagnetometer forKey:@"MAGNET"];
+    [returnDic setObject:isDirection forKey:@"ORIENTATION"];
+    [returnDic setObject:isGPS forKey:@"GPS"];
+    [returnDic setObject:_isCamera forKey:@"STILLCAM"];
+    [returnDic setObject:isFrontCamera forKey:@"FRONTCAM"];
+    
+    [returnDic setObject:osName forKey:@"OS_TYPE"];
+    [returnDic setObject:osVersion forKey:@"OS_VERSION"];
+    [returnDic setObject:appType forKey:@"APP_TYPE"];
+    [returnDic setObject:appVersion forKey:@"APP_VERSION"];
+    
+    return returnDic;
+}
+-(NSString*)getJsonStringByDictionary:(NSDictionary*)dictionary{
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dictionary
+                                                       options:NSJSONWritingPrettyPrinted
+                                                         error:&error];
+    return [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+}
+-(void)getExecuteMenuInfo:(NSString *)menuNo{
+    
+    NSURL *url = [[NSURL alloc]initWithString:[NSString stringWithFormat:@"%@/GetExecuteMenuInfo",appDelegate.main_url]];
+    //NSURL *url = [[NSURL alloc]initWithString:[NSString stringWithFormat:@"http://192.168.0.54:1598/dataservice41/GetExecuteMenuInfo"]];
+    NSString *_paramString = [NSString stringWithFormat:@"menuNo=%@&cuserNo=%@&encType=AES256",menuNo,appDelegate.user_no];
+    NSData *paramData = [_paramString dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];
+    [request setHTTPMethod:@"POST"];
+    [request setHTTPBody: paramData];
+    [request setTimeoutInterval:10.0];
+    NSURLConnection *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
+    if (conn!=nil) {
+        [SVProgressHUD show];
+        receiveData = [[NSMutableData alloc]init];
+    }
+    [conn start];
+    
+}
+-(void)getNetworkStatus:(NSString *)callBackFunc :(NSString *)userSpecific{
+    NSString *result;
+    NSArray *subviews = [[[[UIApplication sharedApplication] valueForKey:@"statusBar"] valueForKey:@"foregroundView"]subviews];
+    NSNumber *dataNetworkItemView = nil;
+    
+    for (id subview in subviews) {
+        if([subview isKindOfClass:[NSClassFromString(@"UIStatusBarDataNetworkItemView") class]]) {
+            dataNetworkItemView = subview;
+            break;
+        }
+    }
+    
+    switch ([[dataNetworkItemView valueForKey:@"dataNetworkType"]integerValue]) {
+        case 0:
+            NSLog(@"No wifi or cellular");
+            break;
+        case 1:
+            result = @"Cellular";
+            break;
+        case 2:
+            result = @"Cellular";
+            break;
+        case 3:
+            result = @"Cellular";
+            break;
+        case 4:
+            result = @"Cellular";
+            break;
+        case 5:
+            result = @"WIFI";
+            break;
+        default:
+            break;
+    }
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[result URLEncode]];
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getFilePath:(NSString *)callBackFunc :(NSString *)userSpecific {
+    /*
+     NSString *photoPath = [self getPhotoFilePath];
+     NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@','%@');",callBackFunc,[userSpecific URLEncode],[photoPath URLEncode],[photoPath URLEncode]];
+     [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+     */
+}
+-(void)getGpsLocation:(NSString *)callBackFunc :(NSString *)userSpecific {
+    locationManager = [[CLLocationManager alloc]init];
+    locationManager.delegate =self;
+    locationManager.distanceFilter = kCLDistanceFilterNone;
+    locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+    if (IS_OS_8_OR_LATER) {
+        SEL requestSelector = NSSelectorFromString(@"requestWhenInUseAuthorization");
+        if ([CLLocationManager authorizationStatus] == kCLAuthorizationStatusNotDetermined &&
+            [locationManager respondsToSelector:requestSelector]) {
+            [locationManager performSelector:requestSelector withObject:NULL];
+        } else {
+            [locationManager startUpdatingLocation];
+        }
+    }else{
+        [locationManager startUpdatingLocation];
+    }
+    NSString *latitude = [NSString stringWithFormat:@"%f",locationManager.location.coordinate.latitude];
+    NSString *longitude = [NSString stringWithFormat:@"%f",locationManager.location.coordinate.longitude];
+    NSString *jsCommand;
+    if (userSpecific == nil) {
+        jsCommand = [NSString stringWithFormat:@"%@('%@', '%@');",callBackFunc,[latitude URLEncode],[longitude URLEncode]];
+    }else{
+        jsCommand = [NSString stringWithFormat:@"%@('%@','%@', '%@');",callBackFunc,[userSpecific URLEncode],[latitude URLEncode],[longitude URLEncode]];
+    }
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getGyroscope:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    NSOperationQueue* queue = [[NSOperationQueue alloc]init];
+    if( motionManager.gyroAvailable )
+    {
+        motionManager.gyroUpdateInterval = 1.0 / 10.0;
+        [motionManager startGyroUpdatesToQueue:queue withHandler:
+         ^(CMGyroData* gyroData, NSError* error )
+         {
+             if( error )
+             {
+                 [motionManager stopGyroUpdates];
+                 NSLog(@"%@",[NSString stringWithFormat:@"Gyroscope encountered error: %@", error]);
+             }
+             else
+             {
+                 sensorString = [NSString stringWithFormat:
+                                 @"%f,%f,%f",
+                                 gyroData.rotationRate.x,
+                                 gyroData.rotationRate.y,
+                                 gyroData.rotationRate.z];
+             }
+             
+         }];
+        [self performSelector:@selector(stopGyroscope) withObject:self afterDelay:1.0];
+        
+    }
+    else
+    {
+        NSLog(@"This device has no gyroscope");
+    }
+}
+-(void)stopGyroscope{
+    [motionManager stopGyroUpdates];
+    NSArray *accelorInfo = [sensorString componentsSeparatedByString:@","];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@','%@','%@');",_callbackFunc,[_userSpecific URLEncode],[[accelorInfo objectAtIndex:0] URLEncode],[[accelorInfo objectAtIndex:1] URLEncode],[[accelorInfo objectAtIndex:2] URLEncode]];
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+    
+}
+-(void)getMagneticField:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    NSOperationQueue* queue = [[NSOperationQueue alloc]init];
+    if(motionManager.gyroAvailable)
+    {
+        motionManager.gyroUpdateInterval = 1.0 / 10.0;
+        [motionManager startMagnetometerUpdatesToQueue:queue withHandler:^(CMMagnetometerData *magnetometerData, NSError *error) {
+            CMMagneticField field = magnetometerData.magneticField;
+            sensorString = [NSString stringWithFormat:
+                            @"%f,%f,%f",
+                            field.x,
+                            field.y,
+                            field.z];
+            
+        }];
+        [self performSelector:@selector(stopMagneticField) withObject:self afterDelay:1.0];
+        
+    }
+    else
+    {
+        NSLog(@"This device has no gyroscope");
+    }
+    
+}
+-(void)stopMagneticField{
+    [motionManager stopMagnetometerUpdates];
+    NSArray *sensorInfo = [sensorString componentsSeparatedByString:@","];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@','%@','%@');",_callbackFunc,[_userSpecific URLEncode],[[sensorInfo objectAtIndex:0] URLEncode],[[sensorInfo objectAtIndex:1] URLEncode],[[sensorInfo objectAtIndex:2] URLEncode]];
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+    
+}
+-(void)getMenuLocation:(NSString *)callBackFunc :(NSString *)userSpecific{
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:@"webapp"];
+    NSString *returnPath = [documentFolder stringByAppendingPathComponent:appDelegate.menuNo];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[returnPath URLEncode]];
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getOrientation:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    _myDataLogger = [[DataLogger alloc] init];
+    [_myDataLogger setLogRotationRateData:YES];
+    [_myDataLogger startLoggingMotionData];
+    [self performSelector:@selector(stopRotationRate) withObject:self afterDelay:1.0];
+}
+-(void)stopRotationRate{
+    [_myDataLogger stopLoggingMotionDataAndSave];
+    NSArray *accelorInfo = [_myDataLogger.rotationRateString componentsSeparatedByString:@","];
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@','%@','%@');",_callbackFunc,[_userSpecific URLEncode],[[accelorInfo objectAtIndex:0] URLEncode],[[accelorInfo objectAtIndex:1] URLEncode],[[accelorInfo objectAtIndex:2] URLEncode]];
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+-(void)getProximity:(NSString *)callBackFunc :(NSString *)userSpecific{
+    _callbackFunc = callBackFunc;
+    _userSpecific = userSpecific;
+    UIDevice *device = [UIDevice currentDevice];
+    //device.proximityMonitoringEnabled = YES;
+    NSLog(@"device.proximityMonitoringEnabled : %@",device.proximityMonitoringEnabled?@"YES":@"NO");
+    if (device.proximityMonitoringEnabled == YES){
+        NSLog(@"proximityMonitoringEnabled");
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(proximityChanged:) name:@"UIDeviceProximityStateDidChangeNotification" object:device];
+    }else{
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"Proximity" message:NSLocalizedString(@"message143", @"지원하지 않는 기능입니다.") delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"확인") otherButtonTitles: nil];
+        [alertView show];
+    }
+}
+- (void) proximityChanged:(NSNotification *)notification {
+    UIDevice *device = [notification object];
+    NSLog(@"In proximity: %i", device.proximityState);
+}
+-(void)getUserInfo:(NSString *)callBackFunc :(NSString *)userSpecific{
+   /*
+    NSString *language = [[NSLocale preferredLanguages] objectAtIndex:0];
+    NSMutableDictionary *returnDic = [[NSMutableDictionary alloc]init];
+    [returnDic setObject:appDelegate.user_id forKey:@"UserId"];
+    [returnDic setObject:@"NONE" forKey:@"PhoneNum"];
+    [returnDic setObject:language forKey:@"DeviceLanguage"];
+    
+    NSError *error;
+    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:returnDic
+                                                       options:NSJSONWritingPrettyPrinted // Pass 0 if you don't care about the readability of the generated string
+                                                         error:&error];
+    NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[jsonString URLEncode]];
+    //NSString *jsCommand = [NSString stringWithFormat:@"callbackUserInfo2('%@');",jsonString];
+    //NSString *jsCommand = @"callbackUserInfo2('jhpark');";
+    NSLog(@"jsCommand : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+    */
+}
+
+#pragma mark MFNP (Set)
+-(void)setFileNames:(NSString *)fileList{
+    /*
+     NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+     documentFolder = [documentFolder stringByAppendingPathComponent:appDelegate.comp_no];
+     NSString *txtPath = [documentFolder stringByAppendingPathComponent:@"WebPhotoFiles.txt"];
+     NSFileHandle *readFile;
+     readFile = [NSFileHandle fileHandleForReadingAtPath:txtPath];
+     if (readFile!=nil) {
+     
+     }else{
+     
+     }
+     */
+}
+
+
+#pragma mark MFNP (Is)
+- (void)isRoaming:(NSString *)callBackFunc :(NSString *)userSpecific{
+    
+    NSString *yesStr = @"YES";
+    NSString *noStr = @"NO";
+    
+    NSString *jsCommand;
+    
+    if ([self isRoaming]) {
+        jsCommand= [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[yesStr URLEncode]];
+    }else{
+        jsCommand= [NSString stringWithFormat:@"%@('%@','%@');",callBackFunc,[userSpecific URLEncode],[noStr URLEncode]];
+    }
+    
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+- (BOOL)isRoaming
+{
+    static NSString *carrierPListSymLinkPath = @"/var/mobile/Library/Preferences/com.apple.carrier.plist";
+    static NSString *operatorPListSymLinkPath = @"/var/mobile/Library/Preferences/com.apple.operator.plist";
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSError *error;
+    NSString *carrierPListPath = [fm destinationOfSymbolicLinkAtPath:carrierPListSymLinkPath error:&error];
+    NSLog(@"carrierPListPath : %@",carrierPListPath);
+    NSString *operatorPListPath = [fm destinationOfSymbolicLinkAtPath:operatorPListSymLinkPath error:&error];
+    NSLog(@"operatorPListPath : %@",operatorPListPath);
+    return (![operatorPListPath isEqualToString:carrierPListPath]);
+}
+
+
+
+- (void)signSave:(NSString *)fileName :(NSString *)userSpecific :(NSString *)callbackFunc{
+    NSLog(@"fileName : %@",fileName);
+    NSString *filePath = [fileName stringByAppendingString:@"\n"];
+    
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:appDelegate.comp_no];
+    NSString *txtPath = [documentFolder stringByAppendingPathComponent:@"WebPhotoFiles.txt"];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if ([fileManager fileExistsAtPath:fileName]) {
+        NSLog(@"exist file");
+    }else{
+        NSLog(@"not exist file");
+    }
+    if (![fileManager fileExistsAtPath:txtPath]) {
+        [filePath writeToFile:txtPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    }else{
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:txtPath];
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:[filePath dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callbackFunc,[userSpecific URLEncode],[fileName URLEncode]];
+    NSLog(@"jsCommand : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+- (void)signSave:(NSString *)fileName{
+    NSLog(@"fileName : %@",fileName);
+    NSString *filePath = [fileName stringByAppendingString:@"\n"];
+    
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:appDelegate.comp_no];
+    NSString *txtPath = [documentFolder stringByAppendingPathComponent:@"WebPhotoFiles.txt"];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if (![fileManager fileExistsAtPath:txtPath]) {
+        [filePath writeToFile:txtPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    }else{
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:txtPath];
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:[filePath dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"CBSignPad('%@','%@');",[fileName URLEncode],[[fileName lastPathComponent] URLEncode]];
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+#pragma mark
+#pragma mark Barcode Call
+-(void) barCodeReaderOpen{
+    
+}
+
+- (void)imagePickerController:(UIImagePickerController*)reader didFinishPickingMediaWithInfo:(NSDictionary*)info {
+    if (isCamera) {
+        
+        //카메라뷰일때
+        NSLog(@"info : %@",info);
+        UIImage *sendImage = [info objectForKey:UIImagePickerControllerOriginalImage];
+        //동영상일때
+        //NSURL *url = [info objectForKey:UIImagePickerControllerMediaURL];
+        
+        // 현재시간 알아오기
+        NSDate *today = [NSDate date];
+        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+        
+        [dateFormatter setDateFormat:@"yyMMdd-HHmmss"];
+        NSString *currentTime = [dateFormatter stringFromDate:today];
+        
+        NSString *filename = appDelegate.user_no;
+        filename = [filename stringByAppendingString:@"("];
+        
+        filename = [filename stringByAppendingString:currentTime];
+        filename = [filename stringByAppendingString:@")"];
+        if (sendImage!=nil) {
+            [self savePicture:sendImage :filename];
+        }
+        [reader dismissViewControllerAnimated:YES completion:nil];
+        isCamera = NO;
+        
+    }
+    
+}
+-(NSString *)getPhotoFilePath{
+    
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:appDelegate.comp_no];
+    NSString *photoFolder = @"photo";
+    NSString *saveFolder = [documentFolder stringByAppendingFormat:@"/%@",photoFolder];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    BOOL issue = [fileManager isReadableFileAtPath:saveFolder];
+    if (issue) {
+        NSLog(@"directory success");
+    }else{
+        NSLog(@"directory failed");
+        [fileManager createDirectoryAtPath:saveFolder withIntermediateDirectories:FALSE attributes:nil error:nil];
+    }
+    return saveFolder;
+}
+-(void) savePicture:(UIImage *)sendImage :(NSString*)file{
+    
+    NSString *saveFolder = [self getPhotoFilePath];
+    UIImage *image = sendImage;
+    CGSize newSize;
+    if (_imageSize == nil) {
+        newSize.width = image.size.width/3;
+        newSize.height = image.size.height/3;
+    }else{
+        
+        if (image.size.width > image.size.height) {
+            newSize.width = [_imageSize intValue];
+            newSize.height = image.size.height/image.size.width*[_imageSize intValue];
+        }else{
+            float test = image.size.width/image.size.height*[_imageSize intValue];
+            NSLog(@"test : %f",test);
+            //2000
+            //original height / original width x new width = new height
+            newSize.width = image.size.width/image.size.height*[_imageSize intValue];
+            newSize.height = [_imageSize intValue];
+        }
+    }
+    UIImage *newImage = [self resizedImage:image inRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    
+    NSData *imageData;
+    NSString *filePath2;
+    if ([_imageFormat isEqualToString:@"jpg"]) {
+        imageData = [NSData dataWithData:UIImageJPEGRepresentation(newImage,0.05)];
+         filePath2= [saveFolder stringByAppendingPathComponent:[file stringByAppendingString:@".jpg"]];
+    }else if ([_imageFormat isEqualToString:@"png"]) {
+        imageData = [NSData dataWithData:UIImagePNGRepresentation(newImage)];
+        filePath2 = [saveFolder stringByAppendingPathComponent:[file stringByAppendingString:@".png"]];
+    }
+    [imageData writeToFile:filePath2 atomically:YES];
+    
+    
+    NSString *filePath3 = [saveFolder stringByAppendingPathComponent:[file stringByAppendingString:@".thum"]];
+    UIImage *thumImage = [self resizedImage:image inRect:CGRectMake(0, 0, 60, 60)];
+    NSData *thumData = [NSData dataWithData:UIImagePNGRepresentation(thumImage)];
+
+    [thumData writeToFile:filePath3 atomically:YES];
+   
+    [self photoSave:filePath2 :_userSpecific :_callbackFunc];
+    
+}
+- (UIImage *)imageWithImage:(UIImage *)image scaledToSize:(CGSize)newSize {
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0.0);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+- (void)photoSave:(NSString *)fileName :(NSString *)userSpectific :(NSString *)callbackFunc{
+    NSLog(@"photoSave");
+    
+    NSString *filePath = [fileName stringByAppendingString:@"\n"];
+    
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    documentFolder = [documentFolder stringByAppendingPathComponent:appDelegate.comp_no];
+    NSString *txtPath = [documentFolder stringByAppendingPathComponent:@"WebPhotoFiles.txt"];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if (![fileManager fileExistsAtPath:txtPath]) {
+        [filePath writeToFile:txtPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    }else{
+        NSFileHandle *fileHandle = [NSFileHandle fileHandleForWritingAtPath:txtPath];
+        [fileHandle seekToEndOfFile];
+        [fileHandle writeData:[filePath dataUsingEncoding:NSUTF8StringEncoding]];
+    }
+    
+    NSString *jsCommand = [NSString stringWithFormat:@"%@('%@','%@');",callbackFunc,[userSpectific URLEncode],[fileName URLEncode]];
+    NSLog(@"PhotoSave jsCommand : %@",jsCommand);
+    [_webView stringByEvaluatingJavaScriptFromString:jsCommand];
+}
+
+-(UIImage *) resizedImage:(UIImage *)img inRect:(CGRect)frameRect {
+    UIGraphicsBeginImageContext(frameRect.size);
+    [img drawInRect:frameRect];
+    return UIGraphicsGetImageFromCurrentImageContext();
+}
+#pragma mark
+#pragma mark Device Spec
+- (int) countCores
+{
+    host_basic_info_data_t hostInfo;
+    mach_msg_type_number_t infoCount;
+    
+    infoCount = HOST_BASIC_INFO_COUNT;
+    host_info( mach_host_self(), HOST_BASIC_INFO, (host_info_t)&hostInfo, &infoCount ) ;
+    
+    return hostInfo.max_cpus ;
+}
+- (BOOL) gpsAvailable{
+    return [CLLocationManager locationServicesEnabled];
+}
+
+- (BOOL) accelerometerAvailable{
+    //CMMotionManager *motionManager = [[CMMotionManager alloc] init];
+    BOOL accelerometer = motionManager.accelerometerAvailable;
+    return accelerometer;
+}
+
+- (BOOL) gyroscopeAvailable
+{
+#ifdef __IPHONE_4_0
+    //CMMotionManager *motionManager = [[CMMotionManager alloc] init];
+    BOOL gyroAvailable = motionManager.gyroAvailable;
+    return gyroAvailable;
+#else
+    return NO;
+#endif
+    
+}
+
+- (BOOL) compassAvailable
+{
+    BOOL compassAvailable = NO;
+    
+#ifdef __IPHONE_3_0
+    compassAvailable = [CLLocationManager headingAvailable];
+#else
+    CLLocationManager *cl = [[CLLocationManager alloc] init];
+    compassAvailable = cl.headingAvailable;
+    [cl release];
+#endif
+    
+    return compassAvailable;
+    
+}
+
+- (BOOL) retinaDisplayCapable
+{
+    int scale = 1.0;
+    UIScreen *screen = [UIScreen mainScreen];
+    if([screen respondsToSelector:@selector(scale)])
+        scale = screen.scale;
+    
+    if(scale == 2.0f) return YES;
+    else return NO;
+}
+- (BOOL) frontCameraAvailable
+{
+#ifdef __IPHONE_4_0
+    return [UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceFront];
+#else
+    return NO;
+#endif
+    
+    
+}
+- (BOOL) linearCameraAvailable
+{
+#ifdef __IPHONE_4_0
+    return [UIImagePickerController isCameraDeviceAvailable:UIImagePickerControllerCameraDeviceRear];
+#else
+    return NO;
+#endif
+    
+    
+}
+
+- (BOOL) cameraFlashAvailable
+{
+#ifdef __IPHONE_4_0
+    return [UIImagePickerController isFlashAvailableForCameraDevice:UIImagePickerControllerCameraDeviceRear];
+#else
+    return NO;
+#endif
+}
+
+#pragma mark
+#pragma mark Camera
+
+#pragma mark
+#pragma mark SMS
+-(void)messageComposeViewController:(MFMessageComposeViewController *)controller didFinishWithResult:(MessageComposeResult)result{
+    NSString *resultString;
+    switch (result) {
+        case MessageComposeResultCancelled:
+            
+            break;
+            
+        case MessageComposeResultFailed:
+        {
+            resultString = @"Failed";
+            UIAlertView *warningAlert = [[UIAlertView alloc] initWithTitle:@"Error" message:@"Failed to send SMS!" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil];
+            [warningAlert show];
+            break;
+        }
+            
+        case MessageComposeResultSent:
+            resultString = @"Succeed";
+            break;
+            
+        default:
+            break;
+    }
+    
+    [self dismissViewControllerAnimated:YES completion:^{
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:[NSString stringWithFormat:@"Send SMS %@",resultString] message:nil delegate:self cancelButtonTitle:NSLocalizedString(@"message51", @"") otherButtonTitles: nil];
+        [alertView show];
+    }];
+    
+}
+
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    NSLog(@"segue : %@",segue);
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+
+}
+@end

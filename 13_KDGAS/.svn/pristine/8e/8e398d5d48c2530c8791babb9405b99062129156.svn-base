@@ -1,0 +1,39 @@
+//
+//  AppDelegate.h
+//  mfinity-consumer
+//
+//  Created by Jun HyungPark on 2015. 6. 5..
+//  Copyright (c) 2015년 DBValley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <AudioToolbox/AudioToolbox.h>
+#import <AVFoundation/AVAudioSession.h>
+
+@interface AppDelegate : UIResponder <UIApplicationDelegate>
+
+@property (strong, nonatomic) NSString *main_url;
+@property (strong, nonatomic) NSString *pushToken;
+@property (strong, nonatomic) NSString *user_no;
+@property (strong, nonatomic) NSString *comp_no;
+@property (strong, nonatomic) NSString *naviFontColor;
+@property (strong, nonatomic) NSString *naviBarColor;
+@property (strong, nonatomic) NSString *naviShadowColor;
+@property (strong, nonatomic) NSString *naviShadowOffset;
+@property (strong, nonatomic) NSString *subBgImagePath;
+@property (strong, nonatomic) NSString *subFontColor;
+@property (strong, nonatomic) NSString *naviIsShadow;
+@property (strong, nonatomic) NSString *subIsShadow;
+@property (strong, nonatomic) UIWindow *window;
+@property (strong, nonatomic) NSString *AES256Key;
+@property (strong, nonatomic) NSString *subShadowOffset;
+@property (strong, nonatomic) NSString *subShadowColor;
+@property (strong, nonatomic) NSString *mainFontColor;
+@property (strong, nonatomic) NSString *target_url;
+@property (strong, nonatomic) NSString *menuNo;
+@property (strong, nonatomic) NSString *kiccURL;
+- (UIColor *) myRGBfromHex: (NSString *) code;
++ (NSString *) getUUID;
++ (NSDictionary *)getAllValueUrlDecoding:(NSDictionary *)dic;
+@end
+
