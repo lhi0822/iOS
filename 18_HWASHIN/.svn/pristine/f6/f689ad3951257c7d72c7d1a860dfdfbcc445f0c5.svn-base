@@ -1,0 +1,14 @@
+//
+//  FileUploadViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface FileUploadViewController : UIViewController
+
+@property (nonatomic, strong)NSDictionary *uploadInfo;
+@end
