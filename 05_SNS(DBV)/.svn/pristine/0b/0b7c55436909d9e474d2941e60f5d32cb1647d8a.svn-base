@@ -1,0 +1,105 @@
+//
+//  MFSyncURLSession.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 2. 14..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "MFSyncURLSession.h"
+
+@implementation MFSyncURLSession
+
++(MFSyncURLSession *)sharedInstance{
+    static MFSyncURLSession *shared = nil;
+    
+    if(shared==nil){
+        shared = [[MFSyncURLSession alloc] init];
+    }
+    return shared;
+}
+
+- (void)URL:(NSURL *)url parameter:(NSString *)paramString :(NSDictionary *)paramDic{
+    @try{
+        self.url = url;
+        self.paramString = paramString;
+        if(self.requestMethod==nil) self.requestMethod = @"POST";
+        NSLog(@"url : %@",self.url);
+        NSLog(@"parameter : %@",self.paramString);
+        self.wsName = [[self.url absoluteString] lastPathComponent];
+        
+        self.paramDictonary = [NSDictionary dictionary];
+        self.paramDictonary = paramDic;
+        
+        //NSLog(@"paramDictonary : %@",[self requestSynchronousDataWithURLString]);
+        //NSLog(@"returnDictionary : %@", self.returnDictionary);
+        
+        [self requestSynchronousDataWithURLString];
+        
+    } @catch(NSException *exception){
+        NSLog(@"error : %@",exception);
+    }
+}
+
+//- (NSDictionary *)requestSynchronousDataWithURLString
+- (void)requestSynchronousDataWithURLString
+{
+    NSLog(@"%s", __func__);
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:self.url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:1.0f];
+    [request setHTTPMethod:self.requestMethod];
+    
+    if (self.paramString != nil) {
+        NSData *paramData = [self.paramString dataUsingEncoding:NSUTF8StringEncoding];
+        [request setHTTPBody:paramData];
+    }
+    
+    [self startTask:request];
+//    return [self startTask:request];
+}
+
+//- (NSDictionary *)startTask:(NSMutableURLRequest *)request{
+- (void)startTask:(NSMutableURLRequest *)request{
+    @try {
+        NSLog(@"%s", __func__);
+        
+        __block NSData *data = nil;
+        dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+        
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[NSOperationQueue mainQueue]];
+        
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *taskData, NSURLResponse *response, NSError *error) {
+            data = taskData;
+            if (!data) {
+                NSLog(@"%@", error);
+            }
+            
+            self.returnData = [[NSMutableData alloc] init];
+            [self.returnData appendData:data];
+            NSString *encReturnDataString = [[NSString alloc]initWithData:self.returnData encoding:NSUTF8StringEncoding];
+            self.returnDataString = encReturnDataString;
+            
+            NSError *dicError;
+            NSDictionary *dataDic = [NSJSONSerialization JSONObjectWithData:[encReturnDataString dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&dicError];
+            self.returnDictionary = dataDic;
+            [self.delegate syncReturnDataWithObject:self error:nil];
+            
+            dispatch_semaphore_signal(semaphore);
+        }];
+        
+        [task resume];
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+
+        //NSLog(@"2self.paramDictonary : %@", self.paramDictonary);
+        //[self.delegate syncReturnDataWithObject:self :self.paramDictonary error:nil];
+        
+//        return self.paramDictonary;
+    }
+    @catch (NSException *exception) {
+        NSLog(@"error : %@",exception);
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"networkErrorNotification" object:nil];
+        
+    }
+}
+
+@end

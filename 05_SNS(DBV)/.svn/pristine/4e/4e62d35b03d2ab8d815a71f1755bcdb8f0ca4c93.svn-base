@@ -1,0 +1,30 @@
+//
+//  CreateTaskInfoCell.h
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 3. 16..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFTextView.h"
+
+@protocol CreateTaskInfoCellDelegate <NSObject>
+@required
+-(void)proceedValChange:(NSString *)val;
+
+@end
+
+@interface CreateTaskInfoCell : UICollectionViewCell
+
+@property (strong, nonatomic) IBOutlet UIButton *iconBtn;
+@property (strong, nonatomic) IBOutlet UILabel *valueLbl;
+@property (strong, nonatomic) IBOutlet UIButton *arrowBtn;
+@property (strong, nonatomic) IBOutlet UISlider *slider;
+@property (strong, nonatomic) IBOutlet MFTextView *descTxtView;
+- (IBAction)sliderValueChanged:(id)sender;
+
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *descConstraint;
+@property (weak, nonatomic) id <CreateTaskInfoCellDelegate> delegate;
+@end
+

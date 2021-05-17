@@ -1,0 +1,324 @@
+//
+//  ImgDownloadViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 6. 20..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "ImgDownloadViewController.h"
+#import "JTSImageViewController.h"
+#import "PostDetailViewController.h"
+#import "MFStyle.h"
+
+#define BASEHEIGHT    300.0f
+#define NPAGES        3
+
+@interface ImgDownloadViewController () {
+    CGFloat lastScale;
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation ImgDownloadViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    NSLog(@"ImgDownloadViewController fromSegue : %@", self.fromSegue);
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.view.backgroundColor = [UIColor blackColor];
+    
+    self.navigationItem.leftBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"닫기", @"닫기")
+                                                                            style:UIBarButtonItemStylePlain target:self action:@selector(leftSideMenuButtonPressed:)];
+    
+    //현중 저장 X
+    if([appDelegate.legacy_name isEqualToString:@"NONE"]){
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"저장", @"저장")
+                                                                                 style:UIBarButtonItemStylePlain target:self action:@selector(rightSideMenuButtonPressed:)];
+    } else if([appDelegate.legacy_name isEqualToString:@"ANYMATE"]){
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"저장", @"저장")
+                                                                                 style:UIBarButtonItemStylePlain target:self action:@selector(rightSideMenuButtonPressed:)];
+    } else if([appDelegate.legacy_name isEqualToString:@"HHI"]){
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"저장", @"저장")
+                                                                                 style:UIBarButtonItemStylePlain target:self action:@selector(rightSideMenuButtonPressed:)];
+    }
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_NewPostPush:) name:@"noti_NewPostPush" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_NewChatPush:) name:@"noti_NewChatPush" object:nil];
+    
+    
+    if([self.fromSegue isEqualToString:@"CHAT_IMG_DOWN_MODAL"]){
+        NSDateFormatter *dateFormat = [[NSDateFormatter alloc] init];
+        [dateFormat setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+        NSDate *date = [dateFormat dateFromString:self.writeDate];
+        NSDateFormatter * dateFormat2 = [[NSDateFormatter alloc]init];
+        [dateFormat2 setDateFormat:@"yy.MM.dd"];
+        NSString *dateString = [dateFormat2 stringFromDate:date];
+        
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:[self.writer stringByAppendingString:[NSString stringWithFormat:@" %@", dateString]]];
+        
+    } else {
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:self.imgName];
+    }
+    
+    
+    UIImage *image = self.img;
+    UIImageView *imageView = [[UIImageView alloc]initWithImage:image];
+    imageView.contentMode = UIViewContentModeScaleAspectFit;
+    imageView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    //imageView.frame = _scrollView.frame;
+    //imageView.frame = CGRectMake(0, 0, _scrollView.frame.size.width, _scrollView.frame.size.height-64);
+    imageView.frame = CGRectMake(0, self.navigationController.navigationBar.frame.size.height+[UIApplication sharedApplication].statusBarFrame.size.height, _scrollView.frame.size.width, _scrollView.frame.size.height-(self.navigationController.navigationBar.frame.size.height+[UIApplication sharedApplication].statusBarFrame.size.height));
+    
+    [_scrollView setScrollEnabled:YES];
+    _scrollView.delegate = self;
+    _scrollView.backgroundColor = [UIColor clearColor];
+    [_scrollView setShowsHorizontalScrollIndicator:NO];
+    [_scrollView setShowsVerticalScrollIndicator:NO];
+    //[_scrollView setContentSize:[image size]];
+    _scrollView.contentSize = imageView.frame.size;
+    [_scrollView addSubview:imageView];
+    _imageView = imageView;
+    [_scrollView setMaximumZoomScale:3.0f];
+    [_scrollView setMinimumZoomScale:1.0f];
+}
+
+- (UIView *) viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    return _imageView;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)noti_NewPostPush:(NSNotification *)notification {
+    if(notification.userInfo!=nil){
+        NSString *message = [notification.userInfo objectForKey:@"MESSAGE"];
+        NSDictionary *dict = [NSDictionary dictionary];
+        if(message!=nil){
+            NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error;
+            dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        } else {
+            dict = notification.userInfo;
+        }
+        
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+        PostDetailViewController *vc = (PostDetailViewController *)[storyboard instantiateViewControllerWithIdentifier:@"PostDetailViewController"];
+        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+        
+        vc.fromSegue = @"NOTI_POST_DETAIL";
+        vc.notiPostDic = dict;
+        [self presentViewController:nav animated:YES completion:nil];
+    }
+}
+
+- (void)noti_NewChatPush:(NSNotification *)notification {
+    NSLog(@"%s", __func__);
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    NSString *DBName = [AppDelegate getDBName];
+    NSString *DBPath = [documentsDir stringByAppendingPathComponent:DBName];
+    
+    if(notification.userInfo!=nil){
+        NSString *message = [notification.userInfo objectForKey:@"MESSAGE"];
+        NSString *noti = [notification.userInfo objectForKey:@"NOTI"];
+        NSDictionary *dict = [NSDictionary dictionary];
+        if(noti==nil){
+            NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error;
+            dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        } else {
+            dict = notification.userInfo;
+        }
+        
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+        
+        NSMutableArray *roomChatArr = [NSMutableArray array];
+        NSString *sqlString = [NSString stringWithFormat:@"SELECT ROOM_NM, ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+        sqlite3 *database;
+        if (sqlite3_open([DBPath UTF8String], &database) == SQLITE_OK) {
+            NSString *sql = sqlString;
+            const char *sqlStatement = [sql UTF8String];
+            sqlite3_stmt *compiledStatement;
+            
+            if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+                int rowCount = 0;
+                
+                while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                    rowCount = sqlite3_column_int(compiledStatement, 0);
+                    
+                    NSMutableDictionary *dic = [[NSMutableDictionary alloc]init];
+                    
+                    for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                        NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                        NSString *valueString = nil;
+                        if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                            valueString = @"null";
+                        }else{
+                            valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                        }
+                        [dic setObject:valueString forKey:keyString];
+                    }
+                    [roomChatArr addObject:dic];
+                }
+            }else {
+                NSLog(@"not SQLITE_OK");
+                printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+            }
+            sqlite3_finalize(compiledStatement);
+            
+        }else{
+            NSLog(@"db not open");
+        }
+        sqlite3_close(database);
+        
+        //NSLog(@"roomChatArr : %@", roomChatArr);
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+        ChatViewController *vc = (ChatViewController *)[storyboard instantiateViewControllerWithIdentifier:@"ChatViewController"];
+        
+        RightSideViewController *rightViewController = [self.storyboard instantiateViewControllerWithIdentifier:@"RightSideViewController"];
+        CGRect screen = [[UIScreen mainScreen]bounds];
+        CGFloat screenWidth = screen.size.width;
+        CGFloat screenHeight = screen.size.height;
+        rightViewController.view.frame = CGRectMake(rightViewController.view.frame.origin.x, rightViewController.view.frame.origin.y, screenWidth, screenHeight);
+        
+        if(roomChatArr.count>0){
+            NSString *roomNoti = [[roomChatArr objectAtIndex:0]objectForKey:@"ROOM_NOTI"];
+            NSString *roomName = [NSString urlDecodeString:[[roomChatArr objectAtIndex:0]objectForKey:@"ROOM_NM"]];
+            vc.roomNo = roomNo;
+            vc.roomNoti = roomNoti;
+            vc.roomName = roomName;
+            rightViewController.roomNo = roomNo;
+            rightViewController.roomNoti = roomNoti;
+        }
+        
+        LGSideMenuController *container = [LGSideMenuController sideMenuControllerWithRootViewController:vc leftViewController:nil rightViewController:rightViewController];
+        [container setNavigationItemTitle:[NSString urlDecodeString:vc.roomName]];
+        
+        //UIBarButtonItem *left = [[UIBarButtonItem alloc]initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:nil];
+        //self.navigationItem.backBarButtonItem = left;
+        self.navigationController.navigationBar.topItem.title = @"";
+        
+        NSString *sqlString2 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = 0 WHERE ROOM_NO=%@;", roomNo];
+        [self crudStatement:DBPath :sqlString2];
+        
+        NSString *currentClass = NSStringFromClass([[UIViewController currentViewController] class]);
+        NSString *chatDetailClass = NSStringFromClass([vc class]);
+        
+        vc.fromSegue = @"NOTI_CHAT_DETAIL";
+        vc.notiChatDic = dict;
+        
+        if([currentClass isEqualToString:chatDetailClass]){
+            //send notification to postdetail and if noti postno equal current postno, not open modal
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChatDetailView" object:nil userInfo:dict];
+        } else {
+            NSString *strClass = NSStringFromClass([self class]);
+            if([currentClass isEqualToString:strClass]){
+                CATransition* transition = [CATransition animation];
+                transition.duration = 0.3f;
+                transition.type = kCATransitionMoveIn;
+                transition.subtype = kCATransitionFromTop;
+                [self.navigationController.view.layer addAnimation:transition forKey:kCATransition];
+                [self.navigationController pushViewController:container animated:NO];
+            }
+        }
+    }
+}
+
+-(void) crudStatement:(NSString *)dbPath :(NSString *)crudStmt{
+    NSLog(@"%s", __func__);
+    sqlite3 *database;
+    NSLog(@"TeamListViewController crudStmt : %@", crudStmt);
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        const char *sqlStatement = [crudStmt UTF8String];
+        
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(database));
+                
+            }else{
+                NSLog(@"TeamListViewController ok");
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+                NSLog(@"SQL Error : %s",sqlite3_errmsg(database));
+            }
+        }else {
+            NSLog(@"not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+    }else{
+        
+    }
+    sqlite3_close(database);
+}
+
+- (void)leftSideMenuButtonPressed:(id)sender {
+    [self dismissViewControllerAnimated:self completion:nil];
+}
+
+- (void)rightSideMenuButtonPressed:(id)sender {
+    //NSLog(@"저장");
+    UIImageWriteToSavedPhotosAlbum(self.img, self, @selector(image:didFinishSavingWithError:contextInfo:), nil);
+}
+
+- (void)image:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo{
+    if (error) {
+        NSLog(@"error: %@", [error localizedDescription]);
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:@"저장실패" delegate:self cancelButtonTitle:nil otherButtonTitles:@"확인", nil];
+        [alert show];
+    } else {
+        NSLog(@"saved photo image : %@", image);
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:@"저장되었습니다." delegate:self cancelButtonTitle:nil otherButtonTitles:@"확인", nil];
+        [alert show];
+    }
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    if (oldWidth > width) {
+        scaleFactor = width / oldWidth;
+    } else  //oldWidth<width and height==0이면, scale하지 않음.
+        return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    UIGraphicsBeginImageContext(newSize);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+    
+}
+
+/*
+ #pragma mark - Navigation
+ 
+ // In a storyboard-based application, you will often want to do a little preparation before navigation
+ - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+ // Get the new view controller using [segue destinationViewController].
+ // Pass the selected object to the new view controller.
+ }
+ */
+
+@end

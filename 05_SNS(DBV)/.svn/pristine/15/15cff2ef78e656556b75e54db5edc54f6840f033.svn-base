@@ -1,0 +1,21 @@
+//
+//  SqlSelectHelper.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 30..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <sqlite3.h>
+#import "AppDelegate.h"
+
+@interface SqlSelectHelper : NSObject
+
+@property (strong, nonatomic) NSMutableArray *selectArr;
+
+- (NSMutableArray *)selectRoomList;
+- (NSMutableArray *)selectQuery: (NSString *)sqlString;
+- (NSMutableArray *)selectStmtHelper:(NSString *)dbPath :(NSString *)selectStmt;
+
+@end

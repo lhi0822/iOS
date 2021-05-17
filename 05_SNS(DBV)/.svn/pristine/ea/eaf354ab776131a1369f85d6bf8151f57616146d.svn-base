@@ -1,0 +1,15 @@
+//
+//  CoverImageViewCell.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 21..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface CoverImageViewCell : UITableViewCell
+
+@property (strong, nonatomic) IBOutlet UIImageView *coverImg;
+
+@end

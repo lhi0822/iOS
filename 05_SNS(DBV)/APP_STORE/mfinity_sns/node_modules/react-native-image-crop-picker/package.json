@@ -1,0 +1,105 @@
+{
+  "_args": [
+    [
+      {
+        "raw": "react-native-image-crop-picker",
+        "scope": null,
+        "escapedName": "react-native-image-crop-picker",
+        "name": "react-native-image-crop-picker",
+        "rawSpec": "",
+        "spec": "latest",
+        "type": "tag"
+      },
+      "/Users/hilee/Documents/iOS_hilee/07_SNS(HHI)/02.Production/mfinity_sns"
+    ]
+  ],
+  "_from": "react-native-image-crop-picker@latest",
+  "_hasShrinkwrap": false,
+  "_id": "react-native-image-crop-picker@0.26.1",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/react-native-image-crop-picker",
+  "_nodeVersion": "10.16.3",
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/react-native-image-crop-picker_0.26.1_1571253012402_0.5011695013585467"
+  },
+  "_npmUser": {
+    "name": "ivpusic",
+    "email": "pusic007@gmail.com"
+  },
+  "_npmVersion": "6.9.0",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "react-native-image-crop-picker",
+    "scope": null,
+    "escapedName": "react-native-image-crop-picker",
+    "name": "react-native-image-crop-picker",
+    "rawSpec": "",
+    "spec": "latest",
+    "type": "tag"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/react-native-image-crop-picker/-/react-native-image-crop-picker-0.26.1.tgz",
+  "_shasum": "3499ff5d4a09c9a9e927eb4f6ff936015ff594f1",
+  "_shrinkwrap": null,
+  "_spec": "react-native-image-crop-picker",
+  "_where": "/Users/hilee/Documents/iOS_hilee/07_SNS(HHI)/02.Production/mfinity_sns",
+  "author": {
+    "name": "Ivan Pusic"
+  },
+  "bugs": {
+    "url": "https://github.com/ivpusic/react-native-image-crop-picker/issues"
+  },
+  "dependencies": {},
+  "description": "Select single or multiple images, with cropping option",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+    "integrity": "sha512-5JdOjQS2V5L/vfb8+jPTUYx4VZPLvhZTyCUjiG0BZCbh+N1L24Kj2C+8EOuWS7xXXHrz5Bpe/eq5lQO1Efc+Yw==",
+    "shasum": "3499ff5d4a09c9a9e927eb4f6ff936015ff594f1",
+    "tarball": "https://registry.npmjs.org/react-native-image-crop-picker/-/react-native-image-crop-picker-0.26.1.tgz",
+    "fileCount": 184,
+    "unpackedSize": 4030822,
+    "npm-signature": "-----BEGIN PGP SIGNATURE-----\r\nVersion: OpenPGP.js v3.0.4\r\nComment: https://openpgpjs.org\r\n\r\nwsFcBAEBCAAQBQJdp2sVCRA9TVsSAnZWagAAy/UQAJydX1QnuUAYMEpHw7dS\negLKvngcEYx6mgmNwML6PUlwVgXMn5oMxBJLbI3N1JUhEr3r2gEWfmFGXh+Z\n/WoMHZh4ImWkPHxRQx7jpSpIXWsRdzndVB8pjmWMAumUwgUM/8xX5FVE+LpK\naPxrbwx7ZD2feUr3ykmhzi9pEuS1xL0FfeU6hygdLg/PnXnS1pM5q2ybmbt0\nPXvlfN8J6BUBBMvu26eAIF1qdcybihw9Niu3gHGyl4cenuUWupHM8ksuOrpK\nUzX1af/yMykWFOWjbnjXOBeSoygI8eclRR+YOWBIy5z5L/+FLz+7WKGkoehj\niBPSOvqggSHUkb8lBx9LANPGHcR6x4owZ6ZCLrFicrsY+0GPnwtKJ4GJQZQi\nSIFN1VUiUpiHQU7TSVSHn1bdOa7XGW+LaNuy02ay+HJz0PTjRnh43h4BnuAz\npNGeJ6No/EOaNR9Xp7psjcKSqwNZrp/bA8GCX74N5mdR9+LQVwBsOS4g9PU4\npvf27ereUW1ZgHSLOme3x4bbEnfiF53TgD9ONbzLt9nOwBl0bWn1QhEJ4avj\n7ovnTQDxgpVmV9UxyQiTFXxIv99FytfUtytcEYfJH5GSLmJFxcZSHHtQbr3S\nl7hDRA00NlSPIUX2PNdprMzBBqgEBQgB2yCzpOybM7lZIqzKa3bRaqdtSwRX\nZXsH\r\n=1p0a\r\n-----END PGP SIGNATURE-----\r\n"
+  },
+  "gitHead": "25fba895899ce54c4e8552c11c84765f545c936b",
+  "homepage": "https://github.com/ivpusic/react-native-image-crop-picker#readme",
+  "keywords": [
+    "react",
+    "native",
+    "react-native",
+    "image",
+    "picker",
+    "crop",
+    "cropping",
+    "multiple",
+    "camera"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "maintainers": [
+    {
+      "name": "ivpusic",
+      "email": "pusic007@gmail.com"
+    }
+  ],
+  "name": "react-native-image-crop-picker",
+  "optionalDependencies": {},
+  "peerDependencies": {
+    "react-native": ">=0.40.0"
+  },
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivpusic/react-native-image-crop-picker.git"
+  },
+  "scripts": {
+    "prepublish": "rm -rf android/build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.26.1"
+}

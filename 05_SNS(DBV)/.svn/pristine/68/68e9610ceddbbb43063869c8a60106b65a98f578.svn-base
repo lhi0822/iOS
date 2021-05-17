@@ -1,0 +1,1492 @@
+//
+//  PushReceivedHandler.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 6. 30..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "PushReceivedHandler.h"
+#import "HDNotificationView.h"
+#import "MFDBHelper.h"
+
+@implementation PushReceivedHandler {
+    NSString *thumbImagePath;
+    NSString *originImagePath;
+    MFDBHelper *dbHelper;
+    //MFSyncURLSession *sync;
+    NSMutableArray *dataArray;
+    AppDelegate *appDelegate;
+}
+
+- (instancetype)init
+{
+    NSLog(@"%s", __func__);
+    self = [super init];
+    if (self) {
+        appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        _myUserNo = [prefs objectForKey:@"CUSER_NO"];
+        
+        NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *documentsDir = [documentPaths objectAtIndex:0];
+        self.DBName = [AppDelegate getDBName];
+        self.DBPath = [documentsDir stringByAppendingPathComponent:self.DBName];
+        
+        dataArray = [NSMutableArray array];
+        
+        //sync = [[MFSyncURLSession alloc] init];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(pushNotificationReceived:) name:@"pushNotificationReceived" object:nil];
+        
+        dbHelper = [[MFDBHelper alloc]init:[[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"]];
+    }
+    return self;
+}
+
+- (void)pushNotificationReceived:(NSNotification *)notification{
+    NSDictionary *userInfo = notification.userInfo;
+    NSLog(@"%s userInfo : %@", __func__, userInfo);
+    
+    NSString *message = [userInfo objectForKey:@"MESSAGE"];
+    
+    NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *error;
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+    //NSString *type = [message objectForKey:@"TYPE"];
+    //NSString *dataSet = [message objectForKey:@"DATASET"];
+    //NSLog(@"dict : %@", dict);
+    
+    NSString *pushType = [dict objectForKey:@"TYPE"];
+    
+    if([pushType isEqualToString:@"ADD_CHAT"]){
+        /*
+         NSArray *dataSet = [dict objectForKey:@"DATASET"];
+         NSString *userName =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"USER_NM"]];
+         NSString *contentTy =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT_TY"]];
+         NSString *content =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+         NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+         NSString *sql = [NSString stringWithFormat:@"SELECT ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@;", roomNo];
+         NSString *roomNoti = [dbHelper selectPushNoti:sql];
+         
+         if([roomNoti isEqualToString:@"1"]){
+         UILocalNotification *notice = [[UILocalNotification alloc] init];
+         notice.alertTitle = userName;
+         notice.alertBody = content;
+         notice.alertAction = @"Open";
+         notice.userInfo = userInfo;
+         AudioServicesPlaySystemSound(1007);
+         AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+         [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+         }
+         */
+        [self pushAddChat:dict];
+        
+    } else if([pushType isEqualToString:@"UPDATE_CHAT_UNREAD_COUNT"]){
+        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_APNS_ChatReadPush" object:nil userInfo:dict];
+        //NSLog(@"apns appDelegate.isChatViewing : %d", appDelegate.isChatViewing);
+        [self pushUpdateChatUnreadCount:dict];
+        
+    } else if([pushType isEqualToString:@"CREATE_CHAT_ROOM"]){
+        [self pushCreateChatRoom:dict];
+        
+    } else if([pushType isEqualToString:@"ADD_CHAT_USER"]){
+        [self pushAddChatUser:dict];
+        
+    } else if([pushType isEqualToString:@"DELETE_CHAT_USER"]){
+        [self pushDeleteChatUser:dict];
+        
+    } else if([pushType isEqualToString:@"CHANGE_USER_PROFILE"]){
+        [self pushChangeUserProfile:dict];
+        
+    }
+    
+    if([pushType isEqualToString:@"NEW_POST"]){
+        //[self pushNewPost:dict];
+        
+    } else if([pushType isEqualToString:@"NEW_POST_COMMENT"]){
+        //[self pushNewPostComment:dict];
+        
+    } else if([pushType isEqualToString:@"FORCE_DELETE_SNS"]){
+        [self pushForceDeleteSNS:dict];
+        
+    } else if([pushType isEqualToString:@"DELETE_SNS"]){
+        //게시판삭제 푸시
+        [self pushDeleteSNS:dict];
+        
+    } else if([pushType isEqualToString:@"APPROVE_SNS"]){
+        //게시판 가입 신청 승인
+        [self pushApproveSNS:dict];
+        
+    } else if([pushType isEqualToString:@"CHANGE_SNS_LEADER"]){
+        [self pushChangeSNSLeader:dict];
+        
+    } else if([pushType isEqualToString:@"NEW_TASK"]){
+        //[self pushNewTask:dict];
+        
+    } else if([pushType isEqualToString:@"EDIT_TASK"]){
+        //[self pushEditTask:dict];
+    }
+    
+    //[[NSNotificationCenter defaultCenter] removeObserver:self name:@"pushNotificationReceived" object:nil];
+}
+
+#pragma mark - APNS Push
+-(void)pushAddChat:(NSDictionary *)dict{
+    @try{
+        //self.apsDict = [NSDictionary dictionary];
+        
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        //NSLog(@"dataSet : %@", dataSet);
+        
+        //NSString *chatNo = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_NO"];
+        NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+        NSString *userNo = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_NO"];
+        NSString *contentType = [[dataSet objectAtIndex:0] objectForKey:@"CONTENT_TY"];
+        NSString *content =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+        NSString *fileName = [[dataSet objectAtIndex:0] objectForKey:@"FILE_NM"];
+        NSString *decodeFileNm = [NSString urlDecodeString:fileName];
+        //NSString *date = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_DATE"];
+        //NSString *decodeDate = [NSString urlDecodeString:date];
+        NSString *decodeFileThumb = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"FILE_THUMB"]];
+        self.recvRoomNo = roomNo;
+        
+        NSString *tmpPath = NSTemporaryDirectory();
+        if([contentType isEqualToString:@"IMG"]){
+            UIImage *originImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[content stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+            NSData *originImageData = UIImageJPEGRepresentation(originImage, 0.1);
+            
+            originImagePath =[tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@",decodeFileNm]];
+            [originImageData writeToFile:originImagePath atomically:YES];
+            
+            UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[decodeFileThumb stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+            
+            //큰이미지 사이즈조절
+            if(thumbImage.size.height > thumbImage.size.width*2){
+                UIImage *image2 = [self imageByScalingAndCroppingForSize:CGSizeMake(180,300) : thumbImage];
+                thumbImage = [self getScaledImage:image2 scaledToMaxWidth:180 maxHeight:300];
+            } else {
+                thumbImage = [self getScaledImage:thumbImage scaledToMaxWidth:180.0f];
+            }
+            
+            NSData *thumbImageData = UIImagePNGRepresentation(thumbImage);
+            thumbImagePath = [tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"mThumb_%@",decodeFileNm]];
+            [thumbImageData writeToFile:thumbImagePath atomically:YES];
+        }
+        
+        [self readFromDatabase];
+        
+        //NSLog(@"self.array : %@", self.array);
+        if(self.array.count == 0){
+            //채팅방목록에 채팅방번호가 없으면 새채팅방 생성
+            
+            //            NSString *urlString = [AppDelegate getMainURL];
+            //            NSString *userID = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+            //            NSString *paramString = [NSString stringWithFormat:@"usrId=%@&usrNo=%@&roomNo=%@", userID, userNo, roomNo];
+            //            NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getRoomInfo"]];
+            //
+            //            NSData *postData = [paramString dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+            //            NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];
+            //            [request setHTTPMethod:@"POST"];
+            //            [request setHTTPBody: postData];
+            //            [request setTimeoutInterval:10.0];
+            //            NSURLConnection *urlConnection = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+            //            [urlConnection start];
+            
+            
+            //self.apsDict = dict;
+            [dataArray insertObject:dict atIndex:0];
+            
+            NSString *urlString = appDelegate.main_url;
+            NSString *userID = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+            NSString *paramString = [NSString stringWithFormat:@"usrId=%@&usrNo=%@&roomNo=%@", userID, userNo, roomNo];
+            NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getRoomInfo"]];
+            //[sync URL:url parameter:paramString :dict];
+            [self requestSynchronousDataWithURLString:url :paramString];
+            
+        } else {
+            [self addChatExecute:dict];
+        }
+        
+    } @catch(NSException *exception) {
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+- (void)requestSynchronousDataWithURLString:(NSURL *)url :(NSString *)paramString
+{
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestUseProtocolCachePolicy timeoutInterval:1.0f];
+    [request setHTTPMethod:@"POST"];
+    
+    if (paramString != nil) {
+        NSData *paramData = [paramString dataUsingEncoding:NSUTF8StringEncoding];
+        [request setHTTPBody:paramData];
+    }
+    
+    [self startTask:request];
+}
+
+- (void)startTask:(NSMutableURLRequest *)request{
+    @try {
+        __block NSData *data = nil;
+        dispatch_semaphore_t semaphore = dispatch_semaphore_create(1);
+        
+        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+        NSURLSession *session = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:[NSOperationQueue mainQueue]];
+        
+        NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *taskData, NSURLResponse *response, NSError *error) {
+            data = taskData;
+            if (!data) {
+                NSLog(@"%@", error);
+            }
+            
+            NSMutableData *returnData = [[NSMutableData alloc] init];
+            [returnData appendData:data];
+            NSString *encReturnDataString = [[NSString alloc]initWithData:returnData encoding:NSUTF8StringEncoding];
+            
+            NSError *dicError;
+            NSDictionary *dataDic = [NSJSONSerialization JSONObjectWithData:[encReturnDataString dataUsingEncoding:NSUTF8StringEncoding] options:kNilOptions error:&dicError];
+            self.returnDictionary = dataDic;
+            //NSLog(@"self.returnDictionary : %@", self.returnDictionary);
+            [self syncReturnDataWithObject:nil];
+            
+            dispatch_semaphore_signal(semaphore);
+        }];
+        
+        [task resume];
+        dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+        
+    }
+    @catch (NSException *exception) {
+        NSLog(@"error : %@",exception);
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"networkErrorNotification" object:nil];
+        
+    }
+}
+
+
+-(void)pushUpdateChatUnreadCount:(NSDictionary *)dict{
+    @try{
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *roomNo = [dict objectForKey:@"ROOM_NO"];
+        
+        for(int i=0; i<dataSet.count; i++){
+            NSString *chatNoList = [NSString urlDecodeString:[[dataSet objectAtIndex:i] objectForKey:@"CHAT_NO_LIST"]];
+            NSNumber *unreadCnt = [[dataSet objectAtIndex:i] objectForKey:@"UNREAD_COUNT"];
+            
+            NSString *sqlString = [NSString stringWithFormat:@"UPDATE CHATS SET UNREAD_COUNT = %@ WHERE ROOM_NO=%@ AND CHAT_NO IN (%@);", unreadCnt, roomNo, chatNoList];
+            [self crudStatement:self.DBPath :sqlString];
+        }
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_APNS_ChatReadPush" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+    
+}
+
+-(void)pushCreateChatRoom:(NSDictionary *)dict{
+    @try{
+        NSDictionary *dataSet = [dict objectForKey:@"DATASET"];
+        
+        self.recvRoomNo = [dataSet objectForKey:@"ROOM_NO"];
+        self.recvRoomNm = [dataSet objectForKey:@"ROOM_NM"];
+        NSString *decodeRoomNm = [NSString urlDecodeString:self.recvRoomNm];
+        NSString *roomType = [dataSet objectForKey:@"ROOM_TYPE"];
+        
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *userNm = [prefs objectForKey:@"USER_NM"];
+        NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+        
+        NSArray *roomNmArr = [NSArray array];
+        if([decodeRoomNm rangeOfString:@","].location != NSNotFound){
+            roomNmArr = [decodeRoomNm componentsSeparatedByString:@","];
+        }
+        NSLog(@"roomNmArr : %@", roomNmArr);
+        
+        NSMutableString *resultRoomNm = [NSMutableString string];
+        if(roomNmArr.count>0){
+            for(int i=0; i<roomNmArr.count; i++){
+                NSString *arrUserNm = [roomNmArr objectAtIndex:i];
+                if(![arrUserNm isEqualToString:[NSString stringWithFormat:@"%@", decodeUserNm]]){
+                    [resultRoomNm appendString:[NSString stringWithFormat:@",%@", arrUserNm]];
+                }
+            }
+            resultRoomNm = [[resultRoomNm substringFromIndex:1] mutableCopy];
+        } else {
+            resultRoomNm = [decodeRoomNm mutableCopy];
+        }
+        
+        
+        NSArray *users = [dataSet objectForKey:@"USERS"];
+        //NSLog(@"users : %@", users);
+        
+        [self readFromDatabase];
+        
+        //NSLog(@"array.count : %lu", self.array.count);
+        //채팅방목록에 채팅방번호가 없으면 새채팅방 생성
+        if(self.array.count == 0){
+            NSString *sqlString1 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHAT_ROOMS VALUES (%@, '%@', '%@', 1, 0);", self.recvRoomNo, resultRoomNm, roomType];
+            
+            for (int i=0; i<users.count; i++) {
+                NSString *userNo = [[users objectAtIndex:i] objectForKey:@"USER_NO"];
+                NSString *userNm = [[users objectAtIndex:i] objectForKey:@"USER_NM"];
+                NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+                NSString *userMsg = [[users objectAtIndex:i] objectForKey:@"USER_MSG"];
+                NSString *decodeUserMsg = [NSString urlDecodeString:userMsg];
+                NSString *userImg = [[users objectAtIndex:i] objectForKey:@"USER_IMG"];
+                NSString *decodeUserImg = [NSString urlDecodeString:userImg];
+                NSString *userId = [[users objectAtIndex:i] objectForKey:@"USER_ID"];
+                NSString *phoneNo = [[users objectAtIndex:i] objectForKey:@"PHONE_NO"];
+                NSString *deptNo = [[users objectAtIndex:i] objectForKey:@"DEPT_NO"];
+                NSString *userBgImg = [NSString urlDecodeString:[[users objectAtIndex:i] objectForKey:@"USER_BACKGROUND_IMG"]];
+                
+                NSString *sqlString2 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, decodeUserNm, decodeUserImg, decodeUserMsg, phoneNo, deptNo, userBgImg];
+                NSString *sqlString3 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHAT_USERS VALUES (%@, %@);", self.recvRoomNo, userNo];
+                
+                [self crudStatement:self.DBPath :sqlString2];
+                [self crudStatement:self.DBPath :sqlString3];
+                
+                //프로필 썸네일 로컬저장
+                /*NSString *tmpPath = NSTemporaryDirectory();
+                 UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[decodeUserImg stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+                 NSData *imageData = UIImagePNGRepresentation(thumbImage);
+                 NSString *fileName = [decodeUserImg lastPathComponent];
+                 
+                 NSString *thumbImgPath =[tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"mThumb_%@",fileName]];
+                 [imageData writeToFile:thumbImgPath atomically:YES];*/
+            }
+            
+            [self crudStatement:self.DBPath :sqlString1];
+        }
+        
+        //[[NSNotificationCenter defaultCenter] postNotificationName:@"pushCreateRoomNotification" object:nil userInfo:dataSet];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:dict];
+        
+        self.recvRoomNo = nil;
+        self.recvRoomNm = nil;
+        
+    } @catch(NSException *exception) {
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushAddChatUser:(NSDictionary *)dict{
+    @try{
+        NSDictionary *dataSet = [dict objectForKey:@"DATASET"];
+        NSArray *users = [dataSet objectForKey:@"USERS"];
+        NSString *roomNo = [dataSet objectForKey:@"ROOM_NO"];
+        NSString *roomNm = [dataSet objectForKey:@"ROOM_NM"];
+        NSString *decodeRoomName = [NSString urlDecodeString:roomNm];
+        
+        //apns로 보낼때 decodeUserNm이 null
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *userNm = [prefs objectForKey:@"USER_NM"];
+        NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+        
+        //        NSLog(@"ADD_CHAT_USER userNm : %@", userNm);
+        //        NSLog(@"ADD_CHAT_USER decodeRoomName : %@", decodeRoomName);
+        //        NSLog(@"ADD_CHAT_USER decodeUserNm : %@", decodeUserNm);
+        
+        if([decodeRoomName rangeOfString:decodeUserNm].location != NSNotFound){
+            decodeRoomName = [decodeRoomName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@,", decodeUserNm] withString:@""];
+            //NSLog(@"ADD_CHAT_USER decodeRoomName2 : %@", decodeRoomName);
+        }
+        
+        NSString *sqlString1 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NM = '%@' WHERE ROOM_NO = %@;", decodeRoomName, roomNo];
+        
+        for (int i=0; i<users.count; i++) {
+            NSString *userNo = [[users objectAtIndex:i] objectForKey:@"USER_NO"];
+            NSString *userNm = [[users objectAtIndex:i] objectForKey:@"USER_NM"];
+            NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+            NSString *userMsg = [[users objectAtIndex:i] objectForKey:@"USER_MSG"];
+            NSString *decodeUserMsg = [NSString urlDecodeString:userMsg];
+            NSString *userImg = [[users objectAtIndex:i] objectForKey:@"USER_IMG"];
+            NSString *decodeUserImg = [NSString urlDecodeString:userImg];
+            NSString *userId = [[users objectAtIndex:i] objectForKey:@"USER_ID"];
+            NSString *phoneNo = [[users objectAtIndex:i] objectForKey:@"PHONE_NO"];
+            NSString *deptNo = [[users objectAtIndex:i] objectForKey:@"DEPT_NO"];
+            NSString *userBgImg = [NSString urlDecodeString:[[users objectAtIndex:i] objectForKey:@"USER_BACKGROUND_IMG"]];
+            
+            NSString *sqlString2 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, decodeUserNm, decodeUserImg, decodeUserMsg, phoneNo, deptNo, userBgImg];
+            NSString *sqlString3 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHAT_USERS VALUES (%@, %@);", roomNo, userNo];
+            
+            [self crudStatement:self.DBPath :sqlString2];
+            [self crudStatement:self.DBPath :sqlString3];
+            
+            //프로필 썸네일 로컬저장
+            /*NSString *tmpPath = NSTemporaryDirectory();
+             UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[decodeUserImg stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+             NSData *imageData = UIImagePNGRepresentation(thumbImage);
+             NSString *fileName = [decodeUserImg lastPathComponent];
+             
+             NSString *thumbImgPath =[tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"mThumb_%@",fileName]];
+             [imageData writeToFile:thumbImgPath atomically:YES];*/
+        }
+        
+        [self crudStatement:self.DBPath :sqlString1];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeRoomName" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushDeleteChatUser:(NSDictionary *)dict{
+    @try{
+        //DELETE_USER
+        NSDictionary *dataSet = [dict objectForKey:@"DATASET"];
+        NSDictionary *users = [dataSet objectForKey:@"USERS"];
+        NSString *roomNm = [dataSet objectForKey:@"ROOM_NM"];
+        NSString *decodeRoomNm = [NSString urlDecodeString:roomNm];
+        //NSLog(@"dataSet : %@", dataSet);
+        
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *userNm = [prefs objectForKey:@"USER_NM"];
+        NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+        //NSLog(@"decodeUserNm : %@", decodeUserNm);
+        
+        /*
+         if([decodeRoomName rangeOfString:[NSString stringWithFormat:@",%@", decodeUserNm]].location != NSNotFound){
+         decodeRoomName = [decodeRoomName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@",%@", decodeUserNm] withString:@""];
+         } else if([decodeRoomName rangeOfString:[NSString stringWithFormat:@"%@,", decodeUserNm]].location != NSNotFound){
+         decodeRoomName = [decodeRoomName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@,", decodeUserNm] withString:@""];
+         } else if([decodeRoomName rangeOfString:[NSString stringWithFormat:@",%@,", decodeUserNm]].location != NSNotFound){
+         decodeRoomName = [decodeRoomName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@",%@", decodeUserNm] withString:@""];
+         }
+         //NSLog(@"decodeRoomName : %@", decodeRoomName);
+         */
+        
+        NSArray *roomNmArr = [NSArray array];
+        if([decodeRoomNm rangeOfString:@","].location != NSNotFound){
+            roomNmArr = [decodeRoomNm componentsSeparatedByString:@","];
+        }
+        //NSLog(@"roomNmArr : %@", roomNmArr);
+        
+        NSMutableString *resultRoomNm = [NSMutableString string];
+        if(roomNmArr.count>0){
+            for(int i=0; i<roomNmArr.count; i++){
+                NSString *arrUserNm = [roomNmArr objectAtIndex:i];
+                if(![arrUserNm isEqualToString:[NSString stringWithFormat:@"%@", decodeUserNm]]){
+                    [resultRoomNm appendString:[NSString stringWithFormat:@",%@", arrUserNm]];
+                }
+            }
+            resultRoomNm = [[resultRoomNm substringFromIndex:1] mutableCopy];
+        }else {
+            resultRoomNm = [decodeRoomNm mutableCopy];
+        }
+        //NSLog(@"resultRoomNm : %@", resultRoomNm);
+        
+        NSString *userNo = [users objectForKey:@"USER_NO"];
+        //NSLog(@"userName : %@", userName);
+        
+        sqlite3 *database;
+        
+        NSString *roomStr = nil;
+        NSString *sqlString = [NSString stringWithFormat:@"SELECT ROOM_NM FROM CHAT_ROOMS WHERE ROOM_NO = %@", [dataSet objectForKey:@"ROOM_NO"]];
+        if (sqlite3_open([self.DBPath UTF8String], &database) == SQLITE_OK) {
+            NSString *sql2 = sqlString;
+            const char *sqlStatement = [sql2 UTF8String];
+            sqlite3_stmt *compiledStatement;
+            
+            if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+                int rowCount = 0;
+                
+                while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                    rowCount = sqlite3_column_int(compiledStatement, 0);
+                    for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                        NSString *valueString = nil;
+                        if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                            valueString = @"null";
+                        }else{
+                            valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                        }
+                        roomStr = valueString;
+                    }
+                }
+            }else {
+                NSLog(@"not SQLITE_OK");
+                printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+            }
+            sqlite3_finalize(compiledStatement);
+            
+        }else{
+            NSLog(@"DELETE_CHAT_USER db not open");
+        }
+        sqlite3_close(database);
+        
+        //NSLog(@"roomStr : %@", roomStr);
+        NSString *sqlString1 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NM = '%@' WHERE ROOM_NO = %@;", resultRoomNm, [dataSet objectForKey:@"ROOM_NO"]];
+        [self crudStatement:self.DBPath :sqlString1];
+        
+        NSString *sqlString2 = [NSString stringWithFormat:@"DELETE FROM CHAT_USERS WHERE ROOM_NO = %@ AND USER_NO = %@;", [dataSet objectForKey:@"ROOM_NO"], userNo];
+        [self crudStatement:self.DBPath :sqlString2];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeRoomName" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushChangeUserProfile:(NSDictionary *)dict{
+    @try{
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        
+        NSString *userNo = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_NO"];
+        NSString *userId = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_ID"];
+        NSString *userName = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"USER_NM"]];
+        NSString *fileName = [[dataSet objectAtIndex:0] objectForKey:@"PROFILE_IMG_NM"];
+        NSString *phoneNo = [[dataSet objectAtIndex:0] objectForKey:@"PHONE_NO"];
+        NSString *profileImg = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_IMG"]];
+        NSString *profileMsg = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_MSG"]];
+        NSString *profileImgThumb = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_IMG_THUMB"]];
+        NSString *deptNo = [[dataSet objectAtIndex:0] objectForKey:@"DEPT_NO"];
+        NSString *profileBgImg = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_BG_IMG"]];
+        //NSString *profileBgImgThumb = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_BACKGROUND_IMG_THUMB"]];
+        
+        /*
+         //프로필 원본 로컬저장
+         NSString *tmpPath = NSTemporaryDirectory();
+         UIImage *originImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[profileImg stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+         NSData *originImageData = UIImageJPEGRepresentation(originImage, 0.1);
+         NSString *originProfile =[tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@",fileName]];
+         [originImageData writeToFile:originProfile atomically:YES];
+         
+         //프로필 썸네일 로컬저장
+         UIImage *thumbProfile = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[profileImgThumb stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+         NSData *thumbImageData = UIImagePNGRepresentation(thumbProfile);
+         NSString *thumbProfilePath = [tmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"mThumb_%@",fileName]];
+         [thumbImageData writeToFile:thumbProfilePath atomically:YES];
+         */
+        
+        //        if([profileImg isEqualToString:@""]){
+        NSString *sqlString = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, userName, profileImg, profileMsg, phoneNo, deptNo, profileBgImg];
+        [self crudStatement:self.DBPath :sqlString];
+        
+        //        } else {
+        //            //NSString *sqlString = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', %@, '%@');", userNo, userId, userName, originProfile, profileMsg, phoneNo, deptNo, profileBgImg];
+        //            NSString *savePath = [NSString stringWithFormat:@"%@/profile/",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"]];
+        //            NSString *chkFile = [savePath stringByAppendingPathComponent:[NSString stringWithFormat:@"thumb_%@", fileName]];
+        //            NSString *sqlString = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, userName, chkFile, profileMsg, phoneNo, deptNo, profileBgImg];
+        //            [self crudStatement:self.DBPath :sqlString];
+        //        }
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeProfilePush" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushNewPost:(NSDictionary *)dict{
+    
+}
+
+-(void)pushNewPostComment:(NSDictionary *)dict{
+    /*
+     NSArray *dataSet = [dict objectForKey:@"DATASET"];
+     //NSString *imgPath =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_IMG"]];
+     NSString *imgPath = @"http://dev.hhi.co.kr:49175/snsService/snsUpload/sns/10/136/20180514/BP15214(180514-160921).png";
+     //NSString *imgPath = @"https://roms.dbvalley.com/snsService/snsUpload/profile/10/107/mdemo2(180220-213353).png";
+     //NSString *imgPath = @"http://i0.wp.com/vanillicon.com/b826bdb1ba0e573f6104419555114edf_200.png";
+     
+     //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+     NSString *fileName = [imgPath lastPathComponent];
+     NSLog(@"fileName ; %@", fileName);
+     //NSString *savePath = [NSString stringWithFormat:@"file:%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+     NSString *savePath = [NSString stringWithFormat:@"%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+     NSURL* tmpUrl = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"file:%@",savePath]];
+     NSLog(@"tmpUrl : %@", tmpUrl);
+     
+     if([imgPath rangeOfString:@"https://"].location != NSNotFound || [imgPath rangeOfString:@"http://"].location != NSNotFound){
+     NSLog(@"savePath : %@", savePath);
+     BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:savePath];
+     NSLog(@"fileExists : %d", fileExists);
+     if(!fileExists){
+     UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[imgPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+     NSLog(@"thumbImage : %@", thumbImage);
+     NSData *imageData = UIImagePNGRepresentation(thumbImage);
+     [imageData writeToFile:savePath atomically:YES];
+     NSLog(@"savePath : %@", savePath);
+     }
+     }
+     
+     NSError *error;
+     NSString *noticeMsg = @"APNS 이미지 테스트";
+     UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+     content.title = [NSString localizedUserNotificationStringForKey:noticeMsg arguments:nil];
+     content.body = [NSString localizedUserNotificationStringForKey:@"" arguments:nil];
+     content.sound = [UNNotificationSound defaultSound];
+     
+     UNNotificationAttachment *attachment;
+     attachment = [UNNotificationAttachment attachmentWithIdentifier:fileName URL:tmpUrl options:nil error:&error];
+     NSLog(@"attachment : %@", attachment);
+     content.attachments = @[attachment];
+     
+     //content.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] + 1);
+     UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"req" content:content trigger:nil];
+     UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+     [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+     if (!error) {
+     NSLog(@"add NotificationRequest succeeded!");
+     } else {
+     NSLog(@"error :(");
+     }
+     }];
+     */
+}
+
+-(void)pushForceDeleteSNS:(NSDictionary *)dict{
+    @try{
+        //강제탈퇴 되었을 때 게시판목록, 게시판, 게시판정보, 게시판멤버정보 새로고침
+        //로컬DB에서 SNS삭제
+        NSLog(@"apns pushForceDeleteSNS : %@", dict);
+        
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *snsName =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+        NSString *imgPath =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"COVER_IMG"]];
+        
+        //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+        NSString *fileName = [imgPath lastPathComponent];
+        //    NSString *savePath = [NSString stringWithFormat:@"file:%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        //    NSURL* tmpUrl = [[NSURL alloc] initWithString:savePath];
+        //    NSLog(@"tmpUrl : %@", tmpUrl);
+        
+        NSString *savePath = [NSString stringWithFormat:@"%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        NSURL* tmpUrl = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"file:%@",savePath]];
+        NSLog(@"tmpUrl : %@", tmpUrl);
+        
+        if([imgPath rangeOfString:@"https://"].location != NSNotFound || [imgPath rangeOfString:@"http://"].location != NSNotFound){
+            BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:savePath];
+            if(!fileExists){
+                UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[imgPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+                NSData *imageData = UIImagePNGRepresentation(thumbImage);
+                [imageData writeToFile:savePath atomically:YES];
+            }
+        }
+        
+        NSError *error;
+        NSString *noticeMsg = [NSString stringWithFormat:NSLocalizedString(@"force_sns_noti", @"force_sns_noti"), snsName];
+        UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+        content.title = [NSString localizedUserNotificationStringForKey:noticeMsg arguments:nil];
+        content.body = [NSString localizedUserNotificationStringForKey:@"" arguments:nil];
+        content.sound = [UNNotificationSound defaultSound];
+        
+        UNNotificationAttachment *attachment;
+        attachment=[UNNotificationAttachment attachmentWithIdentifier:fileName URL:tmpUrl options:nil error:&error];
+        content.attachments = @[attachment];
+        
+        //content.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] + 1);
+        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"req" content:content trigger:nil];
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+            if (!error) {
+                NSLog(@"add NotificationRequest succeeded!");
+            }
+        }];
+        
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ForceDeleteSNS" object:nil userInfo:dict];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushDeleteSNS:(NSDictionary *)dict{
+    @try{
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *snsName =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+        NSString *imgPath =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"COVER_IMG"]];
+        
+        //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+        NSString *fileName = [imgPath lastPathComponent];
+        //    NSString *savePath = [NSString stringWithFormat:@"file:%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        //    NSURL* tmpUrl = [[NSURL alloc] initWithString:savePath];
+        //    NSLog(@"tmpUrl : %@", tmpUrl);
+        NSString *savePath = [NSString stringWithFormat:@"%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        NSURL* tmpUrl = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"file:%@",savePath]];
+        NSLog(@"tmpUrl : %@", tmpUrl);
+        
+        if([imgPath rangeOfString:@"https://"].location != NSNotFound || [imgPath rangeOfString:@"http://"].location != NSNotFound){
+            BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:savePath];
+            if(!fileExists){
+                UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[imgPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+                NSData *imageData = UIImagePNGRepresentation(thumbImage);
+                [imageData writeToFile:savePath atomically:YES];
+            }
+        }
+        
+        NSError *error;
+        UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+        content.title = [NSString localizedUserNotificationStringForKey:snsName arguments:nil];
+        content.body = [NSString localizedUserNotificationStringForKey:@"게시판이 삭제되었습니다." arguments:nil];
+        content.sound = [UNNotificationSound defaultSound];
+        
+        UNNotificationAttachment *attachment;
+        attachment=[UNNotificationAttachment attachmentWithIdentifier:fileName URL:tmpUrl options:nil error:&error];
+        content.attachments = @[attachment];
+        
+        //content.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] + 1);
+        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"req" content:content trigger:nil];
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+            if (!error) {
+                NSLog(@"add NotificationRequest succeeded!");
+            }
+        }];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushApproveSNS:(NSDictionary *)dict{
+    @try{
+        //NSLog(@"dict : %@", dict);
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *snsName =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+        NSString *imgPath =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"COVER_IMG"]];
+        NSString *snsKind =  [[dataSet objectAtIndex:0] objectForKey:@"SNS_KIND"];
+        
+        //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+        NSString *fileName = [imgPath lastPathComponent];
+        //        NSLog(@"fileName : %@", fileName);
+        //        NSString *savePath = [NSString stringWithFormat:@"file:%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        //        NSURL* tmpUrl = [[NSURL alloc] initWithString:savePath];
+        //        NSLog(@"tmpUrl : %@", tmpUrl);
+        NSString *savePath = [NSString stringWithFormat:@"%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        NSURL* tmpUrl = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"file:%@",savePath]];
+        NSLog(@"tmpUrl : %@", tmpUrl);
+        
+        if([imgPath rangeOfString:@"https://"].location != NSNotFound || [imgPath rangeOfString:@"http://"].location != NSNotFound){
+            BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:savePath];
+            if(!fileExists){
+                UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[imgPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+                NSData *imageData = UIImagePNGRepresentation(thumbImage);
+                [imageData writeToFile:savePath atomically:YES];
+            }
+        }
+        
+        NSError *error;
+        NSString *noticeMsg = [NSString stringWithFormat:NSLocalizedString(@"join_sns_toast1", @"join_sns_toast1"), snsName];
+        UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+        content.title = [NSString localizedUserNotificationStringForKey:noticeMsg arguments:nil];
+        
+        if([snsKind isEqualToString:@"1"]) content.body = [NSString localizedUserNotificationStringForKey:@"새로운 글을 등록해주세요." arguments:nil];
+        else if([snsKind isEqualToString:@"2"]) content.body = [NSString localizedUserNotificationStringForKey:@"새로운 업무를 등록해주세요." arguments:nil];
+        content.sound = [UNNotificationSound defaultSound];
+        
+        UNNotificationAttachment *attachment;
+        attachment=[UNNotificationAttachment attachmentWithIdentifier:fileName URL:tmpUrl options:nil error:&error];
+        content.attachments=@[attachment];
+        
+        //content.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] + 1);
+        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"req" content:content trigger:nil];
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+            if (!error) {
+                NSLog(@"add NotificationRequest succeeded!");
+            }
+        }];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+-(void)pushChangeSNSLeader:(NSDictionary *)dict{
+    @try{
+        //NSLog(@"dict : %@", dict);
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        NSString *snsName =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+        NSString *imgPath =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"COVER_IMG"]];
+        //NSString *snsKind =  [[dataSet objectAtIndex:0] objectForKey:@"SNS_KIND"];
+        
+        //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+        NSString *fileName = [imgPath lastPathComponent];
+        NSString *savePath = [NSString stringWithFormat:@"%@/cover/%@",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"],fileName];
+        NSURL* tmpUrl = [[NSURL alloc] initWithString:[NSString stringWithFormat:@"file:%@",savePath]];
+        NSLog(@"tmpUrl : %@", tmpUrl);
+        
+        if([imgPath rangeOfString:@"https://"].location != NSNotFound || [imgPath rangeOfString:@"http://"].location != NSNotFound){
+            BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:savePath];
+            if(!fileExists){
+                UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[imgPath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+                NSData *imageData = UIImagePNGRepresentation(thumbImage);
+                [imageData writeToFile:savePath atomically:YES];
+            }
+        }
+        
+        NSError *error;
+        NSString *noticeMsg = [NSString stringWithFormat:NSLocalizedString(@"join_sns_toast12", @"join_sns_toast12"), snsName];
+        UNMutableNotificationContent *content = [[UNMutableNotificationContent alloc] init];
+        content.title = [NSString localizedUserNotificationStringForKey:noticeMsg arguments:nil];
+        content.sound = [UNNotificationSound defaultSound];
+        
+        UNNotificationAttachment *attachment;
+        attachment=[UNNotificationAttachment attachmentWithIdentifier:fileName URL:tmpUrl options:nil error:&error];
+        content.attachments=@[attachment];
+        
+        //content.badge = @([[UIApplication sharedApplication] applicationIconBadgeNumber] + 1);
+        UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:@"req" content:content trigger:nil];
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        [center addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
+            if (!error) {
+                NSLog(@"add NotificationRequest succeeded!");
+            }
+        }];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil userInfo:dict];
+        
+    } @catch(NSException *exception){
+        NSLog(@"exception : %@", exception);
+    }
+}
+
+
+#pragma mark -
+- (void)readFromDatabase {
+    //NSLog(@"_myUserNo : %@", _myUserNo);
+    //NSString *sqlString = [NSString stringWithFormat:@"SELECT X.LAST_MSG_TY, SUM(X.NOT_READ_COUNT) NOT_READ_COUNT, X.ROOM_NO, X.ROOM_TYPE, X.ROOM_NM, X.ROOM_NOTI, X.NEW_CHAT, X.CONTENT_TY, X.CONTENT, X.LAST_DATE, IFNULL(C.USER_IMG,'') ROOM_IMG, IFNULL(C.USER_NO,'') ROOM_IMG_USER_NO, X.MEMBER_COUNT, X.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT '' LAST_MSG_TY, SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.DATE LAST_DATE FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, DATETIME('NOW','LOCALTIME') LAST_DATE FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO) X, CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) X LEFT OUTER JOIN( SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG, GROUP_CONCAT(D.USER_NO) USER_NO FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO ) C ON X.ROOM_NO = C.ROOM_NO GROUP BY X.ROOM_NO ORDER BY X.NEW_CHAT DESC , X.LAST_DATE DESC;", _myUserNo];
+    NSString *sqlString = [NSString stringWithFormat:@"SELECT X.LAST_MSG_TY, SUM(X.NOT_READ_COUNT) NOT_READ_COUNT, X.ROOM_NO, X.ROOM_TYPE, X.ROOM_NM, X.ROOM_NOTI, X.NEW_CHAT, X.CONTENT_TY, X.CONTENT, X.CONTENT_PREV, X.LAST_DATE, IFNULL(C.USER_IMG,'') ROOM_IMG, IFNULL(C.USER_NO,'') ROOM_IMG_USER_NO, X.MEMBER_COUNT, X.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT '' LAST_MSG_TY, SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, A.DATE LAST_DATE FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, DATETIME('NOW','LOCALTIME') LAST_DATE FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO) X, CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) X LEFT OUTER JOIN( SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG, GROUP_CONCAT(D.USER_NO) USER_NO FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO ) C ON X.ROOM_NO = C.ROOM_NO GROUP BY X.ROOM_NO ORDER BY X.NEW_CHAT DESC , X.LAST_DATE DESC;", _myUserNo];
+    [self selectStatement:self.DBPath :sqlString];
+}
+
+- (void)chatRoomListCount :(NSString *)roomNo :(NSString *)userNo{
+    //NSLog(@"%s", __func__);
+    self.tempArr = [NSMutableArray array];
+    [self readFromDatabase];
+    //NSLog(@"tmpArr : %@", self.tempArr);
+    
+    int badgeCnt=0;
+    for(int i=0; i<self.tempArr.count; i++){
+        int notReadCnt = [[[self.tempArr objectAtIndex:i]objectForKey:@"NOT_READ_COUNT"] intValue];
+        badgeCnt+=notReadCnt;
+    }
+    NSMutableDictionary *badgeDict = [NSMutableDictionary dictionary];
+    [badgeDict setObject:[NSString stringWithFormat:@"%d", badgeCnt] forKey:@"CNT"];
+    //self.readCntDic = [self.tempArr objectAtIndex:0];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeChatBadge" object:nil userInfo:badgeDict];
+}
+
+-(void)addChatListExecute{
+    @try{
+        NSLog(@"dataArray : %@", dataArray);
+        
+        NSMutableDictionary *dict2 = [NSMutableDictionary dictionary];
+        [dict2 setDictionary:[dataArray objectAtIndex:0]];
+        
+        NSArray *dataSet = [[dataArray objectAtIndex:0] objectForKey:@"DATASET"];
+        
+        NSString *chatNo = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_NO"];
+        NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+        NSString *userNo = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_NO"];
+        NSString *contentType = [[dataSet objectAtIndex:0] objectForKey:@"CONTENT_TY"];
+        NSString *content =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+        NSString *fileName = [[dataSet objectAtIndex:0] objectForKey:@"FILE_NM"];
+        NSString *decodeFileNm = [NSString urlDecodeString:fileName];
+        NSString *date = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_DATE"];
+        NSString *decodeDate = [NSString urlDecodeString:date];
+        NSString *unRead = [[dataSet objectAtIndex:0] objectForKey:@"UNREAD_COUNT"];
+        
+        if ([contentType isEqualToString:@"INVITE"]) {
+            content = [NSString urlDecodeString:content];
+        }
+        
+        content = [content stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+        
+        NSMutableString *contentStr = nil;
+        NSDictionary *aditInfo = [[dataSet objectAtIndex:0] objectForKey:@"ADITINFO"];
+        //NSLog(@"rmq aditInfo : %@", aditInfo);
+        
+        NSString *tmpNo = [aditInfo objectForKey:@"TMP_NO"];
+        NSInteger tmpIdx = [[aditInfo objectForKey:@"TMP_IDX"] intValue];
+        
+        //시스템메시지일 경우
+        if([contentType isEqualToString:@"SYS"]){
+            NSString *sender = [NSString urlDecodeString:[aditInfo objectForKey:@"SENDER"]];
+            NSString *sysMsgType = [aditInfo objectForKey:@"SYS_MSG_TY"];
+            //NSLog(@"rmq sysMsgType : %@", sysMsgType);
+            
+            if([sysMsgType isEqualToString:@"ADD_USER"]){
+                NSString *addSysMsg = [NSString stringWithFormat:@"%@님이 %@님을 초대했습니다.", sender, content];
+                //NSLog(@"addSysMsg : %@", addSysMsg);
+                if([addSysMsg rangeOfString:@","].location != NSNotFound){
+                    addSysMsg = [addSysMsg stringByReplacingOccurrencesOfString:@"," withString:@"님과 "];
+                }
+                contentStr = [[NSMutableString alloc]initWithString:addSysMsg];
+            } else {
+                //DELETE_USER
+                NSString *deleteSysMsg = [NSString stringWithFormat:@"%@님이 나갔습니다.", content];
+                contentStr = [[NSMutableString alloc]initWithString:deleteSysMsg];
+            }
+            
+            //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:dict];
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:[dataArray objectAtIndex:0]];
+            
+        } else {
+            contentStr = [[NSMutableString alloc]initWithString:content];
+        }
+        
+        NSMutableDictionary *tmpDic = [NSMutableDictionary dictionary];
+        [tmpDic setValue:tmpNo forKey:@"TMP_NO"];
+        [tmpDic setValue:[NSNumber numberWithInteger:tmpIdx] forKey:@"TMP_IDX"];
+        [tmpDic setValue:@"SENDING" forKey:@"TYPE"];
+        [tmpDic setValue:originImagePath forKey:@"LOCAL_CONTENT"];
+        
+        //NSLog(@"originImagePath : %@", originImagePath);
+        
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:tmpDic options:0 error:&error];
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        
+        //남이 보낸 메시지 (시스템메시지도 포함)
+        if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", _myUserNo]]){
+            //NSLog(@"userNo : %@, _myUserNo :%@", userNo, _myUserNo);
+            
+            if([contentType isEqualToString:@"LONG_TEXT"]){
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '', '', '%@', '%@', '%@', 0, %@, '%@');", chatNo, roomNo, userNo, contentType, decodeDate, decodeFileNm, jsonString, unRead, contentStr];
+                [self crudStatement:self.DBPath :sqlString];
+                
+            } else {
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '', '%@', '%@', '%@', 0, %@, '');", chatNo, roomNo, userNo, contentType, contentStr, decodeDate, decodeFileNm, jsonString, unRead];
+                [self crudStatement:self.DBPath :sqlString];
+            }
+            
+            if(![contentType isEqualToString:@"SYS"]){
+                NSString *sqlString2 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = 1 WHERE ROOM_NO=%@;",  roomNo];
+                [self crudStatement:self.DBPath :sqlString2];
+            }
+        } else {
+            if([contentType isEqualToString:@"LONG_TEXT"]){
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '', '', '%@', '%@', '%@', 1, %@, '%@');", chatNo, roomNo, userNo, contentType, decodeDate, decodeFileNm, jsonString, unRead, contentStr];
+                [self crudStatement:self.DBPath :sqlString];
+                
+            } else {
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '', '%@', '%@', '%@', 1, %@, '');", chatNo, roomNo, userNo, contentType, contentStr, decodeDate, decodeFileNm, jsonString, unRead];
+                [self crudStatement:self.DBPath :sqlString];
+            }
+        }
+        
+        [self chatRoomListCount:roomNo :_myUserNo];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_Chat" object:nil userInfo:[dataArray objectAtIndex:0]];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ApnsChatList" object:nil];
+        
+        [dataArray removeObjectAtIndex:0];
+        
+    } @catch(NSException *exception){
+        NSLog(@"%s exception : %@", __func__, exception);
+    }
+}
+
+-(void) addChatExecute:(NSDictionary *)dict{
+    @try{
+        //NSLog(@"dict : %@", dict);
+        NSMutableDictionary *dict2 = [NSMutableDictionary dictionary];
+        [dict2 setDictionary:dict];
+        
+        NSArray *dataSet = [dict objectForKey:@"DATASET"];
+        
+        NSString *chatNo = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_NO"];
+        NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+        NSString *userNo = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_NO"];
+        NSString *contentType = [[dataSet objectAtIndex:0] objectForKey:@"CONTENT_TY"];
+        NSString *content =[NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+        NSString *fileName = [[dataSet objectAtIndex:0] objectForKey:@"FILE_NM"];
+        NSString *decodeFileNm = [NSString urlDecodeString:fileName];
+        NSString *date = [[dataSet objectAtIndex:0] objectForKey:@"CHAT_DATE"];
+        NSString *decodeDate = [NSString urlDecodeString:date];
+        NSString *unRead = [[dataSet objectAtIndex:0] objectForKey:@"UNREAD_COUNT"];
+        
+        if([contentType isEqualToString:@"INVITE"]){
+            content = [NSString urlDecodeString:content];
+        }
+        
+        content = [content stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+        
+        NSMutableString *contentStr = nil;
+        NSDictionary *aditInfo = [[dataSet objectAtIndex:0] objectForKey:@"ADITINFO"];
+        //NSLog(@"rmq contentStr : %@", contentStr);
+        
+        NSString *tmpNo = [aditInfo objectForKey:@"TMP_NO"];
+        NSInteger tmpIdx = [[aditInfo objectForKey:@"TMP_IDX"] intValue];
+        
+        //시스템메시지일 경우
+        if([contentType isEqualToString:@"SYS"]){
+            NSString *sender = [NSString urlDecodeString:[aditInfo objectForKey:@"SENDER"]];
+            //NSLog(@"rmq sender : %@", sender);
+            NSString *sysMsgType = [aditInfo objectForKey:@"SYS_MSG_TY"];
+            //NSLog(@"rmq sysMsgType : %@", sysMsgType);
+            
+            if([sysMsgType isEqualToString:@"ADD_USER"]){
+                NSString *addSysMsg = [NSString stringWithFormat:@"%@님이 %@님을 초대했습니다.", sender, content];
+                //NSLog(@"addSysMsg : %@", addSysMsg);
+                if([addSysMsg rangeOfString:@","].location != NSNotFound){
+                    addSysMsg = [addSysMsg stringByReplacingOccurrencesOfString:@"," withString:@"님과 "];
+                }
+                contentStr = [[NSMutableString alloc]initWithString:addSysMsg];
+            } else {
+                //DELETE_USER
+                NSString *deleteSysMsg = [NSString stringWithFormat:@"%@님이 나갔습니다.", content];
+                contentStr = [[NSMutableString alloc]initWithString:deleteSysMsg];
+            }
+            
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:dict];
+            
+        } else {
+            contentStr = [[NSMutableString alloc]initWithString:content];
+            
+            //상대방이보낸메시지
+            if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", _myUserNo]]){
+                NSString *sql = [NSString stringWithFormat:@"SELECT ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@;", self.roomNo];
+                self.roomNoti = [dbHelper selectPushNoti:sql];
+            }
+        }
+        
+        NSMutableDictionary *tmpDic = [NSMutableDictionary dictionary];
+        [tmpDic setValue:tmpNo forKey:@"TMP_NO"];
+        [tmpDic setValue:[NSNumber numberWithInteger:tmpIdx] forKey:@"TMP_IDX"];
+        [tmpDic setValue:@"SENDING" forKey:@"TYPE"];
+        [tmpDic setValue:originImagePath forKey:@"LOCAL_CONTENT"];
+        
+        //NSLog(@"originImagePath : %@", originImagePath);
+        
+        NSError *error;
+        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:tmpDic options:0 error:&error];
+        NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        
+        //남이 보낸 메시지 (시스템메시지도 포함)
+        if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", _myUserNo]]){
+            //NSLog(@"userNo : %@, _myUserNo :%@", userNo, _myUserNo);
+            if([contentType isEqualToString:@"LONG_TEXT"]){
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '', '', '%@', '%@', '%@', 0, %@, '%@');", chatNo, roomNo, userNo, contentType, decodeDate, decodeFileNm, jsonString, unRead, contentStr];
+                [self crudStatement:self.DBPath :sqlString];
+                
+            } else {
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '', '%@', '%@', '%@', 0, %@, '');", chatNo, roomNo, userNo, contentType, contentStr, decodeDate, decodeFileNm, jsonString, unRead];
+                [self crudStatement:self.DBPath :sqlString];
+            }
+            
+            [self selectStatement:self.DBPath :@"select chat_no, room_no, user_no, content from chats;"];
+            
+            if(![contentType isEqualToString:@"SYS"]){
+                NSString *sqlString2 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = 1 WHERE ROOM_NO=%@;",  roomNo];
+                [self crudStatement:self.DBPath :sqlString2];
+            }
+        } else {
+            if([contentType isEqualToString:@"LONG_TEXT"]){
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '', '', '%@', '%@', '%@', 1, %@, '%@');", chatNo, roomNo, userNo, contentType, decodeDate, decodeFileNm, jsonString, unRead, contentStr];
+                [self crudStatement:self.DBPath :sqlString];
+                
+            } else {
+                NSString *sqlString = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '', '%@', '%@', '%@', 1, %@, '');", chatNo, roomNo, userNo, contentType, contentStr, decodeDate, decodeFileNm, jsonString, unRead];
+                [self crudStatement:self.DBPath :sqlString];
+            }
+        }
+        
+        [self chatRoomListCount:roomNo :_myUserNo];
+        
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ApnsChatList" object:nil userInfo:dict];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_Chat" object:nil userInfo:dict];
+        
+        
+    } @catch(NSException *exception){
+        NSLog(@"%s exception : %@", __func__, exception);
+    }
+}
+
+-(void) selectStatement:(NSString *)dbPath :(NSString *)selectStmt{
+    //NSLog(@"%s", __func__);
+    sqlite3 *database;
+    
+    self.tempArr = [NSMutableArray array];
+    NSMutableDictionary *dict = nil;
+    
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        NSString *sql2 = selectStmt;
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    //NSLog(@"key String : %@",keyString);
+                    //NSLog(@"value String : %@",valueString);
+                    
+                    [dict setObject:valueString forKey:keyString];
+                }
+                
+                [self.tempArr addObject:dict];
+                //NSLog(@"tempArr : %@", tempArr);
+            }
+            
+            //기존 채팅방목록에 새채팅방번호가 있는지 비교
+            self.array = [NSMutableArray array];
+            for (int i=0; i<self.tempArr.count; i++) {
+                NSDictionary *dictionary = [self.tempArr objectAtIndex:i];
+                NSString *roomNoStr = [dictionary objectForKey:@"ROOM_NO"];
+                
+                if ([roomNoStr isEqualToString:[NSString stringWithFormat:@"%@", self.recvRoomNo]]) {
+                    [self.array addObject:roomNoStr];
+                }
+            }
+            
+            //NSLog(@"self.array : %@", self.array);
+            
+        }else {
+            NSLog(@"not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        NSLog(@"db not open");
+    }
+    sqlite3_close(database);
+}
+
+-(void) crudStatement:(NSString *)dbPath :(NSString *)crudStmt{
+    //NSLog(@"%s", __func__);
+    sqlite3 *database;
+    //NSLog(@"crudStmt : %@", crudStmt);
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        const char *sqlStatement = [crudStmt UTF8String];
+        
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(database));
+                
+            }else{
+                NSLog(@"PushReceivedHandler ok %@", crudStmt);
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+                NSLog(@"SQL Error : %s",sqlite3_errmsg(database));
+            }
+        }else {
+            NSLog(@"not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+    }else{
+        
+    }
+    sqlite3_close(database);
+}
+
+-(void)syncReturnDataWithObject:(NSString *)error{
+    if (error != nil) {
+        NSString *errorMsg = [NSString stringWithFormat:@"%@",error];
+        NSLog(@"error : %@",errorMsg);
+    }else{
+        //NSString *wsName = [[session.url absoluteString] lastPathComponent];
+        NSDictionary *dic = self.returnDictionary;
+        
+        NSDictionary *dataSet = [dic objectForKey:@"DATASET"];
+        
+        NSString *roomNo = [dataSet objectForKey:@"ROOM_NO"];
+        NSString *roomNm = [NSString urlDecodeString:[dataSet objectForKey:@"ROOM_NM"]];
+        NSString *roomType = [dataSet objectForKey:@"ROOM_TYPE"];
+        
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSLog(@"syncReturnDataWithObject userNm : %@", [prefs objectForKey:@"USER_NM"]);
+        
+        NSString *userNm = [prefs objectForKey:@"USER_NM"];
+        NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+        
+        NSArray *roomNmArr = [NSArray array];
+        if([roomNm rangeOfString:@","].location != NSNotFound){
+            roomNmArr = [roomNm componentsSeparatedByString:@","];
+        }
+        NSLog(@"syncReturnDataWithObject roomNmArr : %@", roomNmArr);
+        
+        NSMutableString *resultRoomNm = [NSMutableString string];
+        if(roomNmArr.count>0){
+            for(int i=0; i<roomNmArr.count; i++){
+                NSString *arrUserNm = [roomNmArr objectAtIndex:i];
+                if(![arrUserNm isEqualToString:[NSString stringWithFormat:@"%@", decodeUserNm]]){
+                    [resultRoomNm appendString:[NSString stringWithFormat:@",%@", arrUserNm]];
+                }
+            }
+            resultRoomNm = [[resultRoomNm substringFromIndex:1] mutableCopy];
+        }else {
+            resultRoomNm = [roomNm mutableCopy];
+        }
+        NSLog(@"syncReturnDataWithObject resultRoomNm : %@", resultRoomNm);
+        
+        NSArray *users = [dataSet objectForKey:@"USERS"];
+        
+        NSString *sqlString1 = [NSString stringWithFormat:@"INSERT INTO CHAT_ROOMS VALUES (%@, '%@', '%@', 1, 0, '');", roomNo, resultRoomNm, roomType];
+        for (int i=0; i<users.count; i++) {
+            NSString *userNo = [[users objectAtIndex:i] objectForKey:@"USER_NO"];
+            NSString *userNm = [[users objectAtIndex:i] objectForKey:@"USER_NM"];
+            NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+            NSString *userMsg = [[users objectAtIndex:i] objectForKey:@"USER_MSG"];
+            NSString *decodeUserMsg = [NSString urlDecodeString:userMsg];
+            NSString *userImg = [[users objectAtIndex:i] objectForKey:@"USER_IMG"];
+            NSString *decodeUserImg = [NSString urlDecodeString:userImg];
+            NSString *userId = [[users objectAtIndex:i] objectForKey:@"USER_ID"];
+            NSString *phoneNo = [[users objectAtIndex:i] objectForKey:@"PHONE_NO"];
+            NSString *deptNo = [[users objectAtIndex:i] objectForKey:@"DEPT_NO"];
+            NSString *userBgImg = [NSString urlDecodeString:[[users objectAtIndex:i] objectForKey:@"USER_BACKGROUND_IMG"]];
+            
+            NSString *sqlString2 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, decodeUserNm, decodeUserImg, decodeUserMsg, phoneNo, deptNo, userBgImg];
+            NSString *sqlString3 = [NSString stringWithFormat:@"INSERT INTO CHAT_USERS VALUES (%@, %@);", roomNo, userNo];
+            
+            [self crudStatement:self.DBPath :sqlString2];
+            [self crudStatement:self.DBPath :sqlString3];
+        }
+        [self crudStatement:self.DBPath :sqlString1];
+        
+        [self addChatListExecute];
+        
+        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:[dataArray objectAtIndex:0]];
+    }
+    [SVProgressHUD dismiss];
+}
+
+#pragma mark - NSURLConnectionDataDelegate
+-(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error{
+    NSString *errorMsg = [NSString stringWithFormat:@"%@\n%@",connection.currentRequest.URL.absoluteString,error];
+    NSLog(@"error : %@",errorMsg);
+}
+-(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data{
+    NSString *wsName = [connection.currentRequest.URL.absoluteString lastPathComponent];
+    NSString *returnString = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    
+    NSData *jsonData = [returnString dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *error;
+    NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+    //NSLog(@"dic : %@", dic);
+    
+    NSString *result = [dic objectForKey:@"RESULT"];
+    
+    if ([result isEqualToString:@"SUCCESS"]) {
+        /*if([wsName isEqualToString:@"getRoomInfo"]){
+         //채팅방생성, 채팅유저생성
+         NSDictionary *dataSet = [dic objectForKey:@"DATASET"];
+         //NSLog(@"dataSet : %@", dataSet);
+         
+         NSString *roomNo = [dataSet objectForKey:@"ROOM_NO"];
+         NSString *roomNm = [NSString urlDecodeString:[dataSet objectForKey:@"ROOM_NM"]];
+         NSString *roomType = [dataSet objectForKey:@"ROOM_TYPE"];
+         
+         AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+         NSString *userNm = appDelegate.userNm;
+         NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+         
+         NSArray *roomNmArr = [NSArray array];
+         if([roomNm rangeOfString:@","].location != NSNotFound){
+         roomNmArr = [roomNm componentsSeparatedByString:@","];
+         }
+         //NSLog(@"roomNmArr : %@", roomNmArr);
+         
+         NSMutableString *resultRoomNm = [NSMutableString string];
+         if(roomNmArr.count>0){
+         for(int i=0; i<roomNmArr.count; i++){
+         NSString *userNm = [roomNmArr objectAtIndex:i];
+         if(![userNm isEqualToString:[NSString stringWithFormat:@"%@", decodeUserNm]]){
+         [resultRoomNm appendString:[NSString stringWithFormat:@",%@", userNm]];
+         }
+         }
+         resultRoomNm = [[resultRoomNm substringFromIndex:1] mutableCopy];
+         }else {
+         resultRoomNm = [roomNm mutableCopy];
+         }
+         
+         NSArray *users = [dataSet objectForKey:@"USERS"];
+         
+         NSString *sqlString1 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHAT_ROOMS VALUES (%@, '%@', '%@', 1, 0);", roomNo, resultRoomNm, roomType];
+         for (int i=0; i<users.count; i++) {
+         NSString *userNo = [[users objectAtIndex:i] objectForKey:@"USER_NO"];
+         NSString *userNm = [[users objectAtIndex:i] objectForKey:@"USER_NM"];
+         NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+         NSString *userMsg = [[users objectAtIndex:i] objectForKey:@"USER_MSG"];
+         NSString *decodeUserMsg = [NSString urlDecodeString:userMsg];
+         NSString *userImg = [[users objectAtIndex:i] objectForKey:@"USER_IMG"];
+         NSString *decodeUserImg = [NSString urlDecodeString:userImg];
+         NSString *userId = [[users objectAtIndex:i] objectForKey:@"USER_ID"];
+         NSString *phoneNo = [[users objectAtIndex:i] objectForKey:@"PHONE_NO"];
+         NSString *deptNo = [[users objectAtIndex:i] objectForKey:@"DEPT_NO"];
+         NSString *userBgImg = [NSString urlDecodeString:[[users objectAtIndex:i] objectForKey:@"USER_BACKGROUND_IMG"]];
+         
+         NSString *sqlString2 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, decodeUserNm, decodeUserImg, decodeUserMsg, phoneNo, deptNo, userBgImg];
+         NSString *sqlString3 = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHAT_USERS VALUES (%@, %@);", roomNo, userNo];
+         
+         [self crudStatement:self.DBPath :sqlString2];
+         [self crudStatement:self.DBPath :sqlString3];
+         }
+         [self crudStatement:self.DBPath :sqlString1];
+         
+         [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUser" object:nil userInfo:dic];
+         
+         NSString *urlString = [AppDelegate getMainURL];
+         NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&notiFlag=0&refTy=3&refNo=%@", _myUserNo, roomNo];
+         NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"saveNotification"]];
+         
+         NSData *postData = [paramString dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+         NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url];
+         [request setHTTPMethod:@"POST"];
+         [request setHTTPBody: postData];
+         [request setTimeoutInterval:10.0];
+         NSURLConnection *urlConnection = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+         [urlConnection start];
+         
+         [self addChatExecute:self.apsDict];
+         }*/
+        
+    }else{
+        NSString *errorMsg = [NSString stringWithFormat:@"%@\n%@",connection.currentRequest.URL.absoluteString,error];
+        NSLog(@"error : %@",errorMsg);
+    }
+}
+
+- (void)connectionDidFinishLoading:(NSURLConnection *)connection{
+    //NSLog(@"%s", __func__);
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    UIGraphicsBeginImageContext(newSize);
+    //UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width maxHeight:(CGFloat)height {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    if (oldWidth < width && oldHeight < height)
+        return image;
+    
+    CGFloat scaleFactorW =1;
+    CGFloat scaleFactorH =1;
+    
+    if (oldWidth > width)
+        scaleFactorW = width / oldWidth;
+    if(oldHeight > height)
+        scaleFactorH = height / oldHeight;
+    
+    CGFloat scaleFactor = (scaleFactorW<scaleFactorH)?scaleFactorW:scaleFactorH;
+    
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    //CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(width, newHeight);
+    
+    UIGraphicsBeginImageContext(newSize);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image
+{
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error {
+    NSLog(@"%s",__func__);
+}
+
+@end

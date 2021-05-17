@@ -1,0 +1,89 @@
+//
+//  WebKitViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 4..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "WebKitViewController.h"
+#import "MFStyle.h"
+#import "AppDelegate.h"
+
+@interface WebKitViewController () {
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation WebKitViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"Anymate", @"Anymate")];
+    
+    //    UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+    //    [button setImage:[self getScaledImage:[UIImage imageNamed:@"logo_anymate.png"] scaledToMaxWidth:50.0f] forState:UIControlStateNormal];
+    //    button.adjustsImageWhenDisabled = NO;
+    //    button.frame = CGRectMake(0, 0, 50, 50);
+    //
+    //    UIBarButtonItem *customBarItem = [[UIBarButtonItem alloc] initWithCustomView:button];
+    //    self.navigationItem.leftBarButtonItem = customBarItem;
+    self.navigationItem.hidesBackButton = YES;
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    
+    NSString *url;
+    NSString *legacyNm = appDelegate.legacy_name;
+    if([legacyNm isEqualToString:@"NONE"]){
+        url = @"http://gw.dbvalley.com/m";
+    } else if([legacyNm isEqualToString:@"ANYMATE"]){
+        url = [NSString stringWithFormat:@"%@/m/main/?mode=portal",[prefs objectForKey:@"URL"]];
+    }
+    
+    NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:[url stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]];
+    [self.webView loadRequest:request];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+
+@end

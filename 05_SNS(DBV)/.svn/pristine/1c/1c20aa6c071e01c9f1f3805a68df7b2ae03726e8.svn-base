@@ -1,0 +1,268 @@
+//
+//  ProfileCommentViewController2.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 11. 23..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "ProfileCommentViewController2.h"
+#import "ProfileCommentViewCell.h"
+#import "PostDetailViewController.h"
+
+@interface ProfileCommentViewController2 () {
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation ProfileCommentViewController2
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"cell"];
+    
+    self.lastPostNo = @"1";
+    [self callGetCommentList];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(NSString *)segmentTitle
+{
+    return @"댓글";
+}
+
+-(UIScrollView *)streachScrollView
+{
+    return self.tableView;
+}
+
+- (void)callGetCommentList{
+    NSString *urlString = appDelegate.main_url;
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+    NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+    
+    NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&compNo=%@&refTy=2&stPostSeq=%@&target_usrNo=%@", myUserNo, compNo, self.lastPostNo, self.userNo];
+    //NSLog(@"paramString : %@",paramString);
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getWriteLists"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if ([session start]) {
+        [SVProgressHUD show];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+-(void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    //Progress stop..gesture recognizers added to a view
+    [SVProgressHUD dismiss];
+    
+    if (error!=nil || [error isEqualToString:@"(null)"]) {
+        if ([error isEqualToString:@"The request timed out."]) {
+            [self callGetCommentList];
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,error);
+            NSString *errorMsg =[error stringByAppendingFormat:@"\n=======WebService========\n%@",session.url.absoluteString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======Parameter========\n%@",session.paramString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======return string========\n%@",session.returnDataString];
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                           message:errorMsg
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction* okAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {}];
+            UIAlertAction* retryAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg19", @"") style:UIAlertActionStyleDefault
+                                                                handler:^(UIAlertAction * action) {[self callGetCommentList]; }];
+            
+            [alert addAction:okAction];
+            [alert addAction:retryAction];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+        
+        
+    }else{
+        NSString *result = [session.returnDictionary objectForKey:@"RESULT"];
+        NSMutableArray *dataSets = [session.returnDictionary objectForKey:@"DATASET"];
+        
+        NSString *seq = [[NSString alloc]init];
+        for(int i=1; i<=dataSets.count; i++){
+            seq = [NSString stringWithFormat:@"%d", [self.lastPostNo intValue]+i];
+        }
+        
+        if ([result isEqualToString:@"SUCCESS"]) {
+            if ([self.lastPostNo intValue]==1) {
+                self.lastPostNo = seq;
+                self.dataSetArray = [NSMutableArray arrayWithArray:dataSets];
+                //NSLog(@"self.lastPostNo2 : %@", self.lastPostNo);
+            }else{
+                if (dataSets.count>0){
+                    self.lastPostNo = seq;
+                    [self.dataSetArray addObjectsFromArray:dataSets]; //deep copy
+                    //NSLog(@"self.dataSetArray2 : %@",self.dataSetArray);
+                }
+            }
+            [self.tableView reloadData];
+            
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,[session.returnDictionary objectForKey:@"MESSAGE"]);
+        }
+    }
+}
+
+#pragma mark - UITableView Delegate & DataSource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    if(self.dataSetArray.count > 0){
+        return self.dataSetArray.count;
+        
+    } else {
+        return 0;
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 85;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    ProfileCommentViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ProfileCommentViewCell"];
+    if (cell == nil) {
+        NSArray *topLevelObject = [[NSBundle mainBundle] loadNibNamed:@"ProfileCommentViewCell" owner:self options:nil];
+        
+        for (id currentObject in topLevelObject) {
+            if ([currentObject isKindOfClass:[ProfileCommentViewCell class]]) {
+                cell = (ProfileCommentViewCell *) currentObject;
+                [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
+            }
+        }
+    }
+    
+    if(cell!=nil && self.dataSetArray.count>0){
+        NSDictionary *dataSetItem = [self.dataSetArray objectAtIndex:indexPath.item];
+        //NSLog(@"dataSetItem : %@", dataSetItem);
+        
+        NSString *dataContent = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_CONTENT"]];
+        NSString *dataDate = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_DATE"]];
+        //NSString *dataNo = [dataSetItem objectForKey:@"DATA_NO"];
+        //NSString *dataType = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_TYPE"]];
+        NSString *ref1 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_01"]];
+        //NSString *ref2 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_02"]];
+        //NSString *ref3 = [dataSetItem objectForKey:@"REF_03"];
+        
+        //NSLog(@"dataDate  : %@", dataDate);
+        
+        NSError *error;
+        NSArray *contentArr = [NSArray array];
+        NSData *jsonData = [dataContent dataUsingEncoding:NSUTF8StringEncoding];
+        contentArr = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        
+        NSString *dateStr = [dataDate substringToIndex:dataDate.length-5];
+        NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm";
+        
+        NSDate *nsDate = [formatter dateFromString:dateStr];
+        
+        NSDateFormatter *formatter2 = [[NSDateFormatter alloc]init];
+        formatter2.dateFormat = @"yyyy년 M월 dd일 aH:mm";
+        NSString *dateStr2 = [formatter2 stringFromDate:nsDate];
+        //NSLog(@"dateStr : %@", dateStr2);
+        
+        NSArray *ref1Dict = [NSArray array];
+        NSData *jsonData1 = [ref1 dataUsingEncoding:NSUTF8StringEncoding];
+        ref1Dict = [NSJSONSerialization JSONObjectWithData:jsonData1 options:kNilOptions error:&error];
+        //NSLog(@"ref1Dict : %@", ref1Dict);
+        
+        NSString *contentType = [[ref1Dict objectAtIndex:0] objectForKey:@"TYPE"];
+        if([contentType isEqualToString:@"TEXT"]){
+            cell.contentLabel.text = [NSString urlDecodeString:[[ref1Dict objectAtIndex:0] objectForKey:@"VALUE"]];
+        } else if([contentType isEqualToString:@"IMG"]){
+            cell.contentLabel.text = NSLocalizedString(@"사진을 올렸습니다.", @"사진을 올렸습니다.");
+        } else if([contentType isEqualToString:@"FILE"]){
+            cell.contentLabel.text = NSLocalizedString(@"파일을 올렸습니다.", @"파일을 올렸습니다.");
+        } else {
+            
+        }
+        
+        //        NSDictionary *ref2Dict = [NSDictionary dictionary];
+        //        NSData *jsonData2 = [ref2 dataUsingEncoding:NSUTF8StringEncoding];
+        //        ref2Dict = [NSJSONSerialization JSONObjectWithData:jsonData2 options:kNilOptions error:&error];
+        
+        cell.titleLabel.text = dataContent;
+        cell.dateLabel.text = dateStr2;
+    }
+    
+    
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    //[self performSegueWithIdentifier:@"PROFILE_COMM_DETAIL2" sender:indexPath];
+    
+    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+    PostDetailViewController *destination = (PostDetailViewController *)[storyboard instantiateViewControllerWithIdentifier:@"PostDetailViewController"];
+    UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:destination];
+    
+    MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+    NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"]]];
+    
+    destination._postNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_NO"];
+    destination._postDate = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_DATE"]];
+    
+    destination._snsNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"];
+    destination._snsName = [[selectArr objectAtIndex:0] objectForKey:@"SNS_NM"];
+    destination.indexPath  = indexPath;
+    destination.fromSegue = @"PROFILE_COMM_DETAIL2";
+    
+    NSDictionary *postInfo = [[NSDictionary alloc]initWithObjectsAndKeys:self.userNo,@"CUSER_NO", nil];
+    destination.postInfo = postInfo;
+    
+    [self presentViewController:navController animated:YES completion:nil];
+}
+
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    /*if([segue.identifier isEqualToString:@"PROFILE_COMM_DETAIL2"]){
+     //self.navigationController.navigationBar.topItem.title = @"";
+     
+     UINavigationController *nav = segue.destinationViewController;
+     PostDetailViewController *destination = [[nav childViewControllers] objectAtIndex:0];
+     
+     NSIndexPath *indexPath = (NSIndexPath *)sender;
+     
+     //        SqlSelectHelper *selectHelper = [[SqlSelectHelper alloc]init];
+     //        NSMutableArray *selectArr = [selectHelper selectQuery:[NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"]]];
+     MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+     NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"]]];
+     
+     destination._postNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_NO"];
+     destination._postDate = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_DATE"]];
+     
+     destination._snsNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"];
+     destination._snsName = [[selectArr objectAtIndex:0] objectForKey:@"SNS_NM"];
+     destination.indexPath  = indexPath;
+     destination.fromSegue = segue.identifier;
+     
+     NSDictionary *postInfo = [[NSDictionary alloc]initWithObjectsAndKeys:self.userNo,@"CUSER_NO", nil];
+     destination.postInfo = postInfo;
+     //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_DeletePost:) name:@"noti_DeletePost" object:nil];
+     
+     }*/
+}
+
+- (void)closeButtonClick{
+    
+}
+
+@end

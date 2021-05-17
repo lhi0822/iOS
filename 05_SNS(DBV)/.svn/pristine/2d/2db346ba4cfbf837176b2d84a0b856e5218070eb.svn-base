@@ -1,0 +1,73 @@
+//
+//  PostDetailViewController.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 23..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <MessageUI/MessageUI.h>
+#import "UIDevice-Hardware.h"
+#import "MFPostNameCell.h"
+#import "MFPostImageCell.h"
+#import "DynamicTableViewCell.h"
+#import "DynamicImageTableViewCell.h"
+#import "MFPostCommentCell.h"
+#import "DynamicFileTableViewCell.h"
+#import "PostModifyTableViewController.h"
+#import "MFTextView.h"
+
+#import "MFURLSession.h"
+#import "SVProgressHUD.h"
+#import "AppDelegate.h"
+#import "WebViewController.h"
+
+#import "JSQMessagesInputToolbar.h"
+#import "CustomHeaderViewController.h"
+#import "MFTextView.h"
+
+@interface PostDetailViewController : UIViewController <UITextViewDelegate, MFURLSessionDelegate, UINavigationControllerDelegate, UIImagePickerControllerDelegate, NSXMLParserDelegate, UIAlertViewDelegate, UITableViewDelegate, UITableViewDataSource, UIWebViewDelegate, UIGestureRecognizerDelegate, JSQMessagesInputToolbarDelegate, MFMessageComposeViewControllerDelegate, MFTextViewDelegate> {
+    int pPno;
+    BOOL isRefresh;
+    BOOL isDragging;
+    UILabel                                 *lbRefreshTime;
+    UIImageView                             *ivRefreshArrow;
+    UIActivityIndicatorView                 *spRefresh;
+    NSString                                *refreshTime;
+}
+
+@property (strong, nonatomic) IBOutlet UITableView *tableView;
+@property (strong, nonatomic) IBOutlet JSQMessagesInputToolbar *inputToolbar;
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *keyboardHeight;
+
+@property (nonatomic, strong) NSString *DBName;
+@property (nonatomic, strong) NSString *DBPath;
+@property (nonatomic, strong) NSString *isEdit;
+
+@property (nonatomic) NSLayoutConstraint *toolbarHeightConstraint;
+@property (nonatomic,strong) NSDictionary *postInfo;
+@property (nonatomic,strong) NSDictionary *postDetailInfo;
+@property (nonatomic,strong) NSMutableArray *commentArray;
+@property (nonatomic,strong) NSMutableDictionary *imageDictionary;
+@property (nonatomic,strong) NSMutableDictionary *imageUrlDictionary;
+@property (nonatomic,strong) NSMutableDictionary *imageSizeDictionary;
+@property (nonatomic,strong) NSMutableDictionary *imageThumbDictionary;
+@property (nonatomic,strong) NSMutableDictionary *textDictionary;
+@property (nonatomic,strong) NSMutableDictionary *fileDictionary;
+@property (nonatomic,weak) NSIndexPath *lastIndexPath;
+@property (nonatomic,strong) NSIndexPath *indexPath;
+
+@property (nonatomic,strong) NSString *_snsNo;
+@property (nonatomic,strong) NSString *_snsName;
+@property (nonatomic,strong) NSString *_postNo;
+@property (nonatomic,strong) NSString *_postDate;
+@property (nonatomic,strong) NSString *_readCnt;
+@property (nonatomic,strong) NSString *fromSegue;
+@property (nonatomic,strong) NSDictionary *notiPostDic;
+
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *tableBottonConstraint;
+
+
+
+@end

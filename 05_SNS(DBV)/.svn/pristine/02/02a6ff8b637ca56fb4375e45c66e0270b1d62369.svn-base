@@ -1,0 +1,262 @@
+//
+//  ChangeLeaderViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 1. 10..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "ChangeLeaderViewController.h"
+#import "MFUtil.h"
+#import "MFDBHelper.h"
+#import "SVProgressHUD.h"
+#import "AppDelegate.h"
+
+@interface ChangeLeaderViewController () {
+    MFDBHelper *dbHelper;
+    NSMutableArray *sortDataArr;
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation ChangeLeaderViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    //self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+    statusBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    dbHelper = [[MFDBHelper alloc]init];
+    [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];
+    [self callGetSNSUserList];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)callGetSNSUserList{
+    NSLog(@"%s",__FUNCTION__);
+    
+    NSString *urlString = appDelegate.main_url;
+    NSString *paramString = [NSString stringWithFormat:@"snsNo=%@&currentUserNos=", self.snsNo];
+    
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getSNSMemberList"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if ([session start]) {
+        [SVProgressHUD show];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    
+    if (error!=nil) {
+        NSLog(@"error : %@",error);
+    }else{
+        NSDictionary *dic = session.returnDictionary;
+        dataSetArr = [dic objectForKey:@"DATASET"];
+        //NSLog(@"dataSetArr : %@", dataSetArr);
+        
+        NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+
+        sortDataArr = [NSMutableArray array];
+        for(int i=0; i<dataSetArr.count; i++){
+            NSString *userNo = [[dataSetArr objectAtIndex:i] objectForKey:@"CUSER_NO"];
+            
+            if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                [sortDataArr addObject:[dataSetArr objectAtIndex:i]];
+            }
+        }
+        
+        NSSortDescriptor *sortDescriptor;
+        sortDescriptor = [[NSSortDescriptor alloc] initWithKey:@"USER_NM" ascending:YES];
+        NSArray *sortDescriptors = [NSArray arrayWithObject:sortDescriptor];
+        [sortDataArr sortUsingDescriptors:sortDescriptors];
+        
+        dataSetArr = sortDataArr;
+        [self.tableView reloadData];
+    }
+}
+
+#pragma mark - UITableViewDelegate & UITableViewDatasource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return dataSetArr.count;
+}
+
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    ChatUserListCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ChatUserListCell" forIndexPath:indexPath];
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    cell.userImgView.image = nil;
+    
+    NSDictionary *dataDict = [dataSetArr objectAtIndex:indexPath.row];
+    //NSString *userId = [NSString urlDecodeString:[dataDict objectForKey:@"CUSER_ID"]];
+    NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+    NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+    NSString *profileImg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_IMG"]];
+    NSString *profileMsg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_MSG"]];
+    NSString *corpName = [NSString urlDecodeString:[dataDict objectForKey:@"CORP_NM"]];
+    
+    if([[NSString stringWithFormat:@"%@",userNo] isEqualToString:[NSString stringWithFormat:@"%@",self.leaderNo]]){
+        cell.checkButton.hidden = YES;
+        cell.leaderBtn.hidden = NO;
+        
+        [cell.leaderBtn setImage:[self imageByScalingAndCroppingForSize:CGSizeMake(11, 11) :[UIImage imageNamed:@"icon_crown.png"]] forState:UIControlStateNormal];
+        [cell.leaderBtn setBackgroundColor:[UIColor whiteColor]];
+        
+    } else {
+        cell.checkButton.hidden = NO;
+        cell.leaderBtn.hidden = YES;
+    }
+    
+    if(![profileImg isEqualToString:@""]){
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+        cell.userImgView.image = userImg;
+    } else {
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+        cell.userImgView.image = userImg;
+    }
+    
+    NSString *userStr;
+    if([profileMsg isEqualToString:@""]) userStr = [NSString stringWithFormat:@"%@ (%@)", userName, corpName];
+    else userStr = [NSString stringWithFormat:@"%@ (%@ , %@)", userName, corpName, profileMsg];
+    
+    [cell.userImgView setFrame:CGRectMake(20, (cell.frame.size.height/2) - (45/2), 45, 45)];
+    [cell.leaderBtn setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width-cell.leaderBtn.frame.size.width, cell.leaderBtn.frame.origin.y, cell.leaderBtn.frame.size.width, cell.leaderBtn.frame.size.height)];
+    [cell.nodeNameLabel setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width+10, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+    [cell.checkButton setFrame:CGRectMake(cell.checkButton.frame.origin.x, cell.frame.size.height-(cell.frame.size.height/2)-((cell.checkButton.frame.size.height-10)/2), cell.checkButton.frame.size.width, cell.checkButton.frame.size.height-10)];
+    
+    cell.userImgView.layer.cornerRadius = cell.userImgView.frame.size.width/2;
+    cell.userImgView.clipsToBounds = YES;
+    cell.userImgView.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+    cell.userImgView.layer.borderWidth = 0.3;
+    
+    cell.leaderBtn.layer.cornerRadius = cell.leaderBtn.frame.size.width/2;
+    cell.leaderBtn.clipsToBounds = YES;
+    cell.leaderBtn.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+    cell.leaderBtn.layer.borderWidth = 0.3;
+    
+    cell.nodeNameLabel.text = userStr;
+    cell.nodeNameLabel.font = [UIFont systemFontOfSize:17];
+    
+    //cell.checkButton.tag = [userNo integerValue];
+    cell.checkButton.tag = indexPath.row+1;
+    cell.checkButton.layer.cornerRadius = cell.checkButton.frame.size.width/10;
+    cell.checkButton.clipsToBounds = YES;
+    [cell.checkButton setImage:nil forState:UIControlStateNormal];
+    [cell.checkButton setTitle:@"위임" forState:UIControlStateNormal];
+    [cell.checkButton setBackgroundColor:[MFUtil myRGBfromHex:@"1D4696"]];
+    [cell.checkButton addTarget:self action:@selector(changeLeaderClick:) forControlEvents:UIControlEventTouchUpInside];
+
+    return cell;
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+-(void)changeLeaderClick:(UIButton *)sender{
+    //NSString *userNo = [NSString stringWithFormat:@"%ld", (long)sender.tag];
+    NSDictionary *dataDict = [dataSetArr objectAtIndex:sender.tag-1];
+    NSNumber *userNo = [dataDict objectForKey:@"CUSER_NO"];
+    NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+    
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"선택한 멤버에게 리더를 위임하시겠습니까?" message:nil preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                     handler:^(UIAlertAction * action) {
+                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+
+                                                         NSDictionary *dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"LEADER", @"TYPE", userNo, @"CREATE_USER_NO", userName, @"CREATE_USER_NM", nil];
+
+                                                         UIAlertController * alert = [UIAlertController alertControllerWithTitle:nil message:@"리더를 위임하였습니다." preferredStyle:UIAlertControllerStyleAlert];
+                                                         [self presentViewController:alert animated:YES completion:nil];
+                                                         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                             
+                                                             [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeSubInfo2" object:nil userInfo:dic];
+                                                             [self dismissViewControllerAnimated:YES completion:nil];
+
+                                                         });
+                                                     }];
+
+    UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:@"취소" style:UIAlertActionStyleDefault
+                                                         handler:^(UIAlertAction * action) {
+                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                         }];
+    [alert addAction:okButton];
+    [alert addAction:cancelButton];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image {
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+
+@end

@@ -1,0 +1,496 @@
+//
+//  MFDBHelper.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 22..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "MFDBHelper.h"
+
+@implementation MFDBHelper {
+    AppDelegate *appDelegate;
+}
+
+- (instancetype)init{
+    self = [super init];
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    return self;
+}
+
+- (instancetype)init :(NSString *)userId{
+    self = [super init];
+    if (self) {
+        appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+        self.userId = userId;
+        
+        [self createLocalFolder];
+        [self checkAndCreateDatabase];
+        [self createTable];
+        [self insertData];
+    }
+    return self;
+}
+
+- (NSString *)filePath {
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    //NSString *DBName = [NSString stringWithFormat:@"%@.db",self.userId];
+    NSString *DBName = [AppDelegate getDBName];
+    NSString *DBPath = [documentsDir stringByAppendingPathComponent:DBName];
+    //NSLog(@"DBPath : %@", DBPath);
+    
+    return DBPath;
+}
+
+- (void)checkAndCreateDatabase {
+    NSLog(@"%s", __func__);
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    // 해당 경로에 데이터 베이스 파일이 존재하는지 확인한다.
+    if ([fileManager fileExistsAtPath:[self filePath]]) {
+        NSString *DB_VERSION = @"SELECT VERSION FROM DB_VERSION;";
+        [self selectStatement:[self filePath] :DB_VERSION];
+        
+        NSLog(@"self.versionDic : %@, getDBVer : %d", self.versionDic, appDelegate.db_ver);
+        //버전이 다를경우
+        if([[self.versionDic objectForKey:@"VERSION"] intValue] != appDelegate.db_ver){
+            [self changeDBVersion];
+        }
+        return;
+    }
+    
+    else {
+        if(appDelegate.dbEncrypt){
+            [self encryptDB];
+        } else {
+            [self openDB];
+        }
+    }
+}
+
+- (void)openDB {
+    //데이터베이스 생성
+    NSLog(@"%s", __func__);
+    if(sqlite3_open([[self filePath] UTF8String], &db) != SQLITE_OK){
+        sqlite3_close(db);
+        NSAssert(0, @"DB failed to open.");
+    }
+}
+
+-(void)encryptDB{
+    //DB파일 암호화
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+    bool sqlcipher_valid = NO;
+    if (sqlite3_open([[self filePath] UTF8String], &db) == SQLITE_OK) {
+        const char* key = [appDelegate.AES256Key UTF8String];
+        sqlite3_key(db, key, (int)strlen(key));
+        if (sqlite3_exec(db, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+            if(sqlite3_prepare_v2(db, "PRAGMA cipher_version;", -1, &stmt, NULL) == SQLITE_OK) {
+                if(sqlite3_step(stmt)== SQLITE_ROW) {
+                    const unsigned char *ver = sqlite3_column_text(stmt, 0);
+                    if(ver != NULL) {
+                        sqlcipher_valid = YES;
+                        // password is correct (or database initialize), and verified to be using sqlcipher
+                    }
+                }
+                sqlite3_finalize(stmt);
+            }
+        }
+        sqlite3_close(db);
+    }
+}
+
+- (void)createTable {
+    NSString *DB_VERSION = @"CREATE TABLE IF NOT EXISTS DB_VERSION (VERSION INTEGER PRIMARY KEY);";
+    [self crudStatement:[self filePath] :DB_VERSION];
+    
+    NSString *CHAT_ROOMS = @"CREATE TABLE IF NOT EXISTS CHAT_ROOMS (ROOM_NO INTEGER PRIMARY KEY, ROOM_NM TEXT NOT NULL, ROOM_TYPE TEXT NOT NULL, ROOM_NOTI INTEGER DEFAULT 1, NEW_CHAT INTEGER DEFAULT 0, CUSTOM_ROOM_NM TEXT DEFAULT '');";
+    [self crudStatement:[self filePath] :CHAT_ROOMS];
+    
+    NSString *CHAT_USERS = @"CREATE TABLE IF NOT EXISTS CHAT_USERS (ROOM_NO INTEGER, USER_NO INTEGER NOT NULL, PRIMARY KEY(ROOM_NO,USER_NO));";
+    [self crudStatement:[self filePath] :CHAT_USERS];
+    
+    NSString *USERS = @"CREATE TABLE IF NOT EXISTS USERS (USER_NO INTEGER PRIMARY KEY, USER_ID TEXT NOT NULL, USER_NM TEXT NOT NULL, USER_IMG TEXT, USER_MSG TEXT, USER_PHONE TEXT, DEPT_NO TEXT NOT NULL, USER_BG_IMG TEXT);";
+    [self crudStatement:[self filePath] :USERS];
+    
+    NSString *DEPTS = @"CREATE TABLE IF NOT EXISTS DEPTS (DEPT_NO TEXT PRIMARY KEY, DEPT_NM TEXT NOT NULL, UP_DEPT_NO TEXT NOT NULL);";
+    [self crudStatement:[self filePath] :DEPTS];
+    
+    NSString *SNS = @"CREATE TABLE IF NOT EXISTS SNS (SNS_NO INTEGER PRIMARY KEY, SNS_NM TEXT NOT NULL, SNS_TY TEXT NOT NULL, NEED_ALLOW TEXT, SNS_DESC TEXT, COVER_IMG TEXT, CUSER_NO INTEGER, CREATE_DATE TEXT, COMP_NO INTEGER NOT NULL, POST_NOTI INTEGER DEFAULT 1, COMMENT_NOTI INTEGER DEFAULT 1, SNS_KIND TEXT NOT NULL DEFAULT '1', USER_NM TEXT DEFAULT '');";
+    [self crudStatement:[self filePath] :SNS];
+    
+    NSString *SNS_USERS = @"CREATE TABLE IF NOT EXISTS SNS_USERS (SNS_NO INTEGER NOT NULL, CUSER_NO INTEGER NOT NULL, PRIMARY KEY(SNS_NO,CUSER_NO));";
+    [self crudStatement:[self filePath] :SNS_USERS];
+    
+    NSString *CHATS = @"CREATE TABLE IF NOT EXISTS CHATS (CHAT_NO INTEGER PRIMARY KEY, ROOM_NO INTEGER NOT NULL, USER_NO INTEGER NOT NULL, CONTENT_TY TEXT NOT NULL, CONTENT TEXT NOT NULL, LOCAL_CONTENT TEXT NOT NULL, FILE_NM TEXT, ADIT_INFO TEXT, DATE TEXT NOT NULL, IS_READ INTEGER DEFAULT 0, UNREAD_COUNT INTEGER DEFAULT 0, CONTENT_PREV TEXT DEFAULT '');";
+    [self crudStatement:[self filePath] :CHATS];
+    
+    NSString *MISSED_CHAT = @"CREATE TABLE IF NOT EXISTS MISSED_CHATS (CHAT_NO INTEGER PRIMARY KEY AUTOINCREMENT, ROOM_NO INTEGER NOT NULL, CONTENT_TY TEXT NOT NULL, CONTENT TEXT NOT NULL, FILE_NM TEXT, ADIT_INFO TEXT, CONTENT_PREV TEXT DEFAULT '');";
+    [self crudStatement:[self filePath] :MISSED_CHAT];
+}
+
+- (void)insertData {
+    NSString *insertDBVer = [NSString stringWithFormat:@"INSERT OR REPLACE INTO DB_VERSION VALUES(%d);", appDelegate.db_ver];
+    [self crudStatement:[self filePath] :insertDBVer];
+    
+    NSString *insertUsers = @"INSERT OR REPLACE INTO USERS VALUES(0,'admin','SYSTEM','','','','0','');";
+    [self crudStatement:[self filePath] :insertUsers];
+    
+    NSString *insertUsers2 = @"INSERT OR REPLACE INTO USERS VALUES(2,'admin','admin','','','','0','');";
+    [self crudStatement:[self filePath] :insertUsers2];
+}
+
+- (void)changeDBVersion {
+    NSString *updateChats = @"UPDATE CHATS SET IS_READ = 1";
+    [self crudStatement:[self filePath] :updateChats];
+    
+    //DBVer 1-------------------------------------------------------------------
+    /*NSString *alterSNS = @"ALTER TABLE SNS ADD POST_NOTI INTEGER DEFAULT 1";
+     [self crudStatement:[self filePath] :alterSNS];
+     
+     NSString *alterSNS2 = @"ALTER TABLE SNS ADD COMMENT_NOTI INTEGER DEFAULT 1";
+     [self crudStatement:[self filePath] :alterSNS2];
+     
+     NSString *alterChatRooms = @"ALTER TABLE CHAT_ROOMS ADD ROOM_TYPE TEXT NOT NULL DEFAULT '2'";
+     [self crudStatement:[self filePath] :alterChatRooms];*/
+    
+    /*NSString *updateChatRooms = @"UPDATE CHAT_ROOMS SET ROOM_TYPE = '2'";
+     [self crudStatement:[self filePath] :updateChatRooms];*/
+    
+    /*NSString *alterChats = @"ALTER TABLE CHATS ADD IS_READ INTEGER DEFAULT 0";
+     [self crudStatement:[self filePath] :alterChats];
+     
+     NSString *alterChats2 = @"ALTER TABLE CHATS ADD UNREAD_COUNT INTEGER DEFAULT 0";
+     [self crudStatement:[self filePath] :alterChats2];*/
+    
+    //DBVer 2-------------------------------------------------------------------
+    /*
+     NSString *alterSNS = @"ALTER TABLE SNS ADD SNS_KIND TEXT DEFAULT '1'";
+     [self crudStatement:[self filePath] :alterSNS];
+     
+     NSString *alterSNS2 = @"ALTER TABLE SNS ADD USER_NM TEXT DEFAULT ''";
+     [self crudStatement:[self filePath] :alterSNS2];
+     */
+    
+    //DBVer 3-------------------------------------------------------------------
+    /*
+     NSString *alterSNS3 = @"ALTER TABLE CHATS ADD CONTENT_PREV TEXT DEFAULT ''";
+     [self crudStatement:[self filePath] :alterSNS3];
+     
+     NSString *alterSNS4 = @"ALTER TABLE MISSED_CHATS ADD CONTENT_PREV TEXT DEFAULT ''";
+     [self crudStatement:[self filePath] :alterSNS4];
+     */
+    
+    //DBVer 4-------------------------------------------------------------------
+    NSString *alterSNS5 = @"ALTER TABLE CHAT_ROOMS ADD CUSTOM_ROOM_NM TEXT DEFAULT ''";
+    [self crudStatement:[self filePath] :alterSNS5];
+}
+
+-(void) selectStatement:(NSString *)dbPath :(NSString *)selectStmt{
+    //NSLog(@"%s", __func__);
+    sqlite3 *database;
+    
+    self.versionDic = [NSMutableDictionary dictionary];
+    
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        if(appDelegate.dbEncrypt){
+            if (sqlite3_exec(database, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+                if (sqlite3_exec(database, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+                    // password is correct, or, database has been initialized
+                } else {
+                    // incorrect password!
+                }
+            }
+        }
+        
+        NSString *sql2 = selectStmt;
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    //NSLog(@"key String : %@",keyString);
+                    //NSLog(@"value String : %@",valueString);
+                    
+                    [self.versionDic setObject:valueString forKey:keyString];
+                }
+            }
+        }else {
+            NSLog(@"MFDBHelper not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        NSLog(@"DBHelper db not open");
+    }
+    sqlite3_close(database);
+}
+
+- (void)crudStatement:(NSString *)crudStmt{
+    //NSLog(@"%s", __func__);
+    sqlite3 *database;
+    NSLog(@"MFDBHelper crudStmt : %@", crudStmt);
+    
+    if (sqlite3_open([[self filePath] UTF8String], &database) == SQLITE_OK) {
+        if(appDelegate.dbEncrypt){
+            if (sqlite3_exec(database, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+                if (sqlite3_exec(database, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+                    // password is correct, or, database has been initialized
+                } else {
+                    // incorrect password!
+                }
+            }
+        }
+        
+        const char *sqlStatement = [crudStmt UTF8String];
+        
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(database));
+                
+            }else{
+                NSLog(@"MFDBHelper ok");
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+                NSLog(@"SQL Error : %s",sqlite3_errmsg(database));
+            }
+        }else {
+            NSLog(@"MFDBHelper not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+    }
+    sqlite3_close(database);
+}
+
+
+- (void)crudStatement:(NSString *)dbPath :(NSString *)crudStmt{
+    //NSLog(@"%s", __func__);
+    sqlite3 *database;
+    NSLog(@"MFDBHelper crudStmt : %@", crudStmt);
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        if(appDelegate.dbEncrypt){
+            if (sqlite3_exec(database, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+                if (sqlite3_exec(database, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+                    // password is correct, or, database has been initialized
+                } else {
+                    // incorrect password!
+                }
+            }
+        }
+        
+        const char *sqlStatement = [crudStmt UTF8String];
+        
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(database));
+                
+            }else{
+                NSLog(@"MFDBHelper ok");
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+                NSLog(@"SQL Error : %s",sqlite3_errmsg(database));
+            }
+        }else {
+            NSLog(@"MFDBHelper not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+    }
+    sqlite3_close(database);
+}
+
+- (NSString *)getDBPath {
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    
+    NSString *dbName = [AppDelegate getDBName];
+    NSString *dbPath = [documentsDir stringByAppendingPathComponent:dbName];
+    
+    return dbPath;
+}
+
+-(NSString *)selectPushNoti:(NSString *)query{
+    NSString *result = nil;
+    sqlite3 *database;
+    if (sqlite3_open([[self getDBPath] UTF8String], &database) == SQLITE_OK) {
+        if(appDelegate.dbEncrypt){
+            if (sqlite3_exec(database, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+                if (sqlite3_exec(database, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+                    // password is correct, or, database has been initialized
+                } else {
+                    // incorrect password!
+                }
+            }
+        }
+        
+        const char *sqlStatement = [query UTF8String];
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    result = valueString;
+                }
+            }
+        }else {
+            NSLog(@"not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        NSLog(@"db not open");
+    }
+    sqlite3_close(database);
+    
+    return result;
+}
+
+- (NSMutableArray *)selectRoomList {
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+    
+    //    NSString *sqlString = [NSString stringWithFormat:@"SELECT X.LAST_MSG_TY, SUM(X.NOT_READ_COUNT) NOT_READ_COUNT, X.ROOM_NO, X.ROOM_TYPE, X.ROOM_NM, X.ROOM_NOTI, X.NEW_CHAT, X.CONTENT_TY, X.CONTENT, X.LAST_DATE, IFNULL(C.USER_IMG,'') ROOM_IMG, IFNULL(C.USER_NO,'') ROOM_IMG_USER_NO, X.MEMBER_COUNT, X.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT '' LAST_MSG_TY, SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.DATE LAST_DATE FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, DATETIME('NOW','LOCALTIME') LAST_DATE FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO) X, CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) X LEFT OUTER JOIN( SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG, GROUP_CONCAT(D.USER_NO) USER_NO FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO ) C ON X.ROOM_NO = C.ROOM_NO GROUP BY X.ROOM_NO ORDER BY X.NEW_CHAT DESC , X.LAST_DATE DESC;", myUserNo];
+    
+    NSString *sqlString = [NSString stringWithFormat:@"SELECT X.LAST_MSG_TY, SUM(X.NOT_READ_COUNT) NOT_READ_COUNT, X.ROOM_NO, X.ROOM_TYPE, X.ROOM_NM, X.ROOM_NOTI, X.NEW_CHAT, X.CONTENT_TY, X.CONTENT, X.CONTENT_PREV, X.LAST_DATE, IFNULL(C.USER_IMG,'') ROOM_IMG, IFNULL(C.USER_NO,'') ROOM_IMG_USER_NO, X.MEMBER_COUNT, X.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT '' LAST_MSG_TY, SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, A.DATE LAST_DATE FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, DATETIME('NOW','LOCALTIME') LAST_DATE FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO) X, CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) X LEFT OUTER JOIN( SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG, GROUP_CONCAT(D.USER_NO) USER_NO FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO ) C ON X.ROOM_NO = C.ROOM_NO GROUP BY X.ROOM_NO ORDER BY X.NEW_CHAT DESC , X.LAST_DATE DESC;", myUserNo];
+    return [self selectStmtHelper:[self getDBPath] :sqlString];
+}
+
+- (NSMutableArray *)selectQuery: (NSString *)sqlString{
+    return [self selectStmtHelper:[self getDBPath] :sqlString];
+}
+
+- (NSMutableArray *)selectStmtHelper:(NSString *)dbPath :(NSString *)selectStmt{
+    sqlite3 *database;
+    
+    self.selectArr = [NSMutableArray array];
+    NSMutableDictionary *dict = nil;
+    
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        if(appDelegate.dbEncrypt){
+            if (sqlite3_exec(database, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+                if (sqlite3_exec(database, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+                    // password is correct, or, database has been initialized
+                } else {
+                    // incorrect password!
+                }
+            }
+        }
+        
+        NSString *sql2 = selectStmt;
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    //NSLog(@"key String : %@",keyString);
+                    //NSLog(@"value String : %@",valueString);
+                    
+                    [dict setObject:valueString forKey:keyString];
+                }
+                
+                [self.selectArr addObject:dict];
+                //NSLog(@"selectArr : %@", self.selectArr);
+            }
+            
+        }else {
+            NSLog(@"selectStmtHelper not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        NSLog(@"selectStmtHelper db not open");
+    }
+    sqlite3_close(database);
+    
+    return self.selectArr;
+}
+
+
+-(void)createLocalFolder{
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    
+    NSArray *folderArr = @[@"post", @"task", @"chat", @"profile", @"profileBg", @"cover", @"mFinitySNS_logs", @"cache"];
+    for(int i=0; i<folderArr.count; i++){
+        NSString *saveFolder = [documentFolder stringByAppendingFormat:@"/%@/",[folderArr objectAtIndex:i]];
+        
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        BOOL issue = [fileManager isReadableFileAtPath:saveFolder];
+        if (issue) {
+            NSLog(@"directory success");
+        }else{
+            NSLog(@"directory failed");
+            [fileManager createDirectoryAtPath:saveFolder withIntermediateDirectories:FALSE attributes:nil error:nil];
+        }
+    }
+}
+
+-(UIImage *)saveThumbImage :(NSString *)folder :(NSString *)thumbFilePath{
+    //이미지가 로컬에 있는지 확인, 없으면 로컬에 저장
+    NSString *savePath = [NSString stringWithFormat:@"%@/%@/",[NSHomeDirectory() stringByAppendingPathComponent:@"Documents"], folder];
+    NSString *fileName = [thumbFilePath lastPathComponent];
+    NSString *chkFile = [savePath stringByAppendingPathComponent:[NSString stringWithFormat:@"thumb_%@", fileName]];
+    UIImage *image = nil;
+    
+    if([thumbFilePath rangeOfString:@"https://"].location != NSNotFound || [thumbFilePath rangeOfString:@"http://"].location != NSNotFound){
+        BOOL fileExists = [[NSFileManager defaultManager] fileExistsAtPath:chkFile];
+        if(!fileExists){
+            UIImage *thumbImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:[NSURL URLWithString:[thumbFilePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]]];
+            NSData *imageData = UIImagePNGRepresentation(thumbImage);
+            [imageData writeToFile:chkFile atomically:YES];
+        }
+        
+        NSData *data = [NSData dataWithContentsOfFile:chkFile];
+        image = [UIImage imageWithData:data];
+        
+    } else {
+        image = nil;
+    }
+    
+    return image;
+}
+
+@end

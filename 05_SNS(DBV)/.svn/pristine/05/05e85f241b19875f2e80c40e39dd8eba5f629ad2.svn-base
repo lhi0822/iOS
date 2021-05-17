@@ -1,0 +1,267 @@
+//
+//  PostOrderModifyViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 4. 10..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "PostOrderModifyViewController.h"
+#import "MFUtil.h"
+#import "MFStyle.h"
+
+#import "PostModifyTextCell.h"
+#import "SDImageCache.h"
+#import "MFDBHelper.h"
+
+@interface PostOrderModifyViewController () {
+    SDImageCache *imgCache;
+    UIImage *thumbImg;
+    
+}
+
+@end
+
+@implementation PostOrderModifyViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    //NSLog(@"postDic : %@", _postDic);
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"순서 편집", @"순서 편잡")];
+    self.navigationItem.leftBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"닫기", @"닫기") style:UIBarButtonItemStylePlain target:self action:@selector(leftSideMenuButtonPressed:)];
+    self.navigationItem.rightBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"완료", @"완료") style:UIBarButtonItemStylePlain target:self action:@selector(rightSideMenuButtonPressed:)];
+    
+    //self.contentArr = [NSArray array];
+    //contentArr = [self.postDic objectForKey:@"CONTENT"];
+    
+    self.tableView.rowHeight = UITableViewAutomaticDimension;
+    self.tableView.estimatedRowHeight = 50;
+    
+    [self.tableView setEditing:YES animated:YES];
+    
+    NSLog(@"contentArr : %@", self.contentArr);
+    
+    imgCache = [SDImageCache sharedImageCache];
+    NSString *tmpPath = NSTemporaryDirectory();
+    NSString *imgPath = [tmpPath stringByAppendingPathComponent:@"cache"];
+    [imgCache makeDiskCachePath:imgPath];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
+
+-(void)leftSideMenuButtonPressed:(id)sender {
+    UIAlertController *actionSheet = [UIAlertController alertControllerWithTitle:nil message:@"순서 편집을 취소하시겠습니까?" preferredStyle:UIAlertControllerStyleAlert];
+    
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"확인", @"확인")
+                                                           style:UIAlertActionStyleDefault
+                                                         handler:^(UIAlertAction * action){
+                                                             [self dismissViewControllerAnimated:YES completion:nil];
+                                                         }];
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"취소", @"취소")
+                                                           style:UIAlertActionStyleCancel
+                                                         handler:^(UIAlertAction * action){
+                                                             [actionSheet dismissViewControllerAnimated:YES completion:nil];
+                                                         }];
+    [actionSheet addAction:okAction];
+    [actionSheet addAction:cancelAction];
+    [self presentViewController:actionSheet animated:YES completion:nil];
+}
+
+-(void)rightSideMenuButtonPressed:(id)sender {
+    NSMutableArray *result = [NSMutableArray array];
+    NSMutableDictionary *resultDic = [NSMutableDictionary dictionary];
+    
+    NSArray<PostModifyTextCell *> *txtCells = self.tableView.visibleCells;
+    
+    for(int i=0; i<txtCells.count; i++){
+        PostModifyTextCell *cell = [txtCells objectAtIndex:i];
+        NSString *title = cell.txtLabel.text;
+        
+        for(int j=0; j<self.contentArr.count; j++){
+            NSString *tmpType = [[self.contentArr objectAtIndex:j] objectForKey:@"TYPE"];
+            NSString *tmpValue;
+            if([tmpType isEqualToString:@"TEXT"]){
+                tmpValue = [NSString urlDecodeString:[[self.contentArr objectAtIndex:j] objectForKey:@"VALUE"]];
+                
+            } else if([tmpType isEqualToString:@"IMG"]){
+                NSDictionary *valueDic = [[self.contentArr objectAtIndex:j] objectForKey:@"VALUE"];
+                tmpValue = [NSString urlDecodeString:[valueDic objectForKey:@"ORIGIN"]];
+            }
+            
+            if([title isEqualToString:tmpValue]){
+                //[result addObject:[NSString stringWithFormat:@"%d",j+1]];
+                NSDictionary *valueDic = [self.contentArr objectAtIndex:j];
+                [result addObject:valueDic];   
+            }
+        }
+    }
+    
+    NSLog(@"modify2 result : %@",result);
+    [resultDic setObject:result forKey:@"DATASET"];
+    
+    
+    [self dismissViewControllerAnimated:YES completion:^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_PostOrderModify" object:nil userInfo:resultDic];
+    }];
+}
+
+#pragma mark - UITableView Delegate & Datasrouce
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return self.contentArr.count;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    NSDictionary *contentDic = [self.contentArr objectAtIndex:indexPath.row];
+    NSString *type = [contentDic objectForKey:@"TYPE"];
+    
+    if([type isEqualToString:@"TEXT"]){
+        return UITableViewAutomaticDimension;
+        
+    } else if([type isEqualToString:@"IMG"]){
+        return 100;
+    }
+    
+    return 0;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    PostModifyTextCell *txtCell = (PostModifyTextCell *)[tableView dequeueReusableCellWithIdentifier:@"PostModifyTextCell"];
+    
+    if (txtCell == nil) {
+        NSArray *topLevelObject = [[NSBundle mainBundle] loadNibNamed:@"PostModifyTextCell" owner:self options:nil];
+        
+        for (id currentObject in topLevelObject) {
+            if ([currentObject isKindOfClass:[PostModifyTextCell class]]) {
+                txtCell = (PostModifyTextCell *) currentObject;
+                [txtCell setSelectionStyle:UITableViewCellSelectionStyleNone];
+            }
+        }
+    }
+    
+    //NSLog(@"contentArr : %@", contentArr);
+    NSDictionary *contentDic = [self.contentArr objectAtIndex:indexPath.row];
+    NSString *type = [contentDic objectForKey:@"TYPE"];
+    NSString *value = nil;
+    
+    if([type isEqualToString:@"TEXT"]){
+        value = [NSString urlDecodeString:[contentDic objectForKey:@"VALUE"]];
+        
+        txtCell.txtLabel.text = value;
+        [txtCell.txtLabel setNumberOfLines:0];
+        
+        txtCell.txtLabel.hidden = NO;
+        txtCell.imgView.hidden = YES;
+        
+        return txtCell;
+        
+    } else if([type isEqualToString:@"IMG"]){
+        NSDictionary *valueDic = [contentDic objectForKey:@"VALUE"];
+        value = [NSString urlDecodeString:[valueDic objectForKey:@"ORIGIN"]];
+        NSLog(@"value : %@", value);
+        
+        txtCell.txtLabel.text = value;
+        
+        [imgCache queryDiskCacheForKey:value done:^(UIImage *image, SDImageCacheType cacheType) {
+            if(image!=nil){
+                thumbImg = image;
+                txtCell.imgView.image = thumbImg;
+            }
+        }];
+        
+        txtCell.txtLabel.hidden = YES;
+        txtCell.imgView.hidden = NO;
+        
+        return txtCell;
+        
+    } else if([type isEqualToString:@"FILE"]){
+        value = @"FILE";
+    }
+    
+    return nil;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+-(UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return UITableViewCellEditingStyleNone;
+}
+
+-(BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath{
+    return YES;
+}
+
+-(void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath{
+    
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image {
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+@end

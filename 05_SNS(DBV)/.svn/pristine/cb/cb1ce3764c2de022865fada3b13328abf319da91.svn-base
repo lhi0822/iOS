@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14460.20"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <collectionViewCell opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" reuseIdentifier="CreateTaskInfoCell" id="gTV-IL-0wX" customClass="CreateTaskInfoCell">
+            <rect key="frame" x="0.0" y="0.0" width="375" height="50"/>
+            <autoresizingMask key="autoresizingMask"/>
+            <view key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center">
+                <rect key="frame" x="0.0" y="0.0" width="375" height="50"/>
+                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                <subviews>
+                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Label" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9JI-Vt-xFs">
+                        <rect key="frame" x="36" y="15" width="274" height="21"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                        <nil key="textColor"/>
+                        <nil key="highlightedColor"/>
+                    </label>
+                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="right" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="bmO-6b-B8A">
+                        <rect key="frame" x="30" y="10" width="329" height="30"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                        <inset key="contentEdgeInsets" minX="1" minY="0.0" maxX="0.0" maxY="0.0"/>
+                        <state key="normal" title="&gt;">
+                            <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        </state>
+                    </button>
+                    <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" scrollEnabled="NO" text="TextView" translatesAutoresizingMaskIntoConstraints="NO" id="Ant-Y5-Me5" customClass="MFTextView">
+                        <rect key="frame" x="28" y="10" width="282" height="30"/>
+                        <color key="backgroundColor" red="1" green="0.80000001190000003" blue="0.40000000600000002" alpha="1" colorSpace="calibratedRGB"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                        <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                        <connections>
+                            <outlet property="pasteDelegate" destination="gTV-IL-0wX" id="wZH-9w-dpD"/>
+                        </connections>
+                    </textView>
+                    <slider opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="100" translatesAutoresizingMaskIntoConstraints="NO" id="OMd-gt-28Y">
+                        <rect key="frame" x="76" y="10" width="236" height="30"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                        <color key="minimumTrackTintColor" red="0.30196078431372547" green="0.71372549019607845" blue="0.86274509803921573" alpha="1" colorSpace="calibratedRGB"/>
+                        <color key="thumbTintColor" red="0.30196078430000001" green="0.71372549019999998" blue="0.86274509799999999" alpha="1" colorSpace="calibratedRGB"/>
+                        <connections>
+                            <action selector="sliderValueChanged:" destination="gTV-IL-0wX" eventType="valueChanged" id="oiH-2B-9Hq"/>
+                        </connections>
+                    </slider>
+                    <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="0br-BQ-QVc">
+                        <rect key="frame" x="16" y="10" width="15" height="30"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                        <fontDescription key="fontDescription" type="system" pointSize="13"/>
+                        <state key="normal" title="Button">
+                            <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        </state>
+                    </button>
+                </subviews>
+            </view>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="Ant-Y5-Me5" secondAttribute="bottom" constant="10" id="7SV-83-aAx"/>
+                <constraint firstItem="Ant-Y5-Me5" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="28" id="HJt-bc-MKu"/>
+                <constraint firstItem="Ant-Y5-Me5" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="10" id="k2B-qU-qiH"/>
+                <constraint firstAttribute="trailing" secondItem="Ant-Y5-Me5" secondAttribute="trailing" constant="65" id="lA0-er-LbA"/>
+            </constraints>
+            <connections>
+                <outlet property="arrowBtn" destination="bmO-6b-B8A" id="V1V-2H-nBQ"/>
+                <outlet property="descTxtView" destination="Ant-Y5-Me5" id="hTz-Ug-SK4"/>
+                <outlet property="iconBtn" destination="0br-BQ-QVc" id="7QG-hD-yzb"/>
+                <outlet property="slider" destination="OMd-gt-28Y" id="It2-WS-aHP"/>
+                <outlet property="valueLbl" destination="9JI-Vt-xFs" id="3WP-Ek-KSv"/>
+            </connections>
+            <point key="canvasLocation" x="23.199999999999999" y="51.27436281859071"/>
+        </collectionViewCell>
+    </objects>
+</document>

@@ -1,0 +1,25 @@
+//
+//  CreateTaskInfoCell.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 3. 16..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "CreateTaskInfoCell.h"
+
+@implementation CreateTaskInfoCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    // Initialization code
+}
+
+- (IBAction)sliderValueChanged:(id)sender {
+    int value = self.slider.value;
+    
+    [self.arrowBtn setTitle:[NSString stringWithFormat:@"%d%%", ((int)((value + 2.5) / 5) * 5)] forState:UIControlStateNormal];
+    [self.delegate proceedValChange:[NSString stringWithFormat:@"%d", ((int)((value + 2.5) / 5) * 5)]];
+}
+
+@end

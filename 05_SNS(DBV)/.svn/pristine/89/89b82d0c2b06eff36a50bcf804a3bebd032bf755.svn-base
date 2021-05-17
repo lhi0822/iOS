@@ -1,0 +1,382 @@
+//
+//  ProfileFileViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 10. 13..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "ProfileFileViewController.h"
+#import "ProfileFileViewCell.h"
+#import "PostDetailViewController.h"
+
+@interface ProfileFileViewController () {
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation ProfileFileViewController
+
+static CGSize gridSize;
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    [self.collectionView registerNib:[UINib nibWithNibName:@"ProfileFileViewCell" bundle:nil] forCellWithReuseIdentifier:@"ProfileFileViewCell"];
+    
+    self.lastPostNo = @"1";
+    [self callGetFileList];
+}
+
+-(void)viewWillAppear:(BOOL)animated {
+    CGFloat scale = [UIScreen mainScreen].scale;
+    CGSize cellSize = ((UICollectionViewFlowLayout *)self.collectionView.collectionViewLayout).itemSize;
+    gridSize = CGSizeMake(cellSize.width * scale, cellSize.height * scale);
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)callGetFileList{
+    NSString *urlString = appDelegate.main_url;
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+    NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+    
+    NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&compNo=%@&refTy=3&stPostSeq=%@&target_usrNo=%@", myUserNo, compNo, self.lastPostNo, self.userNo];
+    //NSLog(@"paramString : %@",paramString);
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getWriteLists"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if ([session start]) {
+        [SVProgressHUD show];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+-(void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    //Progress stop..gesture recognizers added to a view
+    [SVProgressHUD dismiss];
+    
+    if (error!=nil || [error isEqualToString:@"(null)"]) {
+        if ([error isEqualToString:@"The request timed out."]) {
+            [self callGetFileList];
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,error);
+            NSString *errorMsg =[error stringByAppendingFormat:@"\n=======WebService========\n%@",session.url.absoluteString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======Parameter========\n%@",session.paramString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======return string========\n%@",session.returnDataString];
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                           message:errorMsg
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction* okAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {}];
+            UIAlertAction* retryAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg19", @"") style:UIAlertActionStyleDefault
+                                                                handler:^(UIAlertAction * action) {[self callGetFileList]; }];
+            
+            [alert addAction:okAction];
+            [alert addAction:retryAction];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+        
+        
+    }else{
+        NSString *result = [session.returnDictionary objectForKey:@"RESULT"];
+        NSMutableArray *dataSets = [session.returnDictionary objectForKey:@"DATASET"];
+        
+        NSString *seq = [[NSString alloc]init];
+        for(int i=1; i<=dataSets.count; i++){
+            seq = [NSString stringWithFormat:@"%d", [self.lastPostNo intValue]+i];
+        }
+        
+        if ([result isEqualToString:@"SUCCESS"]) {
+            if ([self.lastPostNo intValue]==1) {
+                self.lastPostNo = seq;
+                self.dataSetArray = [NSMutableArray arrayWithArray:dataSets];
+                //NSLog(@"self.lastPostNo2 : %@", self.lastPostNo);
+            }else{
+                if (dataSets.count>0){
+                    self.lastPostNo = seq;
+                    [self.dataSetArray addObjectsFromArray:dataSets]; //deep copy
+                    //NSLog(@"self.dataSetArray2 : %@",self.dataSetArray);
+                }
+            }
+            [self.collectionView reloadData];
+            
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,[session.returnDictionary objectForKey:@"MESSAGE"]);
+        }
+    }
+}
+
+#pragma mark <UICollectionViewDataSource>
+- (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
+    return 1;
+}
+
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    if(self.dataSetArray.count > 0){
+        return self.dataSetArray.count;
+        
+    } else {
+        return 0;
+    }
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    //NSLog(@"%s",__FUNCTION__);
+    ProfileFileViewCell *cell = (ProfileFileViewCell *)[collectionView dequeueReusableCellWithReuseIdentifier:@"ProfileFileViewCell" forIndexPath:indexPath];
+    cell.imgView.image=nil;
+    cell.fileImgView.image=nil;
+    
+    NSDictionary *dataSetItem = [self.dataSetArray objectAtIndex:indexPath.item];
+    //NSLog(@"dataSetItem : %@", dataSetItem);
+    
+    NSString *dataContent = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_CONTENT"]];
+    //NSString *dataDate = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_DATE"]];
+    //NSString *dataNo = [dataSetItem objectForKey:@"DATA_NO"];
+    //NSString *dataType = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_TYPE"]];
+    NSString *ref1 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_01"]];
+    //NSString *ref2 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_02"]];
+    NSString *ref3 = [dataSetItem objectForKey:@"REF_03"];
+    
+    NSError *error;
+    NSDictionary *contentDict = [NSDictionary dictionary];
+    NSData *jsonData = [dataContent dataUsingEncoding:NSUTF8StringEncoding];
+    contentDict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+    
+    cell.fileName.text = ref1;
+    cell.fileName.lineBreakMode = NSLineBreakByTruncatingMiddle;
+    
+    if([ref3 isEqualToString:@"Photo"]){
+        //NSString *orgFile = [contentDict objectForKey:@"ORIGIN"];
+        NSString *thumbFile = [contentDict objectForKey:@"THUMB"];
+        NSLog(@"thumbFile : %@", thumbFile);
+        
+        NSURL *url = [NSURL URLWithString:[thumbFile stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+        NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+            if (data) {
+                UIImage *image = [UIImage imageWithData:data];
+                if (image) {
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        cell.imgView.hidden = NO;
+                        cell.smallView.hidden = YES;
+                        
+                        cell.imgView.image = [self imageByScalingAndCroppingForSize:CGSizeMake(cell.imgView.frame.size.width, cell.imgView.frame.size.height) :image];
+                    });
+                } else {
+                    //NSLog(@"FILE NOT EXIST");
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        cell.imgView.hidden = YES;
+                        cell.smallView.hidden = NO;
+                        
+                        cell.fileImgView.image = [UIImage imageNamed:@"close_red.png"];;
+                    });
+                }
+            }
+        }];
+        [task resume];
+        
+    } else if([ref3 isEqualToString:@"File"]){
+        cell.imgView.hidden = YES;
+        cell.smallView.hidden = NO;
+        
+        NSRange range = [ref1 rangeOfString:@"." options:NSBackwardsSearch];
+        NSString *fileExt = [[ref1 substringFromIndex:range.location+1] lowercaseString];
+        
+        if([fileExt isEqualToString:@"jpg"]||[fileExt isEqualToString:@"jpeg"]||[fileExt isEqualToString:@"gif"]||[fileExt isEqualToString:@"png"]||[fileExt isEqualToString:@"tiff"]||[fileExt isEqualToString:@"bmp"]||[fileExt isEqualToString:@"heic"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_img.png"];
+            
+        } else if([fileExt isEqualToString:@"mp4"]||[fileExt isEqualToString:@"mkv"]||[fileExt isEqualToString:@"wma"]||[fileExt isEqualToString:@"mov"]||[fileExt isEqualToString:@"swf"]||[fileExt isEqualToString:@"mpg"]||[fileExt isEqualToString:@"mpeg"]||[fileExt isEqualToString:@"vob"]||[fileExt isEqualToString:@"asf"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_movie.png"];
+            
+        } else if([fileExt isEqualToString:@"mp3"]||[fileExt isEqualToString:@"wav"]||[fileExt isEqualToString:@"ogg"]||[fileExt isEqualToString:@"wma"]||[fileExt isEqualToString:@"m4a"]||[fileExt isEqualToString:@"flac"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_music.png"];
+            
+        } else if([fileExt isEqualToString:@"psd"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_psd.png"];
+            
+        } else if([fileExt isEqualToString:@"ai"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_ai.png"];
+            
+        } else if([fileExt isEqualToString:@"docx"]||[fileExt isEqualToString:@"doc"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_word.png"];
+            
+        } else if([fileExt isEqualToString:@"pptx"]||[fileExt isEqualToString:@"ppt"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_ppt.png"];
+            
+        } else if([fileExt isEqualToString:@"xls"]||[fileExt isEqualToString:@"xlsx"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_excel.png"];
+            
+        } else if([fileExt isEqualToString:@"pdf"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_pdf.png"];
+            
+        } else if([fileExt isEqualToString:@"txt"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_txt.png"];
+            
+        } else if([fileExt isEqualToString:@"hwp"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_hwp.png"];
+            
+        } else if([fileExt isEqualToString:@"zip"]||[fileExt isEqualToString:@"rar"]||[fileExt isEqualToString:@"egg"]||[fileExt isEqualToString:@"alz"]||[fileExt isEqualToString:@"7z"]){
+            cell.fileImgView.image = [UIImage imageNamed:@"file_zip.png"];
+            
+        } else {
+            //cell.imgView.image = [self getScaledImage:[UIImage imageNamed:@"file_document.png"] scaledToMaxWidth:24.0f];
+            cell.fileImgView.image = [UIImage imageNamed:@"file_document.png"];
+        }
+    }
+    
+    
+    return cell;
+}
+
+-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    [collectionView deselectItemAtIndexPath:indexPath animated:YES];
+    [self performSegueWithIdentifier:@"PROFILE_FILE_DETAIL" sender:indexPath];
+}
+
+
+#pragma mark <UICollectionViewDelegate>
+- (CGSize)targetSize {
+    CGFloat scale = [UIScreen mainScreen].scale;
+    CGSize targetSize = CGSizeMake(CGRectGetWidth(self.view.bounds) * scale, CGRectGetHeight(self.view.bounds) * scale);
+    return targetSize;
+}
+// 컬렉션과 컬렉션 height 간격
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout minimumLineSpacingForSectionAtIndex:(NSInteger)section {
+    return 0;
+}
+
+// 컬렉션과 컬렉션 width 간격
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout minimumInteritemSpacingForSectionAtIndex:(NSInteger)section {
+    return 0;
+}
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath
+{
+    CGRect screen = [[UIScreen mainScreen]bounds];
+    CGFloat screenWidth = screen.size.width;
+    return CGSizeMake(screenWidth/4, screenWidth/4);
+}
+
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    if([segue.identifier isEqualToString:@"PROFILE_FILE_DETAIL"]){
+        UINavigationController *nav = segue.destinationViewController;
+        PostDetailViewController *destination = [[nav childViewControllers] objectAtIndex:0];
+        
+        NSIndexPath *indexPath = (NSIndexPath *)sender;
+        
+        //        SqlSelectHelper *selectHelper = [[SqlSelectHelper alloc]init];
+        //        NSMutableArray *selectArr = [selectHelper selectQuery:[NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"]]];
+        MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+        NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"]]];
+        
+        destination._postNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_NO"];
+        destination._postDate = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_DATE"]];
+        
+        destination._snsNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_02"];
+        destination._snsName = [[selectArr objectAtIndex:0] objectForKey:@"SNS_NM"];
+        destination.indexPath  = indexPath;
+        destination.fromSegue = segue.identifier;
+        
+        NSDictionary *postInfo = [[NSDictionary alloc]initWithObjectsAndKeys:self.userNo,@"CUSER_NO", nil];
+        destination.postInfo = postInfo;
+        //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_DeletePost:) name:@"noti_DeletePost" object:nil];
+        
+    }
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image
+{
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+@end

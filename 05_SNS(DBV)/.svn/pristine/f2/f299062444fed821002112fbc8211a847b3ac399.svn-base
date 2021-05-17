@@ -1,0 +1,102 @@
+/* 
+  StoryBoardSegue.strings
+  mfinity_sns
+
+  Created by hilee on 2018. 11. 9..
+  Copyright © 2018년 com.dbvalley. All rights reserved.
+*/
+
+Storyboard Segue Identifier 정리 (2018.12.11_hilee)
+
+*2018-11-09 최초작성
+============================================================================
+
+
+[LOGIN]
+CERT_VIEW_PUSH
+INTRO_VIEW_PUSH
+LOGIN_VIEW_PUSH
+URL_SETTING_PUSH
+URL_TO_INTRO_PUSH : URLSettingViewController -> IntroViewController URL설정 후 인트로화면으로 이동 (인트로 거쳐서 로그인으로 넘어감)
+
+========================================================================================================================================================
+
+[BOARD]
+BOARD_ADD_USER_MODAL : SNSUserInfoViewController -> ChatUserListViewController 멤버초대하기 클릭 시 주소록 모달창
+BOARD_CHANGE_LEADER_PUSH
+BOARD_CREATE_MODAL
+BOARD_MEMBER_PROFILE_MODAL : SNSUserInfoViewController -> CustomViewController 게시판 멤버화면에서 프로필 클릭시 프로필 화면 모달창
+BOARD_MEMBER_WITHDRAW_PUSH
+BOARD_MODIFY_PUSH
+BOARD_MSG_DESC
+BOARD_MSG_NAME
+BOARD_PHLIB_MODAL
+BOARD_POST_SEARCH_MODAL : TeamSelectViewController -> SearchViewController 게시판내에서 검색버튼 클릭 시 검색창 모달
+BOARD_POST_WRITE_MODAL : TeamSelectViewController -> PostWriteViewController 게시판 내에서 글 작성할 경우 글작성화면 모달창
+BOARD_PROFILE_MODAL : TeamSelectViewController -> CustomHeaderViewController 게시판 내에서 글목록에 프로필 클릭했을 때 프로필 화면 모달창
+BOARD_SEARCH_MODAL : TeamListViewController -> SearchViewController 게시판 목록에서 검색버튼 눌렀을 때 검색창 모달
+BOARD_SELECT_TEAM : TeamListViewController -> TeamSelectViewController 게시판목록에서 게시판 선택 시 게시판 모달
+BOARD_SET_ALARM_PUSH
+BOARD_TO_MY_MSG_PUSH : BoardCreateViewController -> MyMessageViewController 게시판정보 수정 화면에서 이름/설명 변경 시 상태메시지 변경하는 화면으로 이동
+
+========================================================================================================================================================
+
+[POST]
+POST_BOARD_SEARCH_MODAL : TeamListViewController ->  SearchViewController 글목록에서 글작성(+)선택시 게시판 목록이 뜨는데 그 안에서 또 검색버튼 눌렀을 때 검색창 모달
+POST_DETAIL_PROFILE_MODAL : PostDeailViewController -> CustomHeaderViewController 글 상세화면에서 프로필 클릭 시 모달창
+POST_DETAIL_PUSH
+POST_IMG_DOWN_MODAL
+POST_MODIFY_PHLIB_MODAL
+POST_MODIFY_MODAL
+POST_PHLIB_MODAL
+POST_PROFILE_MODAL : CollectionViewController -> CustomHeaderViewController  글목록 메인에서 프로필 클릭했을 때 프로필 화면 모달창
+POST_SEARCH_MODAL : CollectionViewController -> SearchViewController 글목록에서 검색버튼 클릭 시 검색창 모달
+POST_SELECT_GROUP_MODAL : CollectionViewController -> TeamListViewController 글목록에서 글작성(+) 클릭 시 게시판목록 모달창
+POST_WRITE_MODAL
+POST_WRITE_PUSH : CollectionViewController에서 글작성(+) 클릭하여 게시판 목록 선택 후 글작성화면으로 이동
+TASK_COMM_MODIFY_MODAL
+TASK_DETAIL_PUSH
+TASK_MEMBER_PUSH : 업무생성 수행자 선택 시 MemberManagerViewController로 이동
+TASK_WRITE_FILE_CELL : TaskFileCollectionViewCell호출
+TASK_IMG_DOWN_MODAL
+TASK_MODIFY_MODAL : taskDetail -> taskWrite
+TASK_MODIFY_PHLIB_MODAL
+
+
+========================================================================================================================================================
+
+[PROFILE]
+PROFILE_TO_MY_MODAL : CustomHeaderViewController -> MyViewController 프로필에서 내정보관리 클릭 시 모달창
+
+========================================================================================================================================================
+
+[CHAT]
+CHAT_DETAIL_PUSH
+CHAT_FILE_OPEN_MODAL
+CHAT_IMG_DOWN_MODAL
+CHAT_NEW_USER_PUSH : ChatListViewController -> ChatUserListViewController 채팅목록에서 새채팅생성(+) 클릭 시 주소록 모달창
+CHAT_PHLIB_MODAL
+CHAT_PROFILE_MODAL
+CHAT_SIDE_ADD_USER_PUSH
+CHAT_SIDE_NEW_ROOM_PUSH
+CHAT_SIDE_PROFILE_MODAL : RightSideViewController -> CustomHeaderViewController 채팅 사이드 메뉴에서 프로필 눌렀을 때 프로필화면 모달창
+
+========================================================================================================================================================
+
+[MYPAGE]
+MY_MSG_CHANGE_PUSH
+MY_PHLIB_MODAL
+MY_TAB_CHANGE_PUSH : MyViewController -> MyTabViewController
+
+========================================================================================================================================================
+
+[ETC]
+FILE_OPEN_MODAL
+PHGRID_VIEW_PUSH
+SEARCH_CHAT_LIST_MODAL
+SEARCH_POST_DETAIL_PUSH : SearchViewController -> PostDetailViewControllr 검색화면에서 글 검색 후 클릭 했을 때 push? modal? (일단은 푸시로 되어있음)
+SEARCH_POST_WRITE_MODAL : POST_BOARD_SEARCH_MODAL로 게시판 선택 후 글작성 할 때 글작성화면 모달창
+SELECT_SNS_ALLOW
+SELECT_SNS_TYPE
+
+========================================================================================================================================================

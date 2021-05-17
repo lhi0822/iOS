@@ -1,0 +1,795 @@
+//
+//  UserListViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 2. 23..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "UserListViewController.h"
+#import "UserListCollectionViewCell.h"
+#import "ChatUserListCell.h"
+#import "MFDBHelper.h"
+#import "MFStyle.h"
+
+#define MODEL_NAME [[UIDevice currentDevice] modelName]
+#define REFRESH_HEADER_DEFAULT_HEIGHT   64.f
+
+@interface UserListViewController () {
+    AppDelegate *appDelegate;
+    NSIndexPath *chkIndxPath;
+    NSMutableDictionary *checkDict;
+    NSString *retVal;
+    BOOL isLoad;
+    BOOL isFirst;
+    BOOL isRefresh;
+    BOOL isScroll;
+}
+
+@end
+
+@implementation UserListViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    NSLog(@"viewDidLoad self.fromSegue : %@", self.fromSegue);
+    
+    if([self.fromSegue isEqualToString:@"BOARD_ADD_USER_MODAL"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"멤버 초대하기", @"멤버 초대하기")];
+    } else {
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"대화상대 선택", @"대화상대 선택")];
+    }
+    
+    self.navigationItem.leftBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"msg24", @"")
+                                                                           style:UIBarButtonItemStylePlain
+                                                                          target:self
+                                                                          action:@selector(leftSideMenuButtonPressed:)];
+    
+    self.navigationItem.rightBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"msg3", @"")
+                                                                            style:UIBarButtonItemStylePlain
+                                                                           target:self
+                                                                           action:@selector(rightSideMenuButtonPressed:)];
+    
+    [self.collectionView registerNib:[UINib nibWithNibName:@"UserListCollectionViewCell" bundle:nil] forCellWithReuseIdentifier:@"UserListCollectionViewCell"];
+    self.collectionView.backgroundColor = [UIColor clearColor];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    //self.collectionViewHeight.constant = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height; //44+44, 44+20
+    self.collectionViewHeight.constant = 0;
+    self.collectionView.hidden = YES;
+    
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapOnTable:)];
+    [self.tableView addGestureRecognizer:tap];
+    
+    self.stSeq = @"1";
+    self.dataSetArray = [NSMutableArray array];
+    self.checkArray = [NSMutableArray array];
+    self.rowCheckDictionary = [NSMutableDictionary dictionary];
+    checkDict = [NSMutableDictionary dictionary];
+    retVal = @"";
+    isLoad = YES;
+    isFirst = YES;
+    isRefresh = NO;
+    isScroll = NO;
+    
+    [self callWebService:@"getUsers"];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)leftSideMenuButtonPressed:(id)sender {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)rightSideMenuButtonPressed:(id)sender {
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+    
+    NSUInteger chkArrCnt = self.checkArray.count;
+    
+    NSMutableArray *deptArr = [NSMutableArray array];
+    NSMutableArray *userArr = [NSMutableArray array];
+    
+    [userArr addObject:[NSString stringWithFormat:@"%@", myUserNo]];
+    
+    for(int i=0; i<chkArrCnt; i++){
+        NSString *nodeNo = [[self.checkArray objectAtIndex:i] objectForKey:@"NODE_NO"];
+        
+        if(![[NSString stringWithFormat:@"%@", myUserNo] isEqualToString:[NSString stringWithFormat:@"%@", nodeNo]]){
+            [userArr addObject:nodeNo];
+        }
+    }
+    
+    NSLog(@"self.fromSegue : %@", self.fromSegue);
+    
+    NSMutableDictionary *resultDic = [[NSMutableDictionary alloc]init];
+    [resultDic setObject:deptArr forKey:@"depts"];
+    [resultDic setValue:userArr forKey:@"users"];
+    
+    if(chkArrCnt==0){
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:@"선택된 사용자가 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles:nil, nil];
+        [alert show];
+        
+    } else {
+        if([self.fromSegue isEqualToString:@"CHAT_SIDE_ADD_USER_PUSH"]){
+            [self dismissViewControllerAnimated:YES completion:nil];
+            [self saveChatAttn:resultDic];
+            
+        } else if([self.fromSegue isEqualToString:@"CHAT_SIDE_NEW_ROOM_PUSH"]){
+            NSLog(@"ddddddd userArr : %@", self.userArr);
+            for(int i=0; i<self.userArr.count; i++){
+                NSString *userNo = [[self.userArr objectAtIndex:i] objectForKey:@"USER_NO"];
+                if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    [userArr addObject:userNo];
+                }
+                [resultDic setValue:userArr forKey:@"users"];
+            }
+            
+            [self callSaveChatInfo:resultDic];
+            
+        } else if([self.fromSegue isEqualToString:@"BOARD_ADD_USER_MODAL"]){
+            //게시판초대
+            [self callSaveChatInfo:resultDic];
+            
+        } else {
+            [self callSaveChatInfo:resultDic];
+        }
+    }
+    
+}
+
+- (void)callSaveChatInfo: (NSMutableDictionary *)dictionary {
+    //saveChatInfo - usrId, attendants:{"depts":"[부서]","users":"[사용자]"}
+    NSData* data = [NSJSONSerialization dataWithJSONObject:dictionary options:NSJSONWritingPrettyPrinted error:nil];
+    NSString* jsonData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *userNo = [prefs objectForKey:@"CUSER_NO"];
+    
+    NSString *urlString = appDelegate.main_url;
+    NSString *userID = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+    NSString *paramString = [NSString stringWithFormat:@"usrId=%@&usrNo=%@&attendants=%@", userID, userNo, jsonData];
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"saveChatInfo"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    [session start];
+}
+
+- (void)saveChatAttn: (NSMutableDictionary *)dictionary {
+    //NSLog(@"dictionary : %@", dictionary);
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *userNm = [prefs objectForKey:@"USER_NM"];
+    NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+    
+    NSData* data = [NSJSONSerialization dataWithJSONObject:dictionary options:NSJSONWritingPrettyPrinted error:nil];
+    NSString* jsonData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    
+    NSString *urlString = appDelegate.main_url;
+    NSString *userID = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+    
+    NSString *paramString = [NSString stringWithFormat:@"usrId=%@&usrNm=%@&roomNo=%@&attendants=%@", userID, decodeUserNm, self.roomNo, jsonData];
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"saveChatAttn"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    [session start];
+    
+}
+
+-(void)callWebService:(NSString *)serviceName{
+    @try{
+        NSString *urlString = appDelegate.main_url;
+        NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:serviceName]];
+        NSString *paramString;
+        
+        NSString* jsonData = nil;
+        if(self.existUserArr!=nil){
+            NSData* data = [NSJSONSerialization dataWithJSONObject:self.existUserArr options:NSJSONWritingPrettyPrinted error:nil];
+            jsonData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        } else {
+            jsonData = @"";
+        }
+        
+        if([serviceName isEqualToString:@"getUsers"]){
+            //NSLog(@"self.stSeq : %@", self.stSeq);
+            NSString *deptNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"DEPT_NO"];
+            NSString *legacyNm = appDelegate.legacy_name;
+            NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+            
+            if(retVal==nil || [retVal isEqualToString:@""]){
+                paramString = [NSString stringWithFormat:@"deptNo=%@&legacyNm=%@&retVal=&stSeq=%@&currentUserNos=%@&compNo=%@", deptNo, legacyNm, self.stSeq, jsonData, compNo];
+            } else {
+                paramString = [NSString stringWithFormat:@"deptNo=%@&legacyNm=%@&retVal=%@&stSeq=%@&currentUserNos=%@&compNo=%@", deptNo, legacyNm, retVal, self.stSeq, jsonData, compNo];
+            }
+        }
+        
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        session.delegate = self;
+        if([session start]){
+            //[SVProgressHUD show];
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    //NSLog(@"reteurnDataString : %@",session.returnDataString);
+    NSString *wsName = [[session.url absoluteString] lastPathComponent];
+    
+    NSLog(@"error : %@",error);
+    if (error!=nil) {
+        NSLog(@"error : %@",error);
+    }else{
+        NSDictionary *dic = session.returnDictionary;
+        //NSLog(@"UserListViewController dic : %@", dic);
+        //NSLog(@"self.rowCheckDictionary ; %@", self.rowCheckDictionary);
+        
+        if([wsName isEqualToString:@"getUsers"]){
+            @try{
+                NSArray *dataSet = [dic objectForKey:@"DATASET"];
+                NSUInteger count = dataSet.count;
+                NSLog(@"count : %lu", count);
+                
+                if(count==0) isLoad = NO;
+                else isLoad = YES;
+                
+                NSMutableArray *indexPaths = [NSMutableArray array];
+                for(int i=0; i<count; i++){
+                    NSString *nodeNo = [[dataSet objectAtIndex:i] objectForKey:@"NODE_NO"];
+                    
+                    if(isFirst){
+                        [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"%@", nodeNo]];
+                        isFirst = NO;
+                    }
+                    [indexPaths addObject:[NSIndexPath indexPathForRow:[self.stSeq integerValue]+i-1 inSection:0]];
+                }
+                
+                NSLog(@"stSEQ : %@", self.stSeq);
+                if([self.stSeq isEqualToString:@"1"]){
+                    NSLog(@"새로고침");
+                    self.dataSetArray = [NSMutableArray array];
+                    self.dataSetArray = [NSMutableArray arrayWithArray:dataSet];
+                    
+                    if(isRefresh){
+                        isRefresh = NO;
+                        self.checkArray = [NSMutableArray array];
+                        self.rowCheckDictionary = [NSMutableDictionary dictionary];
+                        [self.collectionView reloadData];
+                    }
+                    [self.tableView reloadData];
+                    
+                } else {
+                    [self.dataSetArray addObjectsFromArray:dataSet];
+                    NSLog(@"dataSetArr count : %lu", self.dataSetArray.count);
+                    
+                    [self.tableView beginUpdates];
+                    [self.tableView insertRowsAtIndexPaths:indexPaths withRowAnimation:UITableViewRowAnimationAutomatic];
+                    [self.tableView endUpdates];
+                    
+                }
+                
+                NSString *seq = [[NSString alloc]init];
+                for(int i=1; i<=count; i++){
+                    seq = [NSString stringWithFormat:@"%d", [self.stSeq intValue]+i];
+                }
+                self.stSeq = seq;
+                if(retVal!=nil&&![retVal isEqualToString:@""]){
+                    self.stSeq = @"1";
+                    
+                    if(count==0) [self.tableView scrollToRowAtIndexPath:[NSIndexPath indexPathForItem:0 inSection:0] atScrollPosition:UITableViewScrollPositionBottom animated:YES];
+                }
+                isScroll = YES;
+                
+                
+            } @catch(NSException *exception){
+                //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+            }
+            
+        } else if ([wsName isEqualToString:@"saveChatInfo"]) {
+            NSDictionary *dataSet = [dic objectForKey:@"DATASET"];
+            NSString *roomName = [dataSet objectForKey:@"ROOM_NM"];
+            //NSString *decodeRoomName = [NSString urlDecodeString:roomName];
+            NSString *roomNo = [dataSet objectForKey:@"ROOM_NO"];
+            NSString *roomType = [dataSet objectForKey:@"ROOM_TYPE"];
+            NSArray *users = [dataSet objectForKey:@"USERS"];
+            
+            NSMutableDictionary *newChatDic = [[NSMutableDictionary alloc]init];
+            [newChatDic setObject:@"NEW_CHAT" forKey:@"TYPE"];
+            [newChatDic setObject:roomNo forKey:@"NEW_ROOM_NO"];
+            [newChatDic setObject:roomName forKey:@"NEW_ROOM_NM"];
+            [newChatDic setObject:roomType forKey:@"NEW_ROOM_TY"];
+            [newChatDic setObject:users forKey:@"NEW_USERS"];
+            
+            NSLog(@"newchatdic zz : %@", newChatDic);
+            
+            NSLog(@"%s fromSegue : %@", __func__, self.fromSegue);
+            if([self.fromSegue isEqualToString:@"BOARD_ADD_USER_MODAL"]){
+                [self dismissViewControllerAnimated:YES completion:^(void){
+                    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_InviteBoardChat" object:nil userInfo:newChatDic];
+                }];
+                
+            } else if([self.fromSegue isEqualToString:@"CHAT_SIDE_NEW_ROOM_PUSH"]){
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUserNewChatRoom" object:nil userInfo:newChatDic];
+                [self dismissViewControllerAnimated:YES completion:nil];
+                
+            } else {
+                [self dismissViewControllerAnimated:YES completion:^(void){
+                    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewChatRoom" object:nil userInfo:newChatDic];
+                }];
+            }
+            
+            //            if([self.fromSegue isEqualToString:@"CHAT_SIDE_NEW_ROOM_PUSH"]){
+            //                [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_AddUserNewChatRoom" object:nil userInfo:newChatDic];
+            //            }
+            
+        } else if ([wsName isEqualToString:@"saveChatAttn"]) {
+            NSDictionary *dataSet = [dic objectForKey:@"DATASET"];
+            NSString *roomName = [dataSet objectForKey:@"ROOM_NM"];
+            NSString *decodeRoomName = [NSString urlDecodeString:roomName];
+            //NSString *roomNo = [dataSet objectForKey:@"ROOM_NO"];
+            //NSArray *users = [dataSet objectForKey:@"USERS"];
+            
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *userNm = [prefs objectForKey:@"USER_NM"];
+            NSString *decodeUserNm = [NSString urlDecodeString:userNm];
+            
+            if([decodeRoomName rangeOfString:decodeUserNm].location != NSNotFound){
+                decodeRoomName = [decodeRoomName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"%@,", decodeUserNm] withString:@""];
+                //NSLog(@"decodeRoomName : %@", decodeRoomName);
+            }
+            
+            //NSString *sqlString1 = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NM = '%@' WHERE ROOM_NO = %@;", decodeRoomName, self.roomNo];
+            //[self crudStatement:DBPath :sqlString1];
+            
+        }
+    }
+}
+
+-(void)returnError:(MFURLSession *)session error:(NSError *)error{
+    NSLog(@"error : %@", error);
+}
+
+#pragma mark <UICollectionViewDataSource>
+- (NSInteger)numberOfSectionsInCollectionView:(UICollectionView *)collectionView {
+    return 1;
+}
+
+// 컬렉션과 컬렉션 width 간격
+- (CGFloat)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout minimumInteritemSpacingForSectionAtIndex:(NSInteger)section {
+    return 0;
+}
+
+- (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath {
+    return CGSizeMake(60, 80);
+}
+
+- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section {
+    if(self.checkArray.count>0){
+        return self.checkArray.count; //선택한 사람 수
+    } else {
+        self.collectionView.hidden = YES;
+        //self.collectionViewHeight.constant = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height;
+        self.collectionViewHeight.constant = 0;
+        [UIView animateWithDuration:0.5 animations:^{
+            [self.view layoutIfNeeded];
+        }];
+        return 0;
+    }
+}
+
+- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath {
+    UserListCollectionViewCell *cell = (UserListCollectionViewCell *)[collectionView dequeueReusableCellWithReuseIdentifier:@"UserListCollectionViewCell" forIndexPath:indexPath];
+    //NSLog(@"checkArrayData1 : %@", [self.checkArray objectAtIndex:indexPath.item]);
+    NSString *profileImg = [NSString urlDecodeString:[[self.checkArray objectAtIndex:indexPath.item] objectForKey:@"NODE_IMG"]];
+    if(![profileImg isEqualToString:@""]){
+        MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+        cell.userImgView.image = userImg;
+    } else {
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+        cell.userImgView.image = userImg;
+    }
+    cell.userNmLabel.text = [NSString urlDecodeString:[[self.checkArray objectAtIndex:indexPath.item] objectForKey:@"USER_NM"]];
+    return cell;
+}
+
+-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    [collectionView deselectItemAtIndexPath:indexPath animated:YES];
+    
+    UIButton *button = [[UIButton alloc]init];
+    NSString *checkNodeNo = [[self.checkArray objectAtIndex:indexPath.item] objectForKey:@"NODE_NO"];
+    button.tag = [checkNodeNo intValue];
+    
+    [self checkAction:button];
+}
+
+
+#pragma mark - UITableViewDelegate & UITableViewDatasource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    if(self.dataSetArray.count>0){
+        return self.dataSetArray.count;
+    } else {
+        return 0;
+    }
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 60;
+}
+
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    //임의 셀
+    ChatUserListCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ChatUserListCell" forIndexPath:indexPath];
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    
+    [cell.checkButton setFrame:CGRectMake(cell.checkButton.frame.origin.x, cell.frame.size.height-(cell.frame.size.height/2)-(30/2), cell.checkButton.frame.size.width, 30)];
+    
+    cell.nodeNameLabel.font = [UIFont systemFontOfSize:17];
+    
+    //cell.checkButton.layer.cornerRadius = cell.checkButton.frame.size.width/10;
+    //cell.checkButton.clipsToBounds = YES;
+    [cell.checkButton addTarget:self action:@selector(checkAction:) forControlEvents:UIControlEventTouchUpInside];
+    
+    cell.userImgView.image = nil;
+    cell.userImgView.hidden = NO;
+    
+    NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+    //NSString *userId = [NSString urlDecodeString:[dataDict objectForKey:@"CUSER_ID"]];
+    NSString *nodeNo = [dataDict objectForKey:@"NODE_NO"];
+    NSString *nodeName = [NSString urlDecodeString:[dataDict objectForKey:@"NODE_NM"]];
+    NSString *profileImg = [NSString urlDecodeString:[dataDict objectForKey:@"NODE_IMG"]];
+    NSString *profileMsg = [dataDict objectForKey:@"PROFILE_MSG"];
+    
+    if(profileMsg.length==0){
+        NSRange range = [nodeName rangeOfString:@"," options:NSBackwardsSearch];
+        
+        if(range.location != NSNotFound){
+            nodeName = [nodeName stringByReplacingOccurrencesOfString:@" , " withString:@""];
+        }
+    }
+    
+    if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"%@",nodeNo]] isEqualToString:@"Y"]) {
+        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+    }else{
+        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+    }
+    
+    [cell.userImgView setFrame:CGRectMake(20, (cell.frame.size.height/2) - (45/2), 45, 45)];
+    [cell.nodeNameLabel setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width+10, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+    
+    cell.userImgView.layer.cornerRadius = cell.userImgView.frame.size.width/2;
+    cell.userImgView.clipsToBounds = YES;
+    cell.userImgView.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+    cell.userImgView.layer.borderWidth = 0.3;
+    
+    cell.checkButton.tag = [nodeNo integerValue];
+    //cell.checkButton.tag = indexPath.row;
+    
+    cell.leaderBtn.hidden = YES;
+    
+    if(![profileImg isEqualToString:@""]){
+        MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+        cell.userImgView.image = userImg;
+    } else {
+        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+        cell.userImgView.image = userImg;
+    }
+    
+    cell.nodeNameLabel.text = nodeName;
+    
+    return cell;
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+-(void)checkAction:(UIButton *)sender{
+    @try{
+        UIButton *button = sender;
+        NSInteger buttonTag = button.tag;
+        
+        NSIndexPath *selectIdxPath = [[NSIndexPath alloc] init];
+        NSDictionary *selectDict = [NSDictionary dictionary];
+        
+        for(int i=0; i<self.dataSetArray.count; i++){
+            NSString *nodeNo2 = [[self.dataSetArray objectAtIndex:i] objectForKey:@"NODE_NO"];
+            if([[NSString stringWithFormat:@"%@", nodeNo2] isEqualToString:[NSString stringWithFormat:@"%ld", (long)buttonTag]]){
+                selectDict = [self.dataSetArray objectAtIndex:i];
+                selectIdxPath = [NSIndexPath indexPathForItem:i inSection:0];
+                break;
+            }
+        }
+        //        NSDictionary *selectDict = [self.dataSetArray objectAtIndex:buttonTag];
+        //        NSString *nodeNo = [selectDict objectForKey:@"NODE_NO"];
+        //NSLog(@"selectDict : %@",selectDict);
+        
+        BOOL isAlready = NO;
+        for (int i=0; i<self.checkArray.count; i++) {
+            //if ([[[self.checkArray objectAtIndex:i] objectForKey:@"NODE_NO"] isEqualToString:nodeNo]) {
+            if ([[[self.checkArray objectAtIndex:i] objectForKey:@"NODE_NO"] isEqualToString:[NSString stringWithFormat:@"%ld", (long)buttonTag]]) {
+                chkIndxPath = [[NSIndexPath alloc] init];
+                chkIndxPath = [NSIndexPath indexPathForItem:i inSection:0];
+                [self.checkArray removeObjectAtIndex:i];
+                isAlready = YES;
+                break;
+            }
+        }
+        
+        NSMutableArray *indexPaths = [NSMutableArray new];
+        [indexPaths addObject:[NSIndexPath indexPathForItem:self.checkArray.count-1 inSection:0]];
+        
+        if (!isAlready) {
+            //[self.rowCheckDictionary setObject:@"Y" forKey:nodeNo];
+            [self.rowCheckDictionary setObject:@"Y" forKey:[NSString stringWithFormat:@"%ld", (long)buttonTag]];
+            [self.checkArray addObject:selectDict];
+            
+        } else{
+            //[self.rowCheckDictionary setObject:@"N" forKey:nodeNo];
+            [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"%ld", (long)buttonTag]];
+        }
+        
+        //        NSIndexPath *selectIdxPath = [[NSIndexPath alloc] init];
+        //        selectIdxPath = [NSIndexPath indexPathForItem:buttonTag inSection:0];
+        
+        NSUInteger path = [[NSString stringWithFormat:@"%lu",(unsigned long)[selectIdxPath indexAtPosition:[selectIdxPath length]-1]] length];
+        //path가 없을 경우 9223372036854775807
+        if(path<19){
+            [self.tableView beginUpdates];
+            [self.tableView reloadRowsAtIndexPaths:@[selectIdxPath] withRowAnimation:UITableViewRowAnimationNone];
+            [self.tableView endUpdates];
+        }
+        
+        [self addUserAction:isAlready];
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+-(void)addUserAction:(BOOL)isAlready{
+    NSArray *uArr = [self.rowCheckDictionary allValues];
+    //NSLog(@"uArr : %@", uArr);
+    NSMutableArray *Yflag = [NSMutableArray array];
+    NSUInteger count = uArr.count;
+    for(int i=0; i<count; i++){
+        if([[uArr objectAtIndex:i] isEqualToString:@"Y"]){
+            [Yflag addObject:[uArr objectAtIndex:i]];
+        }
+    }
+    
+    NSUInteger itemCount = [self.checkArray count];
+    NSUInteger YFlagCnt = Yflag.count;
+    
+    NSMutableArray *indexPaths = [NSMutableArray new];
+    [indexPaths addObject:[NSIndexPath indexPathForItem:self.checkArray.count-1 inSection:0]];
+    
+    if(YFlagCnt>0){
+        self.collectionView.hidden = NO;
+        //self.collectionViewHeight.constant = 170;
+        self.collectionViewHeight.constant = 106;
+        [UIView animateWithDuration:0.3 animations:^{
+            [self.view layoutIfNeeded];
+        }];
+    } else {
+        self.collectionView.hidden = YES;
+        //self.collectionViewHeight.constant = self.navigationController.navigationBar.frame.size.height + [UIApplication sharedApplication].statusBarFrame.size.height;
+        self.collectionViewHeight.constant = 0;
+        [UIView animateWithDuration:0.3 animations:^{
+            [self.view layoutIfNeeded];
+        }];
+    }
+    
+    if(isAlready){
+        if(itemCount>0){
+            NSLog(@"chkIndxPath : %@", chkIndxPath);
+            [self.collectionView performBatchUpdates:^{
+                [self.collectionView deleteItemsAtIndexPaths:[NSArray arrayWithObject:chkIndxPath]];
+            } completion:nil];
+            [self.collectionView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:self.checkArray.count-1 inSection:0] atScrollPosition:UICollectionViewScrollPositionRight animated:YES];
+            
+        } else {
+            [self.collectionView reloadData];
+        }
+    } else {
+        [self.collectionView performBatchUpdates:^{
+            [self.collectionView insertItemsAtIndexPaths:indexPaths];
+        } completion:nil];
+        [self.collectionView scrollToItemAtIndexPath:[NSIndexPath indexPathForItem:self.checkArray.count-1 inSection:0] atScrollPosition:UICollectionViewScrollPositionRight animated:YES];
+    }
+}
+
+- (void)tapOnTable:(UITapGestureRecognizer*)tap{
+    [self.searchBar resignFirstResponder];
+}
+
+-(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar {
+    [self.searchBar resignFirstResponder];
+    self.stSeq = @"1";
+    retVal = searchBar.text;
+    
+    //getUser에 검색파라미터 추가하여 호출
+    [self callWebService:@"getUsers"];
+}
+
+-(void)searchBarCancelButtonClicked:(UISearchBar *)searchBar{
+    NSLog(@"%s",__func__);
+}
+
+-(void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText{
+    NSLog(@"searchText : %@", searchText);
+    if([searchText isEqualToString:@""]){
+        self.stSeq = @"1";
+        retVal = searchText;
+        
+        //getUser에 검색파라미터 추가하여 호출
+        [self callWebService:@"getUsers"];
+    }
+}
+
+#pragma mark - UIScrollView Delegate
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate{
+    //NSLog(@"%s", __func__);
+    @try {
+        CGRect screen = [[UIScreen mainScreen]bounds];
+        CGFloat screenWidth = screen.size.width;
+        CGFloat screenHeight = screen.size.height;
+        if ([MFUtil retinaDisplayCapable]) {
+            screenHeight = screenHeight*2;
+            screenWidth = screenWidth*2;
+        }
+        int height = 270;
+        
+        NSArray *tmp = [MODEL_NAME componentsSeparatedByString:@" "];
+        if ([tmp[1] hasPrefix:@"5"]) {
+            height = 370;
+        }else if ([tmp[1] hasPrefix:@"6"] || [tmp[1] hasPrefix:@"7"] || [tmp[1] hasPrefix:@"8"] || [tmp[1] hasPrefix:@"X"]) {
+            if (tmp.count==2) {
+                height = 570;
+            }else{
+                height = 470;
+            }
+        }
+        
+        if (scrollView.contentSize.height-scrollView.contentOffset.y<self.view.frame.size.height) {
+            CGPoint offset = scrollView.contentOffset;
+            CGRect bounds = scrollView.bounds;
+            CGSize size = scrollView.contentSize;
+            UIEdgeInsets inset = scrollView.contentInset;
+            float y = offset.y + bounds.size.height - inset.bottom;
+            float h = size.height;
+            
+            float reload_distance = 10;
+            if(y > h + reload_distance) {
+                //데이터로드
+                //[self callWebService:@"getUsers"];
+            }
+        }
+        
+        if(scrollView.contentOffset.y <= -REFRESH_HEADER_DEFAULT_HEIGHT) {
+            //NSLog(@"새로고침");
+            self.stSeq = @"1";
+            isRefresh = YES;
+            [self callWebService:@"getUsers"];
+        }
+    } @catch (NSException *exception) {
+        
+    }
+}
+
+-(void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    //    NSLog(@"scrollView.contentSize.height : %f", scrollView.contentSize.height);
+    //    NSLog(@"scrollView.contentOffset.y : %f", scrollView.contentOffset.y);
+    //    NSLog(@"self.tableView.frame.size.height : %f", self.tableView.frame.size.height);
+    //    NSLog(@"=======================================================");
+    
+    //스크롤이 하단에 닿을 때 데이터 로드
+    //->로우가 추가되는 모양이 부자연스러워서 스크롤이 어느정도 위치에 가면 미리 데이터 로드
+    //scrollView.contentSize.height-(self.tableView.frame.size.height/3)
+    
+    if(scrollView.contentOffset.y>0){
+        if (scrollView.contentSize.height-(self.tableView.frame.size.height/1) <= scrollView.contentOffset.y + self.tableView.frame.size.height) {
+            //NSLog(@"로딩1 isLoad : %d, isScroll : %d", isLoad, isScroll);
+            if(isLoad && isScroll){
+                [self callWebService:@"getUsers"];
+                isScroll = NO;
+            }
+        }
+    }
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    scaleFactor = width / oldWidth;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image {
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+@end

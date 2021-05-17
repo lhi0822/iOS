@@ -1,0 +1,115 @@
+/* 
+  Query.strings
+  mfinity_sns
+
+  Created by hilee on 2018. 11. 9..
+  Copyright © 2018년 com.dbvalley. All rights reserved.
+*/
+
+
+
+SNS 사용 쿼리 (2018.11.09_hilee)
+
+*2018-11-09 최초작성
+========================================================================================================================================================
+
+
+[SELECT]
+
+[NSString stringWithFormat:@"SELECT * FROM USERS WHERE USER_NO = %@;", [mUserList objectAtIndex:i]];
+
+[NSString stringWithFormat:@"SELECT USER_IMG FROM USERS WHERE USER_NO = %@", _myUserNo];
+
+[NSString stringWithFormat:@"SELECT ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+
+[NSString stringWithFormat:@"SELECT ROOM_NM FROM CHAT_ROOMS WHERE ROOM_NO = %@", [dataSet objectForKey:@"ROOM_NO"]];
+
+[NSString stringWithFormat:@"SELECT ROOM_TYPE FROM CHAT_ROOMS WHERE ROOM_NO = %@", self.roomNo];
+
+[NSString stringWithFormat:@"SELECT ROOM_NM, ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+
+[NSString stringWithFormat:@"SELECT A.* FROM USERS A, CHAT_USERS B WHERE A.USER_NO = B.USER_NO AND B.ROOM_NO = %@", _roomNo];
+
+[NSString stringWithFormat:@"SELECT IFNULL(MIN(CHAT_NO),'-1') FIRST_CHAT, IFNULL(MAX(CHAT_NO),'-1') LAST_CHAT FROM CHATS WHERE CONTENT_TY != 'SYS' AND IS_READ = 0 AND ROOM_NO = %@ AND USER_NO != %@", _roomNo, self.myUserNo];
+
+[NSString stringWithFormat:@"SELECT * FROM MISSED_CHATS ORDER BY CHAT_NO DESC LIMIT 1"];
+
+//updateRoomList
+[NSString stringWithFormat:@"SELECT A.ROOM_NO ROOM_NO, A.ROOM_NM ROOM_NM, A.ROOM_NOTI ROOM_NOTI, A.NEW_CHAT NEW_CHAT, (SELECT COUNT(B.USER_NO) FROM CHAT_USERS B WHERE B.ROOM_NO = A.ROOM_NO) MEMBER_COUNT, IFNULL((SELECT DATE FROM CHATS C WHERE C.ROOM_NO = A.ROOM_NO ORDER BY C.CHAT_NO DESC LIMIT 1),'') LAST_DATE, IFNULL(B.USER_IMG,'') ROOM_IMG FROM CHAT_ROOMS A LEFT OUTER JOIN(SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO) B ON A.ROOM_NO = B.ROOM_NO WHERE A.ROOM_NO = %@ ORDER BY ROOM_NO ASC;", _myUserNo, _nRoomNo];
+
+//채팅방목록 가져오기
+[NSString stringWithFormat:@"SELECT X.LAST_MSG_TY, SUM(X.NOT_READ_COUNT) NOT_READ_COUNT, X.ROOM_NO, X.ROOM_TYPE, X.ROOM_NM, X.ROOM_NOTI, X.NEW_CHAT, X.CONTENT_TY, X.CONTENT, X.CONTENT_PREV, X.LAST_DATE, IFNULL(C.USER_IMG,'') ROOM_IMG, IFNULL(C.USER_NO,'') ROOM_IMG_USER_NO, X.MEMBER_COUNT, X.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT '' LAST_MSG_TY, SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, A.DATE LAST_DATE FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, A.ROOM_NO ROOM_NO, B.ROOM_TYPE ROOM_TYPE, B.ROOM_NM ROOM_NM, B.ROOM_NOTI ROOM_NOTI, B.NEW_CHAT NEW_CHAT, A.CONTENT_TY CONTENT_TY, CASE WHEN A.CONTENT_TY = 'FILE' THEN '파일' WHEN A.CONTENT_TY = 'INVITE' THEN '초대' WHEN A.CONTENT_TY = 'IMG' THEN '사진' ELSE A.CONTENT END CONTENT, A.CONTENT_PREV CONTENT_PREV, DATETIME('NOW','LOCALTIME') LAST_DATE FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO) X, CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) X LEFT OUTER JOIN( SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG, GROUP_CONCAT(D.USER_NO) USER_NO FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO ) C ON X.ROOM_NO = C.ROOM_NO GROUP BY X.ROOM_NO ORDER BY X.NEW_CHAT DESC , X.LAST_DATE DESC;", _myUserNo];
+
+//채팅내용 가져오기
+[NSString stringWithFormat:@"SELECT * FROM ( SELECT '' TYPE, A.UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, A.USER_NO, B.USER_NM, B.USER_IMG, A.CONTENT_TY, A.CONTENT, A.LOCAL_CONTENT, A.FILE_NM, A.DATE, A.ADIT_INFO, A.CONTENT_PREV FROM CHATS A, USERS B WHERE ROOM_NO = %@ AND A.USER_NO = B.USER_NO UNION SELECT 'MISSED' TYPE, 0 UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, %@, '', '', A.CONTENT_TY, A.CONTENT, '', A.FILE_NM, DATETIME('now','localtime'), A.ADIT_INFO, A.CONTENT_PREV FROM MISSED_CHATS A WHERE A.ROOM_NO = %@ ) X ORDER BY X.TYPE DESC, X.CHAT_NO DESC LIMIT 20 OFFSET %d;", _roomNum, _myUserNo, _roomNum, _rowCnt];
+
+[NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo];
+
+
+========================================================================================================================================================
+
+
+[INSERT]
+
+[NSString stringWithFormat:@"INSERT OR REPLACE INTO SNS(SNS_NO, SNS_NM, SNS_TY, NEED_ALLOW, SNS_DESC, COVER_IMG, CUSER_NO, CREATE_DATE, COMP_NO, SNS_KIND) VALUES(%@, '%@', '%@', '%@', '%@', '%@', %@, '%@', %@, '%@');", snsNo, snsName, snsType, needAllow, snsDesc, coverImg, createUser, createDate, compNo, snsKind];
+
+[NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@');", userNo, userId, userName, userImg, userMsg, phoneNo, deptNo, userBgImg];
+
+[NSString stringWithFormat:@"INSERT INTO CHAT_ROOMS VALUES (%@, '%@', '%@', 1, 0);", nRoomNo, resultRoomNm, roomType];
+
+[NSString stringWithFormat:@"INSERT INTO CHAT_USERS VALUES (%@, %@);", nRoomNo, userNo];
+
+[NSString stringWithFormat:@"INSERT INTO missed_chats(room_no, content_ty, content, file_nm, adit_info, content_prev) VALUES(%@, '%@', '', '%@', '%@', '%@');", roomNo, contentType, decodeFileNm, jsonString, contentPrev];
+
+[NSString stringWithFormat:@"INSERT OR REPLACE INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '', '%@', '%@', '%@', 0, %@, '');", chatNo, roomNo, userNo, contentType, content, chatDate, fileName, jsonString, unRead];
+
+
+========================================================================================================================================================
+
+
+[UPDATE]
+
+[NSString stringWithFormat:@"UPDATE SNS SET POST_NOTI=%@ WHERE SNS_NO=%@;", postNoti, self.snsNo];
+
+[NSString stringWithFormat:@"UPDATE SNS SET COMMENT_NOTI=%@ WHERE SNS_NO=%@;", commNoti, self.snsNo];
+
+[NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = 0 WHERE ROOM_NO=%@;", roomNo];
+
+[NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = 1 WHERE ROOM_NO=%@;", roomNo];
+
+[NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NOTI = 0 WHERE ROOM_NO=%@;", roomNo];
+
+[NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NOTI = 1 WHERE ROOM_NO=%@;", roomNo];
+
+[NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NM = '%@' WHERE ROOM_NO = %@;", resultRoomNm, [dataSet objectForKey:@"ROOM_NO"]];
+
+[NSString stringWithFormat:@"UPDATE CHATS SET IS_READ = 1 WHERE ROOM_NO=%@;",  self.roomNo];
+
+[NSString stringWithFormat:@"UPDATE CHATS SET UNREAD_COUNT = %@ WHERE ROOM_NO=%@ AND CHAT_NO IN (%@);", unreadCnt, roomNo, chatNoList];
+
+[NSString stringWithFormat:@"UPDATE CHATS SET CONTENT='%@' WHERE CHAT_NO=%@;", longContent, self.chatNo];
+
+
+========================================================================================================================================================
+
+
+[DELETE]
+
+[NSString stringWithFormat:@"DELETE FROM SNS WHERE SNS_NO = %@",snsNo];
+
+[NSString stringWithFormat:@"DELETE FROM CHAT_USERS WHERE ROOM_NO = %@;", self.deleteRoomNo];
+
+[NSString stringWithFormat:@"DELETE FROM CHAT_USERS WHERE ROOM_NO = %@ AND USER_NO = %@;", [dataSet objectForKey:@"ROOM_NO"], userNo];
+
+[NSString stringWithFormat:@"DELETE FROM CHAT_ROOMS WHERE ROOM_NO = %@;", self.deleteRoomNo];
+
+[NSString stringWithFormat:@"DELETE FROM MISSED_CHATS WHERE ROOM_NO=%@ AND CHAT_NO=%@;", roomNo, chatNo];
+
+[NSString stringWithFormat:@"DELETE FROM MISSED_CHATS WHERE ROOM_NO = %@;", self.deleteRoomNo];
+
+[NSString stringWithFormat:@"DELETE FROM CHATS WHERE ROOM_NO = %@;", self.deleteRoomNo];
+
+
+
+
+

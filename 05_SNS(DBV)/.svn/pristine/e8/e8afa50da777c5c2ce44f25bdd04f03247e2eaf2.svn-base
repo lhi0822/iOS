@@ -1,0 +1,32 @@
+//
+//  ChatMessageData.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 4. 21..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import <CoreLocation/CoreLocation.h>
+
+#import "JSQMessages.h"
+#import "ChatViewController.h"
+
+@interface ChatMessageData : NSObject {
+    int _rowCnt;
+}
+
+@property (strong, nonatomic) NSMutableArray *messages;
+
+@property (strong, nonatomic) NSMutableArray *chatArray;
+@property (nonatomic, strong) NSString *DBName;
+@property (nonatomic, strong) NSString *DBPath;
+@property (nonatomic, assign) BOOL isFirstTimeAccess;
+@property (nonatomic, strong) NSString *roomNum;
+- (instancetype)initwithRoomNo:(NSString *)roomNo;
+- (NSMutableArray *)readFromDatabase: (int)rowCnt;
+
+@property (weak, nonatomic) NSString *myUserNo;
+
+@end

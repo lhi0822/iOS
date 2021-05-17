@@ -1,0 +1,230 @@
+//
+//  SNSNoticeSetViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 23..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "SNSNoticeSetViewController.h"
+#import "NoticeSetTableViewCell.h"
+#import "MFDBHelper.h"
+//#import "SqlSelectHelper.h"
+#import "MFStyle.h"
+
+#define HEADER_HEIGHT 45
+#define SWITCH_TAG 1000
+
+@interface SNSNoticeSetViewController () {
+    MFDBHelper *dbHelper;
+    NSString *postNoti;
+    NSString *commNoti;
+}
+
+@end
+
+@implementation SNSNoticeSetViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    NSString *titleStr = [NSString stringWithFormat:@"%@ 알림", self.snsName];
+    
+    //self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+    statusBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:titleStr];
+    
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"저장", @"저장")
+                                                                             style:UIBarButtonItemStylePlain
+                                                                            target:self
+                                                                            action:@selector(rightSideMenuButtonPressed:)];
+    
+    self.noticeKeyArr = [NSMutableArray array];
+    [self.noticeKeyArr addObject:@"새글 알림"];
+    [self.noticeKeyArr addObject:@"댓글 알림"];
+    
+    dbHelper = [[MFDBHelper alloc]init];
+    
+    NSString *sql1 = [NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", self.snsNo];
+    postNoti = [dbHelper selectPushNoti:sql1];
+    NSLog(@"postNoti : %@", postNoti);
+    
+    NSString *sql2 = [NSString stringWithFormat:@"SELECT COMMENT_NOTI FROM SNS WHERE SNS_NO=%@", self.snsNo];
+    commNoti = [dbHelper selectPushNoti:sql2];
+    NSLog(@"commNoti : %@", commNoti);
+}
+
+-(void)viewWillDisappear:(BOOL)animated{
+    //    NSString *urlString = [AppDelegate getMainURL];
+    //    NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&notiFlag=1&refTy=3&refNo=%@", _myUserNo, roomNo];
+    //    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"saveNotification"]];
+    //    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    //    session.delegate = self;
+    //    [session start];
+    
+    NSLog(@"postNoti : %@, commNoti : %@", postNoti, commNoti);
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)rightSideMenuButtonPressed:(id)sender{
+    NSLog(@"Result postNoti : %@, commNoti : %@", postNoti, commNoti);
+    
+    NSString *sqlString1 = [NSString stringWithFormat:@"UPDATE SNS SET POST_NOTI=%@ WHERE SNS_NO=%@;", postNoti, self.snsNo];
+    [dbHelper crudStatement:sqlString1];
+    
+    NSString *sqlString2 = [NSString stringWithFormat:@"UPDATE SNS SET COMMENT_NOTI=%@ WHERE SNS_NO=%@;", commNoti, self.snsNo];
+    [dbHelper crudStatement:sqlString2];
+    
+    UIAlertController * alert = [UIAlertController alertControllerWithTitle:@"" message:NSLocalizedString(@"저장되었습니다.", @"저장되었습니다.") preferredStyle:UIAlertControllerStyleAlert];
+    [self presentViewController:alert animated:YES completion:nil];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [alert dismissViewControllerAnimated:YES completion:nil];
+    });
+}
+
+#pragma mark - UITableView Delegate & Datasrouce
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    //return 2;
+    return 1;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 55;
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section {
+    UITableViewHeaderFooterView *header = (UITableViewHeaderFooterView *)view;
+    
+    header.textLabel.textColor = [UIColor blackColor];
+    header.textLabel.font = [UIFont boldSystemFontOfSize:15];
+    CGRect headerFrame = header.frame;
+    header.textLabel.frame = headerFrame;
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    //    if(section == 0) {
+    //        return @"새글 알림 설정";
+    //    } else if(section == 1) {
+    //        return @"댓글 알림 설정";
+    //    } else{
+    //        return nil;
+    //    }
+    
+    return @"푸시 알림 설정";
+}
+
+- (CGFloat) tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return HEADER_HEIGHT;
+    
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    //    if(section == 0){
+    //        return self.noticeKeyArr.count;
+    //    } else if (section == 1){
+    //        return self.noticeKeyArr.count;
+    //    } else {
+    //        return 0;
+    //    }
+    
+    return self.noticeKeyArr.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    //NSLog(@"%s",__func__);
+    NoticeSetTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"NoticeSetTableViewCell"];
+    
+    if(cell == nil){
+        cell = [[NoticeSetTableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"NoticeSetTableViewCell"];
+    }
+    int sectionTag=SWITCH_TAG;
+    //    if(indexPath.section == 0){
+    cell.keyLabel.text = [self.noticeKeyArr objectAtIndex:indexPath.row];
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    //        sectionTag = sectionTag *1;
+    //    }  else {
+    //        cell.keyLabel.text = [self.noticeKeyArr objectAtIndex:indexPath.row];
+    //        cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    //        sectionTag = sectionTag *2;
+    //    }
+    cell.noticeSwitch.tag = sectionTag+indexPath.row;
+    [cell.noticeSwitch setOnTintColor:[MFUtil myRGBfromHex:@"1D4696"]];
+    
+    if(indexPath.row==0){
+        if([postNoti isEqualToString:@"1"]){
+            [cell.noticeSwitch setOn:YES animated:NO];
+        } else {
+            [cell.noticeSwitch setOn:NO animated:NO];
+        }
+    } else {
+        if([commNoti isEqualToString:@"1"]){
+            [cell.noticeSwitch setOn:YES animated:NO];
+        } else {
+            [cell.noticeSwitch setOn:NO animated:NO];
+        }
+    }
+    
+    [cell.noticeSwitch addTarget:self action:@selector(switchToggled:) forControlEvents:UIControlEventValueChanged];
+    
+    cell.backgroundColor = [UIColor whiteColor];
+    [cell.keyLabel sizeToFit];
+    
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+- (void)switchToggled:(id)sender {
+    UISwitch *mySwitch = (UISwitch *)sender;
+    //NSLog(@"sender : %@", sender);
+    
+    //MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+    
+    if(![mySwitch isOn]){
+        if(mySwitch.tag==1000){
+            //NSString *sqlString = [NSString stringWithFormat:@"UPDATE SNS SET POST_NOTI=0 WHERE SNS_NO=%@;", self.snsNo];
+            //[dbHelper crudStatement:sqlString];
+            postNoti=@"0";
+        } else {
+            //NSString *sqlString = [NSString stringWithFormat:@"UPDATE SNS SET COMMENT_NOTI=0 WHERE SNS_NO=%@;", self.snsNo];
+            //[dbHelper crudStatement:sqlString];
+            commNoti=@"0";
+        }
+    } else {
+        if(mySwitch.tag==1000){
+            //NSString *sqlString = [NSString stringWithFormat:@"UPDATE SNS SET POST_NOTI=1 WHERE SNS_NO=%@;", self.snsNo];
+            //[dbHelper crudStatement:sqlString];
+            postNoti=@"1";
+        } else {
+            //NSString *sqlString = [NSString stringWithFormat:@"UPDATE SNS SET COMMENT_NOTI=1 WHERE SNS_NO=%@;", self.snsNo];
+            //[dbHelper crudStatement:sqlString];
+            commNoti=@"1";
+        }
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    //NSString *wsName = [[session.url absoluteString] lastPathComponent];
+    //NSLog(@"wsName : %@",wsName);
+    if (error!=nil || ![error isEqualToString:@"(null)"]) {
+        NSDictionary *dic = session.returnDictionary;
+        if ([[dic objectForKey:@"RESULT"]isEqualToString:@"SUCCESS"]) {
+            
+        }
+    } else {
+        
+    }
+}
+
+@end

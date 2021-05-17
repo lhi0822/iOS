@@ -1,0 +1,55 @@
+//
+//  AttachView.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 16..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <MobileCoreServices/MobileCoreServices.h>
+#import <Photos/Photos.h>
+#import "SVProgressHUD.h"
+//#import <HTMLKit/HTMLKit.h>
+#import "AppDelegate.h"
+#import "MFURLSession.h"
+#import "MFURLSessionUpload.h"
+#import "UITextView+Placeholder.h"
+#import <AVFoundation/AVFoundation.h>
+
+
+@class AttachView;
+
+@interface AttachView : UIView
+
+@property (weak, nonatomic) PHPhotoLibrary *photoLibrary;
+@property (strong, nonatomic) UIImagePickerController *picker;
+
+//@property (strong, nonatomic)  ChatMessageData *msgData;
+//
+//@property (strong, nonatomic) NSMutableArray *imageFileNameArray;
+//@property (strong, nonatomic) NSMutableArray *contentImageArray;
+//@property (strong, nonatomic) NSMutableArray *imageArray;
+//@property (strong, nonatomic) NSMutableArray *imageIndexArray;
+
+//@property (strong, nonatomic) UIButton* cameraButton;
+//@property (strong, nonatomic) UIButton* photoButton;
+//@property (strong, nonatomic) UIButton* videoButton;
+
+@property (strong, nonatomic) IBOutlet AttachView *aView;
+@property (strong, nonatomic) IBOutlet UIView *cameraContainer;
+@property (strong, nonatomic) IBOutlet UIView *photoContainer;
+@property (strong, nonatomic) IBOutlet UIView *videoContainer;
+@property (strong, nonatomic) IBOutlet UIView *contactContainer;
+
+@property (strong, nonatomic) IBOutlet UIButton *cameraButton;
+@property (strong, nonatomic) IBOutlet UIButton *photoButton;
+@property (strong, nonatomic) IBOutlet UIButton *videoButton;
+@property (strong, nonatomic) IBOutlet UIButton *contactButton;
+
+@property (strong, nonatomic) IBOutlet UILabel *cameraLabel;
+@property (strong, nonatomic) IBOutlet UILabel *photoLabel;
+@property (strong, nonatomic) IBOutlet UILabel *videoLabel;
+@property (strong, nonatomic) IBOutlet UILabel *contactLabel;
+
+@end

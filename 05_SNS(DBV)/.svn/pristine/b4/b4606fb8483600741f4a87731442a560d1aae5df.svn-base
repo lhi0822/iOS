@@ -1,0 +1,74 @@
+//
+//  CollectionViewController.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 7..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+#import "AppDelegate.h"
+#import "MFUtil.h"
+#import "MFURLSession.h"
+#import "SVProgressHUD.h"
+#import "UIImageView+WebCache.h"
+#import "UIDevice-Hardware.h"
+
+#import "TeamListViewController.h"
+#import "PostWriteTableViewController.h"
+#import "ChatListViewController.h"
+#import "ChatViewController.h"
+#import "RightSideViewController.h"
+#import "VCFloatingActionButton.h"
+#import <sqlite3.h>
+
+
+
+@interface CollectionViewController : UIViewController<UICollectionViewDelegate,UICollectionViewDataSource,MFURLSessionDelegate,UIScrollViewDelegate,UITextFieldDelegate,MFMessageComposeViewControllerDelegate, floatMenuDelegate>{
+    int pPno;
+    BOOL isRefresh;
+    BOOL isDragging;
+    UILabel                                 *lbRefreshTime;
+    UIImageView                             *ivRefreshArrow;
+    UIActivityIndicatorView                 *spRefresh;
+    NSString                                *refreshTime;
+}
+
+@property (nonatomic, weak)IBOutlet UICollectionView *collectionView;
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *collectionViewTopConstraint;
+
+@property (strong, nonatomic) IBOutlet UIView *segContainer;
+@property (strong, nonatomic) IBOutlet UISegmentedControl *boardSegment;
+@property int selectBoardKind;
+
+@property (nonatomic,weak) NSString *lastPostNo;
+@property (nonatomic,weak) NSString *lastTaskNo;
+
+@property (nonatomic,weak) NSMutableArray *profileImgArray;
+@property (nonatomic,weak) NSMutableArray *contentsImgArray;
+@property (nonatomic,weak) NSMutableArray *timeArray;
+@property (nonatomic,weak) NSMutableArray *writerNameArray;
+@property (nonatomic,weak) NSMutableArray *descriptionArray;
+@property (nonatomic,weak) NSMutableArray *cardSizeArray;
+@property (nonatomic,weak) NSMutableArray *snsNameArray;
+
+@property (nonatomic,strong) NSMutableArray *normalDataArray;
+@property (nonatomic,strong) NSMutableArray *projectDataArray;
+
+@property (strong, nonatomic) IBOutlet UIView *postNewView;
+
+@property (nonatomic,strong) NSString *snsNo;
+@property (nonatomic,strong) NSString *snsName;
+@property (nonatomic,assign) BOOL isBoard;
+
+@property (nonatomic,strong) NSString *fromSegue;
+@property (nonatomic,strong) NSDictionary *pushDict;
+
+@property (nonatomic, strong) NSString *DBName;
+@property (nonatomic, strong) NSString *DBPath;
+
+@property (strong, nonatomic) IBOutlet UIActivityIndicatorView *indicator;
+
+-(IBAction)createPost:(id)sender;
+@end

@@ -1,0 +1,109 @@
+//
+//  WebViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 6. 15..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "WebViewController.h"
+#import "PostDetailViewController.h"
+#import "MFStyle.h"
+
+@interface WebViewController ()
+
+@end
+
+@implementation WebViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"파일", @"파일")];
+    
+    self.navigationItem.rightBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"msg25", @"")
+                                                                            style:UIBarButtonItemStylePlain
+                                                                           target:self
+                                                                           action:@selector(rightSideMenuButtonPressed:)];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_NewPostPush:) name:@"noti_NewPostPush" object:nil];
+    
+    //NSLog(@"fileUrl : %@", self.fileUrl);
+    
+    NSRange range = [self.fileUrl rangeOfString:@"." options:NSBackwardsSearch];
+    NSString *fileExt = [[self.fileUrl substringFromIndex:range.location+1] lowercaseString];
+    //NSLog(@"fileExt : %@", fileExt);
+    
+    if([fileExt isEqualToString:@"apk"] || [fileExt isEqualToString:@"ipa"] || [fileExt isEqualToString:@"zip"]){
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:@"지원하지 않는 형식의 파일입니다." delegate:self cancelButtonTitle:nil otherButtonTitles:@"확인", nil];
+        [alert show];
+    } else{
+        
+        UIWebView *webView = [[UIWebView alloc]init];
+        webView.contentMode = UIViewContentModeScaleAspectFit;
+        webView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+        webView.frame = CGRectMake(0, 0, _scrollView.frame.size.width, _scrollView.frame.size.height-64);
+        
+        [_scrollView setScrollEnabled:YES];
+        _scrollView.delegate = self;
+        _scrollView.backgroundColor = [UIColor clearColor];
+        [_scrollView setShowsHorizontalScrollIndicator:NO];
+        [_scrollView setShowsVerticalScrollIndicator:NO];
+        //[_scrollView setContentSize:[image size]];
+        _scrollView.contentSize = webView.frame.size;
+        [_scrollView addSubview:webView];
+        _webView = webView;
+        [_scrollView setMaximumZoomScale:3.0f];
+        [_scrollView setMinimumZoomScale:1.0f];
+        
+        NSURLRequest *request = [NSURLRequest requestWithURL:[NSURL URLWithString:[self.fileUrl stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]];
+        [_webView loadRequest:request];
+    }
+}
+
+- (UIView *) viewForZoomingInScrollView:(UIScrollView *)scrollView {
+    return _webView;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)noti_NewPostPush:(NSNotification *)notification {
+    if(notification.userInfo!=nil){
+        NSString *message = [notification.userInfo objectForKey:@"MESSAGE"];
+        NSDictionary *dict = [NSDictionary dictionary];
+        if(message!=nil){
+            NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+            NSError *error;
+            dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        } else {
+            dict = notification.userInfo;
+        }
+        
+        UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+        PostDetailViewController *vc = (PostDetailViewController *)[storyboard instantiateViewControllerWithIdentifier:@"PostDetailViewController"];
+        UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+        
+        vc.fromSegue = @"NOTI_POST_DETAIL";
+        vc.notiPostDic = dict;
+        [self presentViewController:nav animated:YES completion:nil];
+    }
+}
+
+- (void)rightSideMenuButtonPressed:(id)sender {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if(buttonIndex == 0){
+        [self dismissViewControllerAnimated:YES completion:nil];
+    }
+}
+
+@end

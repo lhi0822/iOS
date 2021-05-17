@@ -1,0 +1,25 @@
+//
+//  SNSUserInfoViewController.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 23..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <MessageUI/MessageUI.h>
+#import "AppDelegate.h"
+#import "MFURLSession.h"
+#import "MFUserCell.h"
+
+@interface SNSUserInfoViewController : UIViewController <UITableViewDelegate, UITableViewDataSource, MFURLSessionDelegate, MFMessageComposeViewControllerDelegate>
+
+@property (strong, nonatomic) IBOutlet UITableView *tableView;
+
+@property (nonatomic, strong) NSString *snsNo;
+@property (nonatomic, strong) NSString *snsName;
+@property (nonatomic, strong) NSString *snsLeader;
+@property (weak, nonatomic) NSArray *dataSetArray;
+@property (strong, nonatomic) NSDictionary *snsInfoDic;
+
+@end

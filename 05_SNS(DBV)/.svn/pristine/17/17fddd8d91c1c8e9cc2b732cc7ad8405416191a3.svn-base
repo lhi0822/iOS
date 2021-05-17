@@ -1,0 +1,796 @@
+//
+//  IntroViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 7..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "IntroViewController.h"
+#import "MFUtil.h"
+#import "MFDBHelper.h"
+//#import "SqlSelectHelper.h"
+#import "MFStyle.h"
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
+
+@interface IntroViewController () {
+    MFDBHelper *dbHelper;
+    NSString *returnCode;
+    
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation IntroViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    NSLog(@"%s", __func__);
+    
+    self.navigationController.navigationBarHidden = YES;
+    self.logoImgView.image = [UIImage imageNamed:@"logo_mfinitySNS.png"];
+    self.view.backgroundColor = [MFUtil myRGBfromHex:@"1E4F95"];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    NSString *version = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    self.verLabel.text = [NSString stringWithFormat:@"v %@", version];
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *isFirst = [prefs objectForKey:@"IS_FIRST"];
+    //NSLog(@"isFirst : %@", isFirst);
+    
+    /*
+     if(![isFirst isEqualToString:@"N"]){
+     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"새로운 기능" message:nil preferredStyle:UIAlertControllerStyleAlert];
+     //NSLocalizedString(@"msg0", @"msg0")
+     
+     NSMutableParagraphStyle *paraStyle = [[NSMutableParagraphStyle alloc] init];
+     paraStyle.alignment = NSTextAlignmentLeft;
+     
+     NSMutableAttributedString *atrStr = [[NSMutableAttributedString alloc] initWithString:[NSString stringWithFormat:@"[ %@ 업데이트 내용 ] \n%@", version, NSLocalizedString(@"msg0", @"msg0")] attributes:@{NSParagraphStyleAttributeName:paraStyle,NSFontAttributeName:[UIFont systemFontOfSize:13.0]}];
+     [alert setValue:atrStr forKey:@"attributedMessage"];
+     
+     UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+     handler:^(UIAlertAction * action) {
+     [alert dismissViewControllerAnimated:YES completion:nil];
+     
+     NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+     [prefs setObject:@"N" forKey:@"IS_FIRST"];
+     [prefs synchronize];
+     }];
+     
+     
+     [alert addAction:okButton];
+     //[self presentViewController:alert animated:YES completion:nil];
+     }
+     */
+    
+    [self setTimer];
+    
+    //    count = 0;
+    //    endCount = 1;
+    //    myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+    
+    //self.mFinityCallButton.layer.borderWidth = 1.0f;
+    //self.mFinityCallButton.layer.cornerRadius = 10.0f;
+    
+    //    [[AFNetworkReachabilityManager sharedManager] startMonitoring];
+    //    [[AFNetworkReachabilityManager sharedManager] setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+    //        if (status == AFNetworkReachabilityStatusReachableViaWWAN){
+    //            NSLog(@"3G/LTE 등 셀룰러 네트워크");
+    //            //dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+    //                count = 0;
+    //                endCount = 1;
+    //                myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+    //            //});
+    //        }
+    //    }];
+    
+}
+
+-(void)setTimer{
+    count = 0;
+    endCount = 1;
+    myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+}
+
+
+-(void)handleTimer:(NSTimer *)timer {
+    count++;
+    
+    if(count == endCount){
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *url = [prefs objectForKey:@"URL"];
+        NSString *cpnCode = [prefs objectForKey:@"CPN_CODE"];
+        NSString *deviceId = [prefs objectForKey:@"DVC_ID"]; //[MFUtil getUUID];
+        //NSString *userId = [prefs objectForKey:@"USER_ID"];
+        userId = [prefs objectForKey:@"USER_ID"];
+        userPwd = [prefs objectForKey:@"USER_PWD"];
+        
+        NSLog(@"url : %@, cpnCode : %@", url, cpnCode);
+        NSLog(@"deviceId : %@, userId : %@", deviceId, userId);
+        
+        /*
+         if(deviceID == nil && userID == nil){
+         //Device ID , User ID 없으면 EMMP 설치 여부 확인
+         //            NSString *url = [NSString stringWithFormat:@"com.dbvalley.mfinity.emmp://?call=com.dbvalley.mfinity.sns"];
+         //            BOOL isInstall = [[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:url]];
+         //
+         //            if (isInstall) {
+         //                CGRect endFrame1 = CGRectMake(self.logoLabel1.frame.origin.x, self.navigationController.navigationBar.frame.size.height+50, self.logoLabel1.frame.size.width, self.logoLabel1.frame.size.height);
+         //                CGRect endFrame2 = CGRectMake(self.logoLabel2.frame.origin.x, self.navigationController.navigationBar.frame.size.height+50+self.logoLabel1.frame.size.height, self.logoLabel2.frame.size.width, self.logoLabel2.frame.size.height);
+         //                [UIView animateWithDuration:0.5 animations:^{
+         //                    self.logoLabel1.frame = endFrame1;
+         //                    self.logoLabel2.frame = endFrame2;
+         //                }];
+         //
+         //                self.mFinityCallButton.hidden = NO;
+         //            }else{
+         //                //없으면 로그인 화면 진입
+         //                [self performSegueWithIdentifier:@"LOGIN_VIEW_PUSH" sender:self];
+         //            }
+         
+         
+         [self performSegueWithIdentifier:@"LOGIN_VIEW_PUSH" sender:self];
+         } else{
+         //Device ID , User ID 있으면 메인 화면 진입
+         [self callWebService];
+         }
+         */
+        
+        legacyNm = appDelegate.legacy_name;
+        
+        if([legacyNm isEqualToString:@"NONE"]){
+            if(deviceId == nil && userId == nil){
+                [self performSegueWithIdentifier:@"LOGIN_VIEW_PUSH" sender:self];
+            } else {
+                [self callWebService];
+            }
+        } else if([legacyNm isEqualToString:@"ANYMATE"]){
+            if(url==nil || cpnCode==nil){
+                [self performSegueWithIdentifier:@"URL_SETTING_PUSH" sender:self];
+                
+            } else if(url!=nil && cpnCode!=nil && deviceId!=nil && userId!=nil){
+                [self callWebService];
+                
+            } else {
+                [self performSegueWithIdentifier:@"LOGIN_VIEW_PUSH" sender:self];
+            }
+            
+        } else if([legacyNm isEqualToString:@"HHI"]){
+            
+#ifdef DEBUG
+            userId = @"BP15214";
+            userPwd = @"BP15214";
+#else
+            
+#endif
+            NSLog(@"userId : %@, userPwd : %@", userId, userPwd);
+            if(appDelegate.executeHHI){
+                appDelegate.executeHHI = NO;
+                [self callWebService];
+            } else {
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"사용자 로그인 정보가 없습니다.\n터치원(TouchOne) 로그인 후 사용하십시오." preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                                 handler:^(UIAlertAction * action) {
+                                                                     [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                     exit(0);
+                                                                 }];
+                [alert addAction:okButton];
+                [self presentViewController:alert animated:YES completion:nil];
+            }
+            
+            
+            /*
+             if(userId!=nil && userPwd!=nil){
+             //User ID, User PWD 있으면 메인 화면 진입
+             [self callWebService];
+             
+             } else {
+             //없으면 앱 종료
+             UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"사용자 로그인 정보가 없습니다.\n터치원(TouchOne) 로그인 후 사용하십시오." preferredStyle:UIAlertControllerStyleAlert];
+             UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+             handler:^(UIAlertAction * action) {
+             [alert dismissViewControllerAnimated:YES completion:nil];
+             exit(0);
+             }];
+             [alert addAction:okButton];
+             [self presentViewController:alert animated:YES completion:nil];
+             }
+             */
+        }
+        
+        [myTimer invalidate];
+    }
+}
+
+- (void)nextPage {
+    //AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSLog(@"nextPage USER_ID : %@",[prefs objectForKey:@"USER_ID"]);
+    if ([prefs objectForKey:@"USER_ID"] != nil) {
+        UITabBarController *rootViewController = [MFStyle setDefualtTabBar];
+        rootViewController.selectedIndex = 0; //처음에 보여질 탭 설정
+        
+        //채팅 탭 배지카운트 표시============================================================
+        //        SqlSelectHelper *selectHelper = [[SqlSelectHelper alloc]init];
+        //        NSMutableArray *selectArr = [selectHelper selectRoomList];
+        MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+        NSMutableArray *selectArr = [dbHelper selectRoomList];
+        
+        int badgeCnt=0;
+        for(int i=0; i<selectArr.count; i++){
+            int notReadCnt = [[[selectArr objectAtIndex:i]objectForKey:@"NOT_READ_COUNT"] intValue];
+            badgeCnt+=notReadCnt;
+        }
+        
+        NSUInteger tabCount = rootViewController.tabBar.items.count;
+        for(int i=0; i<tabCount; i++){
+            if([rootViewController.tabBar.items objectAtIndex:i].tag == 3){
+                if(badgeCnt>0 && badgeCnt<100) {
+                    [rootViewController.tabBar.items objectAtIndex:i].badgeValue = [NSString stringWithFormat:@"%d", badgeCnt];
+                    //[rootViewController.tabBar.items objectAtIndex:2].badgeColor = [MFUtil myRGBfromHex:@"FB8C26"];
+                    if(SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) [rootViewController.tabBar.items objectAtIndex:i].badgeColor = [MFUtil myRGBfromHex:@"FB8C26"];
+                } else if(badgeCnt==0){
+                    [rootViewController.tabBar.items objectAtIndex:i].badgeValue = nil;
+                } else {
+                    [rootViewController.tabBar.items objectAtIndex:i].badgeValue = @"99+";
+                    //[rootViewController.tabBar.items objectAtIndex:2].badgeColor = [MFUtil myRGBfromHex:@"FB8C26"];
+                    if(SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"9.0")) [rootViewController.tabBar.items objectAtIndex:i].badgeColor = [MFUtil myRGBfromHex:@"FB8C26"];
+                }
+            }
+        }
+        //=============================================================================
+        
+        
+        //NSLog(@"appDelegate.inactivePushInfo : %@", appDelegate.inactivePushInfo);
+        if(appDelegate.inactivePostPushInfo!=nil){
+            UINavigationController *nav = [rootViewController.viewControllers objectAtIndex:0];
+            TeamListViewController *teamView = [nav.childViewControllers objectAtIndex:0];
+            teamView.pushPostDic = appDelegate.inactivePostPushInfo;
+        }
+        
+        if(appDelegate.inactiveChatPushInfo!=nil){
+            UINavigationController *nav = [rootViewController.viewControllers objectAtIndex:0];
+            TeamListViewController *teamView = [nav.childViewControllers objectAtIndex:0];
+            teamView.pushChatDic = appDelegate.inactiveChatPushInfo;
+        }
+        
+        //        UINavigationController *nav = [rootViewController.viewControllers objectAtIndex:3];
+        //        MyViewController *vc = [nav.childViewControllers objectAtIndex:0];
+        //
+        //        NSDictionary *dataSet = [[self.dic objectForKey:@"DATASET"]objectAtIndex:0];
+        //        vc.infoDic = dataSet;
+        
+        [[UIApplication sharedApplication].keyWindow setRootViewController:rootViewController];
+        
+    }
+}
+
+- (IBAction)mFinityCall:(id)sender {
+    //NSLog(@"%s",__func__);
+    NSString *url = [NSString stringWithFormat:@"com.dbvalley.mfinity.emmp://?call=com.dbvalley.mfinity.sns"];
+    [[UIApplication sharedApplication]openURL:[NSURL URLWithString:url]];
+}
+
+- (void)callWebService{
+    NSLog(@"%s", __func__);
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    
+    NSString *urlString = appDelegate.main_url;
+    userId = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+    userPwd = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_PWD"];
+    dvcId = [prefs objectForKey:@"DVC_ID"];//[MFUtil getUUID];
+    //dvcId = [prefs objectForKey:@"DEVICE_ID"];
+    isRooted = [MFUtil isRooted]?@"Y":@"N";
+    pushId1 = [[NSUserDefaults standardUserDefaults] objectForKey:@"PUSH_ID1"]; //appDelegate.appDeviceToken2;
+    
+    UIDevice *device = [UIDevice currentDevice];
+    dvcOs = device.systemName;
+    dvcKind = [device modelName];
+    
+    appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
+    //NSLog(@"appVersion1 : %@", appVersion);
+    
+    legacyNm = appDelegate.legacy_name;
+    cpnCode = [prefs objectForKey:@"CPN_CODE"];
+    
+    NSLog(@"INTRO  url : %@, legacy : %@", appDelegate.main_url, appDelegate.legacy_name);
+    
+    CTTelephonyNetworkInfo *networkInfo = [[CTTelephonyNetworkInfo alloc] init];
+    CTCarrier *ctCarrier = [networkInfo subscriberCellularProvider];
+    //NSLog(@"Carrier Name: %@", [ctCarrier carrierName]);
+    //총 용량
+    float totalSpace = 0.0f;
+    NSString *totalVolume;
+    NSError *error = nil;
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSDictionary *dictionary = [[NSFileManager defaultManager] attributesOfFileSystemForPath:[paths lastObject] error:&error];
+    if (dictionary) {
+        NSNumber *fileSystemSizeInBytes = [dictionary objectForKey:NSFileSystemSize];
+        totalSpace = [fileSystemSizeInBytes floatValue];
+        totalVolume = [NSString stringWithFormat:@"%0.0f",totalSpace];
+        //totalSpace = ((totalSpace/1024)/1024)/1024;
+    }
+    //사용 용량
+    float availableDisk;
+    NSArray *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    struct statfs tStats;
+    statfs([[path lastObject] UTF8String], &tStats);
+    availableDisk = (float)(tStats.f_bavail * tStats.f_bsize);
+    
+    dvcVer = device.systemVersion;
+    carrier = [ctCarrier carrierName]; if(carrier==nil)carrier = @"-";
+    extRam = @"N";
+    extTotVol = @"0";
+    extUseVol = @"0";
+    useVol = [NSString stringWithFormat:@"%0.0f",availableDisk];
+    
+    NSString *paramString = [NSString stringWithFormat:@"usrId=%@&usrPwd=%@&dvcId=%@&dvcOs=%@&appVersion=%@&dvcKind=%@&isRooted=%@&pushId1=%@&pushId2=-&legacyNm=%@", userId, userPwd, dvcId, dvcOs, appVersion, dvcKind, isRooted, pushId1, legacyNm];
+    
+    if([legacyNm isEqualToString:@"ANYMATE"]){
+        paramString = [paramString stringByAppendingString:[NSString stringWithFormat:@"&cpnCode=%@&compNo=10&dvcVer=%@&carrier=%@&extRam=%@&extTotVol=%@&extUseVol=%@&useVol=%@", cpnCode, dvcVer, carrier, extRam, extTotVol, extUseVol, useVol]];
+        
+    }
+    
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"chkUsrLogin"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if ([session start]) {
+        //[SVProgressHUD show];
+    }
+}
+
+-(void)anymateLogin{
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    
+    NSString *cpnUrl = [prefs objectForKey:@"URL"];
+    NSString *_urlString = [NSString stringWithFormat:@"%@/m/main/",cpnUrl];
+    NSURL *url2 = [NSURL URLWithString:_urlString];
+    
+    NSString *paramString2 = [NSString stringWithFormat:@"id=%@&pass=%@&sel_cpn_code=%@&mode=login&token=%@&os_type=I&device_id=%@&model_nm=%@&ver=beacon",userId,userPwd,cpnCode,pushId1,dvcId,dvcKind];
+    
+    NSData *postData = [paramString2 dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc]initWithURL:url2];
+    [request setHTTPMethod:@"POST"];
+    [request setHTTPBody: postData];
+    [request setTimeoutInterval:10.0];
+    NSURLConnection *urlConnection = [[NSURLConnection alloc]initWithRequest:request delegate:self];
+    [urlConnection start];
+    //[SVProgressHUD show];
+    
+}
+
+- (void)callChangeDevice{
+    NSString *urlString = appDelegate.main_url;
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"changeDevice"]];
+    
+    NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+    [userInfo setObject:userId forKey:@"USER_ID"];
+    
+    NSString *paramString = [NSString stringWithFormat:@"dvcId=%@&dvcKind=%@&dvcOs=%@&appVersion=%@&dvcVer=%@&carrier=%@&extRam=%@&extTotVol=%@&extUseVol=%@&useVol=%@&pushId1=%@&pushId2=-&isRooted=%@&usrId=%@&usrPwd=%@&legacyNm=%@", dvcId, dvcKind, dvcOs, appVersion, dvcVer, carrier, extRam, extTotVol, extUseVol, useVol, pushId1, isRooted, userId, userPwd, legacyNm];
+    
+    if([legacyNm isEqualToString:@"ANYMATE"]){
+        paramString = [paramString stringByAppendingString:[NSString stringWithFormat:@"&cpnCode=%@&compNo=10", cpnCode]];
+        
+    } else if([legacyNm isEqualToString:@"HHI"]){
+        
+    }
+    
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if([session start]) {
+        //[SVProgressHUD show];
+    }
+}
+
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    if (error!=nil) {
+        //        NSLog(@"error : %@",error);
+        //        if([[NSString stringWithFormat:@"%@", error] rangeOfString:@"Code=-1001"].location != NSNotFound){
+        //            //Code=-1001 : 요청한 시간이 초과되었습니다.
+        //            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"요청한 시간이 초과되었습니다" preferredStyle:UIAlertControllerStyleAlert];
+        //            UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+        //                                                             handler:^(UIAlertAction * action) {
+        //                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+        //                                                                 exit(0);
+        //                                                             }];
+        //            [alert addAction:okButton];
+        //            [self presentViewController:alert animated:YES completion:nil];
+        //        }
+    }else{
+        self.dic = session.returnDictionary;
+        NSLog(@"IntroViewController dic : %@", self.dic);
+        NSDictionary *dataSet = [[self.dic objectForKey:@"DATASET"]objectAtIndex:0];
+        NSString *wsName = [[session.url absoluteString] lastPathComponent];
+        //[self introConnectServer:dataSet];
+        //NSLog(@"dataSet : %@", dataSet);
+        
+        if([wsName isEqualToString:@"changePublicPushId"]){
+            NSLog(@"changePublicPushId");
+            
+        } else {
+            if ([[self.dic objectForKey:@"RESULT"] isEqualToString:@"SUCCESS"]) {
+                NSLog(@"[RESULT_CODE] : %@", [dataSet objectForKey:@"RESULT_CODE"]);
+                if ([[dataSet objectForKey:@"RESULT_CODE"] intValue] == 1) {
+                    //SUCCEED
+                    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+                    [prefs setObject:[dataSet objectForKey:@"COMP_NM"] forKey:@"COMP_NM"];
+                    [prefs setObject:[dataSet objectForKey:@"COMP_NO"] forKey:@"COMP_NO"];
+                    [prefs setObject:[dataSet objectForKey:@"CUSER_NO"] forKey:@"CUSER_NO"];
+                    [prefs setObject:[dataSet objectForKey:@"USER_NM"] forKey:@"USER_NM"];
+                    [prefs setObject:[dataSet objectForKey:@"DEPT_NM"] forKey:@"DEPT_NM"];
+                    [prefs setObject:[dataSet objectForKey:@"DEPT_NO"] forKey:@"DEPT_NO"];
+                    [prefs synchronize];
+                    
+                    if([legacyNm isEqualToString:@"ANYMATE"]){
+                        [self anymateLogin];
+                        
+                    } else if([legacyNm isEqualToString:@"HHI"]){
+                        NSLog(@"Intro View Controller HHI");
+                        
+                    }
+                    //AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+                    //appDelegate.userNm = [dataSet objectForKey:@"USER_NM"];
+                    
+                    NSString *isUpgrade = [dataSet objectForKey:@"IS_UPGRADE"];
+                    appDelegate.compareAppVer = isUpgrade;
+                    NSString *deployURL = [dataSet objectForKey:@"DEPLOY_URL"];
+                    appDelegate.downAppUrl = deployURL;
+                    
+                    if([isUpgrade isEqualToString:@"UPGRADE"]){
+                        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"최신 버전이 업데이트 되었습니다.\n지금 설치하시겠습니까?" preferredStyle:UIAlertControllerStyleAlert];
+                        UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                                         handler:^(UIAlertAction * action) {
+                                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                             
+                                                                             NSURL *browser = [NSURL URLWithString:[NSString stringWithFormat:@"itms-services://?action=download-manifest&url=%@",deployURL]];
+                                                                             
+                                                                             [[UIApplication sharedApplication] openURL:browser];
+                                                                         }];
+                        
+                        UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:@"취소" style:UIAlertActionStyleDefault
+                                                                             handler:^(UIAlertAction * action) {
+                                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                                 
+                                                                             }];
+                        
+                        [alert addAction:okButton];
+                        [alert addAction:cancelButton];
+                        [self presentViewController:alert animated:YES completion:nil];
+                        
+                    } else if([isUpgrade isEqualToString:@"DOWNGRADE"]){
+                        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"미배포버전이 설치되어있습니다.\n다운그레이드 하시겠습니까?" preferredStyle:UIAlertControllerStyleAlert];
+                        UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                                         handler:^(UIAlertAction * action) {
+                                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                             
+                                                                             NSURL *browser = [NSURL URLWithString:[NSString stringWithFormat:@"itms-services://?action=download-manifest&url=%@",deployURL]];
+                                                                             [[UIApplication sharedApplication] openURL:browser];
+                                                                         }];
+                        
+                        UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:@"취소" style:UIAlertActionStyleDefault
+                                                                             handler:^(UIAlertAction * action) {
+                                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                                 
+                                                                                 [self introConnectServer:dataSet];
+                                                                                 dbHelper = [[MFDBHelper alloc]init:[[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"]];
+                                                                                 [self nextPage];
+                                                                             }];
+                        
+                        [alert addAction:okButton];
+                        [alert addAction:cancelButton];
+                        [self presentViewController:alert animated:YES completion:nil];
+                        
+                    } else {
+                        [self introConnectServer:dataSet];
+                        dbHelper = [[MFDBHelper alloc]init:[[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"]];
+                        [self nextPage];
+                    }
+                    
+                } else if([[dataSet objectForKey:@"RESULT_CODE"] intValue] == 10){
+                    //NOTMATCH_DEVICE
+                    //등록된 기기와 일치하지않은 기기입니다. 등록된 기기를 삭제하고 새로 등록하시겠습니까?
+                    
+                    /*
+                     NSDate *today = [NSDate date];
+                     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+                     [dateFormatter setDateFormat:@"yyMMdd-HHmmss"];
+                     NSString *currentTime = [dateFormatter stringFromDate:today];
+                     
+                     UIDevice *device = [UIDevice currentDevice];
+                     NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+                     NSString *dvcKind = [device modelName];
+                     NSString *dvcVer = device.systemVersion;
+                     NSString *dvcId = [[NSUserDefaults standardUserDefaults] objectForKey:@"DVC_ID"];//[MFUtil getUUID];
+                     
+                     NSString *str1 = @"***************************************************\n";
+                     NSString *str2 = [NSString stringWithFormat:@"TIME     : %@\n", currentTime];
+                     NSString *str3 = [NSString stringWithFormat:@"DVC_ID   : %@\n", dvcId];
+                     NSString *str4 = [NSString stringWithFormat:@"CUSER_NO : %@\n", myUserNo];
+                     NSString *str5 = [NSString stringWithFormat:@"DVC_KIND : %@\n", dvcKind];
+                     NSString *str6 = [NSString stringWithFormat:@"DVC_VER  : %@\n", dvcVer];
+                     NSString *str7 = @"***************************************************\n\n";
+                     
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str1];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str2];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str3];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str4];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str5];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str6];
+                     appDelegate.logStr = [appDelegate.logStr stringByAppendingString:str7];
+                     */
+                    
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:nil
+                                                                                   message:NSLocalizedString(@"등록된 기기와 일치하지않은 기기입니다. 등록된 기기를 삭제하고 새로 등록하시겠습니까?", @"")
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    
+                    UIAlertAction *okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                                     handler:^(UIAlertAction * action) {
+                                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                         [self callChangeDevice];
+                                                                     }];
+                    UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:@"취소" style:UIAlertActionStyleDefault
+                                                                         handler:^(UIAlertAction * action) {
+                                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                             exit(0);
+                                                                         }];
+                    
+                    [alert addAction:okButton];
+                    [alert addAction:cancelButton];
+                    
+                    [self presentViewController:alert animated:YES completion:nil];
+                    
+                } else{
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"msg1", @"")
+                                                                                   message:NSLocalizedString([dataSet objectForKey:@"RESULT"], @"msg2")
+                                                                            preferredStyle:UIAlertControllerStyleAlert];
+                    
+                    UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                                     handler:^(UIAlertAction * action) {
+                                                                         NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+                                                                         [prefs removeObjectForKey:@"USER_ID"];
+                                                                         [prefs removeObjectForKey:@"DEVICE_ID"];
+                                                                         [prefs synchronize];
+                                                                         [self performSegueWithIdentifier:@"LOGIN_VIEW_PUSH" sender:self];
+                                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                     }];
+                    [alert addAction:okButton];
+                    [self presentViewController:alert animated:YES completion:nil];
+                }
+                
+            } else {
+                if([dataSet objectForKey:@"RESULT_CODE"] == nil){
+                    //인터넷이 연결되지 않았을 경우 (백그라운드에 오랫동안 있다가 앱 실행 시에도 발생)
+                    UIAlertView *alert = [[UIAlertView alloc]initWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                   message:@"서버와의 통신이 원할하지 않습니다.\n잠시 후 다시 시도해주세요."
+                                                                  delegate:self
+                                                         cancelButtonTitle:NSLocalizedString(@"msg3", @"") otherButtonTitles:nil, nil];
+                    alert.tag = 1;
+                    [alert show];
+                } else {
+                    UIAlertView *alert = [[UIAlertView alloc]initWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                   message:[NSString stringWithFormat:@"RESULT_CODE : %@",[dataSet objectForKey:@"RESULT_CODE"]]
+                                                                  delegate:self
+                                                         cancelButtonTitle:NSLocalizedString(@"msg3", @"") otherButtonTitles:nil, nil];
+                    [alert show];
+                }
+                
+            }
+        }
+    }
+}
+
+- (void)returnError:(MFURLSession *)session error:(NSError *)error{
+    //NSLog(@"Intro error : %ld", (long)error.code);
+    //[SVProgressHUD dismiss];
+    if(error.code == -1001){
+        //Code=-1001 : 요청한 시간이 초과되었습니다.
+        
+        count = 0;
+        endCount = 1;
+        myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+        
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            NSLog(@"INTRO DISPATCH_TIME_NOW>>>>>>>>>>>>>>>>");
+            [SVProgressHUD dismiss];
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"서버에 연결할 수 없습니다." preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {
+                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                 exit(0);
+                                                             }];
+            [alert addAction:okButton];
+            [self presentViewController:alert animated:YES completion:nil];
+        });
+    } else if(error.code == -1009){
+        //인터넷/와이파이 X, 연결되었을 경우 웹서비스 호출
+        [[AFNetworkReachabilityManager sharedManager] startMonitoring];
+        [[AFNetworkReachabilityManager sharedManager] setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+            if (status == AFNetworkReachabilityStatusNotReachable) {
+                NSLog(@"네트워크 사용 할 수 없음");
+            } else if (status == AFNetworkReachabilityStatusUnknown){
+                NSLog(@"네트워크 상태 알 수 없음");
+            } else {
+                if (status == AFNetworkReachabilityStatusReachableViaWiFi) {
+                    NSLog(@"와이파이");
+                    count = 0;
+                    endCount = 1;
+                    myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+                    
+                } else if (status == AFNetworkReachabilityStatusReachableViaWWAN){
+                    NSLog(@"3G/LTE 등 셀룰러 네트워크");
+                    count = 0;
+                    endCount = 1;
+                    myTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 target:self selector:@selector(handleTimer:) userInfo:nil repeats:YES];
+                }
+            }
+        }];
+    }
+}
+
+#pragma mark - NSURLConnectionDataDelegate
+-(void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error{
+    [[UIApplication sharedApplication] setNetworkActivityIndicatorVisible:FALSE];
+    [SVProgressHUD dismiss];
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    [prefs removeObjectForKey:@"USER_ID"];
+    [prefs removeObjectForKey:@"DEVICE_ID"];
+    [prefs removeObjectForKey:@"URL"];
+    [prefs removeObjectForKey:@"CPN_CODE"];
+    [prefs synchronize];
+    
+    //isLogin = NO;
+    NSLog(@"IntroViewController error : %@",error);
+    if (error.code == -1003) {
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *errorMessage = [NSString stringWithFormat:@"정보가 올바르지 않습니다.\n%@\nURL을 확인하세요.",[prefs objectForKey:@"URL"]];
+        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"로그인 오류" message:errorMessage delegate:nil cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        [alertView show];
+    }else{
+        //        UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"오류" message:@"일시적인 네트워크 오류가 발생했습니다." delegate:nil cancelButtonTitle:@"확인" otherButtonTitles: nil];
+        //        alertView.tag=1;
+        //        [alertView show];
+        NSLog(@"%s 일시적인 네트워크 오류가 발생했습니다.", __func__);
+        [self setTimer];
+    }
+}
+-(void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data{
+    NSString *absoluteString = connection.currentRequest.URL.absoluteString;
+    NSLog(@"query : %@",connection.currentRequest.URL.query);
+    NSString *query = connection.currentRequest.URL.query;
+    NSString *returnString = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    if (query==nil) {
+        returnCode = returnString;
+    }else{
+        if ([query hasPrefix:@"event=get_version"]) {
+            NSLog(@"getVersion");
+            //appDelegate.appVersion = returnString;
+        }else{
+            NSLog(@"getBeacon : %@",returnString);
+            //isBeacon = returnString;
+        }
+        
+    }
+    
+    NSArray *tempArr = [[absoluteString lastPathComponent] componentsSeparatedByString:@"="];
+    if ([tempArr count]==1) {
+        returnCode = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    }else{
+        //appDelegate.appVersion = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    }
+}
+
+- (void)connectionDidFinishLoading:(NSURLConnection *)connection{
+    [SVProgressHUD dismiss];
+}
+
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
+    if(alertView.tag == 1 && buttonIndex == 0){
+        //exit(0);
+        [self viewDidLoad];
+    }
+}
+
+- (void)introConnectServer :(NSDictionary *)dataSet {
+    NSLog(@"%s", __func__);
+    
+    //AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+    
+    NSArray *snsList = [dataSet objectForKey:@"SNS_LIST"];
+    for(int i=0; i<snsList.count; i++){
+        NSNumber *snsNo = [[snsList objectAtIndex:i]objectForKey:@"SNS_NO"];
+        
+        [appDelegate.bindQueueArr addObject:[NSString stringWithFormat:@"BOARD.POST.%@.%@", compNo, snsNo]];
+        [appDelegate.bindQueueArr addObject:[NSString stringWithFormat:@"BOARD.COMMENT.%@.%@", compNo, snsNo]];
+    }
+    
+    MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+    NSMutableArray *selectArr = [dbHelper selectRoomList];
+    for(int i=0; i<selectArr.count; i++){
+        NSString *roomNo = [[selectArr objectAtIndex:i]objectForKey:@"ROOM_NO"];
+        [appDelegate.bindQueueArr addObject:[NSString stringWithFormat:@"CHAT.%@.%@", compNo, roomNo]];
+    }
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    [prefs setObject:appDelegate.bindQueueArr forKey:@"BIND_Q_ARR"];
+    [prefs synchronize];
+    
+    //NSDictionary *dic = [NSDictionary dictionaryWithObject:appDelegate.bindQueueArr forKey:@"ROUTING_KEY"];
+    NSDictionary *dic = [NSDictionary dictionaryWithObject:[prefs objectForKey:@"BIND_Q_ARR"] forKey:@"ROUTING_KEY"];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RmqConnect" object:nil userInfo:dic];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    self.navigationController.navigationBarHidden = NO;
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    UIGraphicsBeginImageContext(newSize);
+    //UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+- (void)messageComposeViewController:(nonnull MFMessageComposeViewController *)controller didFinishWithResult:(MessageComposeResult)result {
+    NSString *resultString;
+    switch (result) {
+        case MessageComposeResultCancelled:
+            resultString = NSLocalizedString(@"cancel", @"");
+            break;
+            
+        case MessageComposeResultFailed:
+        {
+            resultString = NSLocalizedString(@"fail", @"");
+            break;
+        }
+            
+        case MessageComposeResultSent:
+            resultString = NSLocalizedString(@"success", @"");
+            break;
+            
+        default:
+            break;
+    }
+    [self dismissViewControllerAnimated:YES completion:^{
+        NSLog(@"%s resultString : %@",__FUNCTION__,resultString);
+    }];
+}
+
+@end

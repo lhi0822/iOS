@@ -1,0 +1,160 @@
+//
+//  LongChatViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 4. 5..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "LongChatViewController.h"
+#import "MFUtil.h"
+#import "MFStyle.h"
+#import "MFDBHelper.h"
+
+@interface LongChatViewController () {
+    MFDBHelper *dbHelper;
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation LongChatViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    //self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+    statusBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:@"전체보기"];
+    
+    self.navigationItem.leftBarButtonItem =[[UIBarButtonItem alloc]initWithImage:[self getScaledImage:[UIImage imageNamed:@"btn_close.png"] scaledToMaxWidth:20] style:UIBarButtonItemStylePlain target:self action:@selector(closeModal:)];
+    
+    //self.textView.userInteractionEnabled = NO;
+    self.textView.editable = NO;
+    
+    //로컬디비저장
+    dbHelper = [[MFDBHelper alloc] init];
+    NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT CONTENT FROM CHATS WHERE CHAT_NO=%@", self.chatNo]];
+    //NSLog(@"selectArr : %@", selectArr);
+    
+    NSString *longContent = [[selectArr objectAtIndex:0] objectForKey:@"CONTENT"];
+    if(longContent!=nil&&![longContent isEqualToString:@""]){
+        self.textView.text = longContent;
+        
+    } else {
+        [self callWebService:@"getChatInfo"];
+    }
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)closeModal:(id)sender {
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+-(void)callWebService:(NSString *)serviceName{
+    @try{
+        //getChatInfo : usrNo, roomNo, chatNo
+        
+        NSString *urlString = appDelegate.main_url;
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+        NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:serviceName]];
+        NSString *paramString = nil;
+        
+        if([serviceName isEqualToString:@"getChatInfo"]){
+            paramString = [NSString stringWithFormat:@"usrNo=%@&roomNo=%@&chatNo=%@", myUserNo, self.roomNo, self.chatNo];
+        }
+        
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        session.delegate = self;
+        if ([session start]) {
+            [SVProgressHUD show];
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+#pragma mark - MFURLSession Delegate
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    if (error != nil) {
+        NSString *errorMsg = [NSString stringWithFormat:@"%@\n%@",session.url,error];
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:NSLocalizedString(@"msg18", @"") message:errorMsg delegate:self cancelButtonTitle:NSLocalizedString(@"msg3", @"") otherButtonTitles:nil, nil];
+        [alert show];
+    }else{
+        //NSLog(@"dic : %@",session.returnDictionary);
+        NSString *wsName = [[session.url absoluteString] lastPathComponent];
+        NSString *result = [session.returnDictionary objectForKey:@"RESULT"];
+        if ([result isEqualToString:@"SUCCESS"]) {
+            if ([wsName isEqualToString:@"getChatInfo"]) {
+                //로컬디비저장
+                NSArray *dataSet = [session.returnDictionary objectForKey:@"DATASET"];
+                NSString *content = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+                //NSLog(@"content : %@", content);
+                
+                NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+                NSError *error;
+                NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+                //NSLog(@"dict : %@", dict);
+                
+                NSString *longContent = [dict objectForKey:@"VALUE"];
+                self.textView.text = longContent;
+                
+                longContent = [longContent stringByReplacingOccurrencesOfString:@"'" withString:@"''"];
+                
+                NSString *sqlString = [NSString stringWithFormat:@"UPDATE CHATS SET CONTENT='%@' WHERE CHAT_NO=%@;", longContent, self.chatNo];
+                [dbHelper crudStatement:sqlString];
+            }
+        }else{
+            NSString *errorMsg = [NSString stringWithFormat:@"%@\n%@",session.url,error];
+            UIAlertView *alert = [[UIAlertView alloc]initWithTitle:NSLocalizedString(@"msg18", @"") message:errorMsg delegate:self cancelButtonTitle:NSLocalizedString(@"msg3", @"") otherButtonTitles:nil, nil];
+            [alert show];
+        }
+    }
+    [SVProgressHUD dismiss];
+}
+
+- (void)returnError:(MFURLSession *)session error:(NSError *)error{
+    NSLog(@"error : %@", error);
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+
+@end

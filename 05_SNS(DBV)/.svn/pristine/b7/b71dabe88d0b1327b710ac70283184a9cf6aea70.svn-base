@@ -1,0 +1,1135 @@
+//
+//  AppDelegate.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 7..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "AppDelegate.h"
+#import "HDNotificationView.h"
+#import "PostDetailViewController.h"
+#import "CollectionViewController.h"
+#import "TeamListViewController.h"
+#import "WebKitViewController.h"
+#import "MFDBHelper.h"
+
+#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
+#define SYSTEM_VERSION_LESS_THAN(v) ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)
+
+
+@interface AppDelegate () {
+    RMQServerViewController *rmq;
+    BOOL isPush;
+}
+
+@end
+
+@implementation AppDelegate
+
+-(void)setLegacyInfo{
+    NSLog(@"%s",__func__);
+
+    /*
+     //HHI----------------------------------------------------------------
+     self.main_url = @"http://dev.hhi.co.kr:49175/snsService/";
+     self.legacy_name = @"HHI";
+     self.db_ver = 2; //HHI : 2
+     self.use_task = NO;
+     self.executeHHI = YES;
+     
+     self.dbEncrypt = YES;
+     
+     //어드민 사용자 번호
+     self.adminNo1 = @"0";
+     self.adminNo2 = @"2";
+     
+     self.userListSortDept = NO; //조직도 YES:부서기준, NO:사용자기준
+     self.firstNormal = YES; //처음 로딩 시 일반게시판 선택
+     
+     self.rmq_host = @"mfps2.hhi.co.kr";
+     self.rmq_port = 5672;
+     self.rmq_loginUser = @"snsService";
+     self.rmq_password = @"feel1001";
+     self.rmq_virtualHost = @"snsHost";
+     self.rmq_exFanout = @"mfps.fanout";
+     self.rmq_exTopic = @"mfps.topic";
+     self.rmq_exDirect = @"mfps.direct";
+     self.rmq_exDevInfo = @"mfps.device.info";
+     self.rmq_threadName = @"hileeThread";
+     //-------------------------------------------------------------------
+     */
+    
+    //ANYMATE------------------------------------------------------------
+    self.main_url = @"https://roms.dbvalley.com/snsService";
+    //self.main_url = @"http://192.168.0.186:8080/snsService/"; //김과장님 로컬
+    //self.main_url = @"http://192.168.0.205:8080/snsService/"; //내 로컬
+    
+    self.legacy_name = @"ANYMATE";
+    self.db_ver = 5; //ANYMATE : 5
+    self.use_task = YES;
+    self.executeHHI = NO;
+    
+    self.dbEncrypt = NO;
+    
+    //어드민 사용자 번호
+    self.adminNo1 = @"0";
+    self.adminNo2 = @"2";
+    
+    self.userListSortDept = NO; //조직도 YES:부서기준, NO:사용자기준
+    self.firstNormal = YES; //처음 로딩 시 일반게시판 선택
+    
+    self.rmq_host = @"roms.dbvalley.com";
+    self.rmq_port = 5672;
+    self.rmq_loginUser = @"snsService";
+    self.rmq_password = @"feel1001";
+    self.rmq_virtualHost = @"snsHost";
+    self.rmq_exFanout = @"mfps.fanout";
+    self.rmq_exTopic = @"mfps.topic";
+    self.rmq_exDirect = @"mfps.direct";
+    self.rmq_exDevInfo = @"mfps.device.info";
+    self.rmq_threadName = @"hileeThread";
+    //-------------------------------------------------------------------
+    
+}
+
++ (NSString *)getDBName{
+    //return @"mfinitySNS.db";
+    NSString *dbName = [[NSUserDefaults standardUserDefaults] objectForKey:@"DB_NAME"];
+    return [NSString stringWithFormat:@"%@.db",  dbName];
+}
+
+-(void)dataNetworkCheck{
+    [[AFNetworkReachabilityManager sharedManager] startMonitoring];
+    [[AFNetworkReachabilityManager sharedManager] setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+        if (status == AFNetworkReachabilityStatusNotReachable) {
+            NSLog(@"네트워크 사용 할 수 없음");
+            self.networkStatus = @"0";
+            [[AFNetworkReachabilityManager sharedManager] stopMonitoring];
+        } else if (status == AFNetworkReachabilityStatusUnknown){
+            NSLog(@"네트워크 상태 알 수 없음");
+            self.networkStatus = @"1";
+            [[AFNetworkReachabilityManager sharedManager] stopMonitoring];
+        } else {
+            if (status == AFNetworkReachabilityStatusReachableViaWiFi) {
+                NSLog(@"와이파이");
+                self.networkStatus = @"2";
+                [[AFNetworkReachabilityManager sharedManager] stopMonitoring];
+                
+            } else if (status == AFNetworkReachabilityStatusReachableViaWWAN){
+                NSLog(@"3G/LTE 등 셀룰러 네트워크");
+                self.networkStatus = @"3";
+                [[AFNetworkReachabilityManager sharedManager] stopMonitoring];
+            }
+        }
+        NSLog(@"networkStatus1 : %@", self.networkStatus);
+        //return networkStatus;
+    }];
+}
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Override point for customization after application launch.
+    [self setLegacyInfo];
+    
+    NSLog(@"%s", __func__);
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    
+    //어드민 사용자 번호
+    //self.adminNo1 = @"0";
+    //self.adminNo2 = @"2";
+    
+    self.tabBarController = [[UITabBarController alloc] init];
+    self.tabBarController.delegate = self;
+    self.uiTabBar = [[UITabBar alloc]init];
+    self.uiTabBar.delegate = self;
+    self.tabItemArr = [prefs objectForKey:@"TABITEM"];
+    
+    self.logStr = @"";
+    
+    self.isChatViewing = NO;
+    
+    self.AES256Key = @"E3Z2S1M5A9R8T1F3E2E4L31504081532";
+    
+    NSLog(@"appdelegate dvc key1 : %@", [prefs objectForKey:@"DVC_ID"]);
+    NSLog(@"appdelegate uuid : %@", [MFUtil getUUID]);
+    
+    NSLog(@"IS_DVC_FIRST(T:1/F:0) : %@", [prefs objectForKey:@"IS_DVC_FIRST"]);
+    if([prefs objectForKey:@"IS_DVC_FIRST"]==nil){
+        //제일 처음 IS_DVC_FIRST 값을 true로 둔다. (예를들어, 1.1.5 -> 1.1.6 업데이트 할 경우)
+        //값이 true일 경우, DVC_ID 값 삭제
+        //getUUID 호출하여 DVC_ID 저장 후 IS_DVC_FIRST 값 false
+        [prefs setBool:true forKey:@"IS_DVC_FIRST"];
+        [prefs synchronize];
+        
+        if([prefs objectForKey:@"IS_DVC_FIRST"]){
+            [prefs removeObjectForKey:@"DVC_ID"];
+            [prefs setBool:false forKey:@"IS_DVC_FIRST"];
+            [prefs synchronize];
+        }
+    }
+    
+    if([prefs objectForKey:@"DVC_ID"]==nil){
+        NSLog(@"dvc_id nil / uuid : %@",[MFUtil getUUID]);
+        [prefs setObject:[MFUtil getUUID] forKey:@"DVC_ID"];
+        [prefs synchronize];
+    }
+    
+    /*
+     UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+     TeamListViewController *viewController1 = (TeamListViewController *)[storyboard instantiateViewControllerWithIdentifier:@"home_TeamListViewController"];
+     UINavigationController *navController1 = [[UINavigationController alloc] initWithRootViewController:viewController1];
+     
+     CollectionViewController *viewController2 = (CollectionViewController *)[storyboard instantiateViewControllerWithIdentifier:@"CollectionViewController"];
+     UINavigationController *navController2 = [[UINavigationController alloc] initWithRootViewController:viewController2];
+     
+     ChatListViewController *viewController3 = (ChatListViewController *)[storyboard instantiateViewControllerWithIdentifier:@"ChatListViewController"];
+     UINavigationController *navController3 = [[UINavigationController alloc] initWithRootViewController:viewController3];
+     
+     WebKitViewController *viewController4 = (WebKitViewController *)[storyboard instantiateViewControllerWithIdentifier:@"WebKitViewController"];
+     UINavigationController *navController4 = [[UINavigationController alloc] initWithRootViewController:viewController4];
+     
+     MyViewController *viewController5 = (MyViewController *)[storyboard instantiateViewControllerWithIdentifier:@"MyViewController"];
+     UINavigationController *navController5 = [[UINavigationController alloc] initWithRootViewController:viewController5];
+     
+     //    NSDictionary *controllers = [NSDictionary dictionaryWithObjectsAndKeys:navController1,@"1",navController2,@"2",navController3,@"3",navController4,@"4",navController5,@"5", nil];
+     //    NSLog(@"controllers 1 : %@", [controllers objectForKey:@"1"]);
+     
+     self.tabBarController.viewControllers = @[navController1, navController2, navController3, navController4, navController5];
+     //    self.tabBarController.viewControllers = self.tabItemArr;
+     
+     UIDevice *myDevice = [UIDevice currentDevice];
+     NSString *osVersion = myDevice.systemVersion;
+     if ([osVersion intValue]>=7) {
+     [application setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
+     }
+     */
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_RmqConnect:) name:@"noti_RmqConnect" object:nil];
+    
+    rmq = [[RMQServerViewController alloc]init];
+    self.bindQueueArr = [NSMutableArray array];
+    self.unbindQueueArr = [NSMutableArray array];
+    
+    [prefs setObject:self.bindQueueArr forKey:@"BIND_Q_ARR"];
+    [prefs synchronize];
+    
+    ChatListViewController *vc = [[ChatListViewController alloc] init];
+    
+    [UIApplication sharedApplication].statusBarStyle = UIStatusBarStyleLightContent;
+    [[UIApplication sharedApplication] registerUserNotificationSettings:
+     [UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge) categories:nil]];
+    [UIApplication sharedApplication].applicationIconBadgeNumber = 0;
+    
+    [[UIApplication sharedApplication] registerForRemoteNotifications];
+    
+    NSLog(@"CurrentDevice systemVersion : %f", [[[UIDevice currentDevice] systemVersion] floatValue]);
+    
+    if(SYSTEM_VERSION_LESS_THAN( @"10.0" )) {
+        [[UIApplication sharedApplication] registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge) categories:nil]];
+        [[UIApplication sharedApplication] registerForRemoteNotifications];
+        
+        if (launchOptions != nil) {
+            NSLog(@"launchOptions : %@",launchOptions);
+            NSDictionary* dictionary = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+            NSLog(@"dictionary : %@",dictionary);
+            
+        } else{
+            NSLog( @"registerForPushWithOptions:" );
+        }
+        
+    } else {
+        NSLog(@"10.0");
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        center.delegate = self;
+        [center requestAuthorizationWithOptions:(UNAuthorizationOptionBadge) completionHandler:^(BOOL granted, NSError * _Nullable error)
+         {
+             if(!error) {
+                 [[UIApplication sharedApplication] registerForRemoteNotifications];  // required to get the app to do anything at all about push notifications
+                 NSLog( @"Push registration success." );
+             } else {
+                 NSLog( @"Push registration FAILED" );
+                 NSLog( @"ERROR: %@ - %@", error.localizedFailureReason, error.localizedDescription );
+                 NSLog( @"SUGGESTIONS: %@ - %@", error.localizedRecoveryOptions, error.localizedRecoverySuggestion );
+             }
+         }];
+    }
+    [application setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
+    
+    self.isSet = @"NO";
+    self.appDeviceToken = @"";
+    
+    [self voipRegistration];
+    
+    return YES;
+}
+
+- (void) voipRegistration {
+    NSLog(@"%s",__FUNCTION__);
+    dispatch_queue_t mainQueue = dispatch_get_main_queue();
+    // Create a push registry object
+    PKPushRegistry * voipRegistry = [[PKPushRegistry alloc] initWithQueue: mainQueue];
+    // Set the registry's delegate to self
+    voipRegistry.delegate = self;
+    // Set the push type to VoIP
+    voipRegistry.desiredPushTypes = [NSSet setWithObject:PKPushTypeVoIP];
+}
+
+
+#pragma mark - PKPushRegistry Delegate
+- (void)pushRegistry:(PKPushRegistry *)registry didUpdatePushCredentials:(PKPushCredentials *)credentials forType:(PKPushType)type{
+    self.appDeviceToken2 = [credentials.token.description stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    self.appDeviceToken2 = [self.appDeviceToken2 stringByReplacingOccurrencesOfString:@" " withString:@""];
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSLog(@"credentials.token : %@", self.appDeviceToken2);
+    
+    NSLog(@"prev pushid : %@", [[NSUserDefaults standardUserDefaults] objectForKey:@"PUSH_ID1"]);
+    NSLog(@"curr pushid : %@", self.appDeviceToken2);
+    
+    if([prefs objectForKey:@"PUSH_ID1"]==nil){
+        [prefs setObject:self.appDeviceToken2 forKey:@"PUSH_ID1"];
+        [prefs synchronize];
+    }
+    
+    if(![[[NSUserDefaults standardUserDefaults] objectForKey:@"PUSH_ID1"] isEqualToString:self.appDeviceToken2]){
+        NSLog(@"푸시아이디 바뀜");
+        NSString *mfpsId = [NSString stringWithFormat:@"USER.%@.%@", [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"], [[NSUserDefaults standardUserDefaults] objectForKey:@"DVC_ID"]];
+        NSString *urlString = self.main_url;
+        NSString *paramString = [NSString stringWithFormat:@"currentPushId=%@&queueName=%@", self.appDeviceToken2, mfpsId];
+        NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"changePublicPushId"]];
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        [session start];
+    }
+}
+
+- (void)pushRegistry:(PKPushRegistry *)registry didReceiveIncomingPushWithPayload:(PKPushPayload *)payload forType:(PKPushType)type{
+    //active,backround 상태에 따라 푸시 처리 해줘야함
+    //NSLog(@"payload.dictionaryPayload : %@", payload.dictionaryPayload);
+    
+    if (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"8.0")) {
+        if ([[UIApplication sharedApplication] respondsToSelector:@selector(currentUserNotificationSettings)]) {
+            UIUserNotificationSettings *currentSettings = [[UIApplication sharedApplication] currentUserNotificationSettings];
+            if (currentSettings.types == UIUserNotificationTypeNone) {
+                // 푸시 허용 안함
+                isPush = NO;
+            }else {
+                // 푸시 허용
+                isPush = YES;
+            }
+        }
+    } else {
+        UIUserNotificationType allOnType = UIUserNotificationTypeAlert | UIUserNotificationTypeSound | UIUserNotificationTypeBadge ;
+        UIUserNotificationType offType = UIUserNotificationTypeNone ;
+        
+        UIUserNotificationSettings *currentTypes = [[UIApplication sharedApplication] currentUserNotificationSettings];
+        
+        if (currentTypes.types == allOnType) {
+            // 푸시 허용
+            isPush = YES;
+        } else if (currentTypes.types == offType) {
+            // 푸시 허용 안함
+            isPush = NO;
+        } else {
+            // 푸시 일부 허용
+            isPush = YES;
+        }
+    }
+    
+    NSString *roomNoti = nil;
+    if(payload.dictionaryPayload != nil){
+        NSString *message = [payload.dictionaryPayload objectForKey:@"MESSAGE"];
+        
+        NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+        NSError *error;
+        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        //NSLog(@"dict : %@", dict);
+        
+        NSString *pushType = [dict objectForKey:@"TYPE"];
+        if([pushType isEqualToString:@"ADD_CHAT"]){
+            NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            NSString *roomNo = [[dataSet objectAtIndex:0] objectForKey:@"ROOM_NO"];
+            NSString *contentType = [[dataSet objectAtIndex:0] objectForKey:@"CONTENT_TY"];
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+            NSString *userNo = [[dataSet objectAtIndex:0] objectForKey:@"CUSER_NO"];
+            NSString *userName = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"USER_NM"]];
+            NSString *content = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"CONTENT"]];
+            
+            self.userNm = userName;
+            
+            //NSLog(@"pushType : %@, roomNo : %@, contentType : %@", pushType, roomNo, contentType);
+            
+            if(![contentType isEqualToString:@"SYS"]){
+                NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+                NSString *documentsDir = [documentPaths objectAtIndex:0];
+                NSString *DBName = [AppDelegate getDBName];
+                NSString *DBPath = [documentsDir stringByAppendingPathComponent:DBName];
+                
+                sqlite3 *database;
+                
+                NSString *sqlString = [NSString stringWithFormat:@"SELECT ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+                if (sqlite3_open([DBPath UTF8String], &database) == SQLITE_OK) {
+                    NSString *sql2 = sqlString;
+                    const char *sqlStatement = [sql2 UTF8String];
+                    sqlite3_stmt *compiledStatement;
+                    
+                    if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+                        int rowCount = 0;
+                        
+                        while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                            rowCount = sqlite3_column_int(compiledStatement, 0);
+                            for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                                NSString *valueString = nil;
+                                if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                                    valueString = @"null";
+                                }else{
+                                    valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                                }
+                                roomNoti = valueString;
+                            }
+                        }
+                    }else {
+                        NSLog(@"didReceiveIncomingPushWithPayload not SQLITE_OK");
+                        printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+                    }
+                    sqlite3_finalize(compiledStatement);
+                    
+                }else{
+                    NSLog(@"db not open");
+                }
+                sqlite3_close(database);
+                //NSLog(@"roomNoti : %@", roomNoti);
+                
+                NSString *contentMsg=nil;
+                if([contentType isEqualToString:@"IMG"]){
+                    NSRange range = [content rangeOfString:@"." options:NSBackwardsSearch];
+                    NSString *fileExt = [[content substringFromIndex:range.location+1] lowercaseString];
+                    
+                    if([fileExt isEqualToString:@"png"] || [fileExt isEqualToString:@"jpg"] || [fileExt isEqualToString:@"jpeg"] || [fileExt isEqualToString:@"heic"]){
+                        contentMsg = @"사진";
+                    } else{
+                        contentMsg = @"동영상";
+                    }
+                } else if([contentType isEqualToString:@"TEXT"]){
+                    if(content != nil){
+                        contentMsg = content;
+                    }
+                } else if([contentType isEqualToString:@"FILE"]){
+                    contentMsg = @"파일";
+                    
+                } else if([contentType isEqualToString:@"INVITE"]){
+                    contentMsg = @"초대";
+                }
+                
+                if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    if( [UIApplication sharedApplication].applicationState == UIApplicationStateInactive ) {
+                        NSLog( @"INACTIVE" );
+                        if([roomNoti isEqualToString:@"1"]){
+                            UILocalNotification *notice = [[UILocalNotification alloc] init];
+                            notice.alertTitle = userName;
+                            notice.alertBody = contentMsg;
+                            notice.alertAction = @"Open";
+                            notice.userInfo = payload.dictionaryPayload;
+                            if(isPush==1){
+                                AudioServicesPlaySystemSound(1007);
+                                AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                            }
+                            
+                            [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                        }
+                    } else if( [UIApplication sharedApplication].applicationState == UIApplicationStateBackground ) {
+                        NSLog( @"BACKGROUND" );
+                        if([roomNoti isEqualToString:@"1"]){
+                            UILocalNotification *notice = [[UILocalNotification alloc] init];
+                            notice.alertTitle = userName;
+                            notice.alertBody = contentMsg;
+                            notice.alertAction = @"Open";
+                            notice.userInfo = payload.dictionaryPayload;
+                            if(isPush==1){
+                                AudioServicesPlaySystemSound(1007);
+                                AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                            }
+                            [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                        }
+                    } else {
+                        NSLog( @"FOREGROUND" );
+                        if([roomNoti isEqualToString:@"1"]){
+                            UILocalNotification *notice = [[UILocalNotification alloc] init];
+                            notice.alertTitle = userName;
+                            notice.alertBody = contentMsg;
+                            notice.alertAction = @"Open";
+                            notice.userInfo = payload.dictionaryPayload;
+                            if(isPush==1){
+                                AudioServicesPlaySystemSound(1007);
+                                AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                            }
+                            [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                        }
+                    }
+                }
+            }
+            
+        } else if([pushType isEqualToString:@"NEW_POST"]){
+            NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            NSString *snsName = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+            NSNumber *snsNo = [[dataSet objectAtIndex:0] objectForKey:@"SNS_NO"];
+            NSNumber *writerNo = [[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_NO"];
+            //NSString *writerId = [[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_ID"];
+            NSString *writerNm =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_NM"]];
+            //NSNumber *postNo = [[dataSet objectAtIndex:0] objectForKey:@"POST_NO"];
+            
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+            
+            //            SqlSelectHelper *selectHelper = [[SqlSelectHelper alloc]init];
+            //            NSMutableArray *selectArr = [selectHelper selectQuery:[NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+            NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            //NSLog(@"post selectArr : %@", selectArr);
+            
+            NSString *postNoti = [[selectArr objectAtIndex:0] objectForKey:@"POST_NOTI"];
+            if([postNoti isEqualToString:@"1"]){
+                if(![[NSString stringWithFormat:@"%@", writerNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    NSString *noticeMsg = [NSString stringWithFormat:@"%@님이 새글을 올렸습니다.", writerNm];
+                    UILocalNotification *notice = [[UILocalNotification alloc] init];
+                    notice.alertTitle = snsName;
+                    notice.alertBody = noticeMsg;
+                    notice.userInfo = payload.dictionaryPayload;
+                    notice.alertAction = @"Open";
+                    if(isPush==1){
+                        AudioServicesPlaySystemSound(1007);
+                        AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                    }
+                    [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                }
+            }
+            
+        } else if([pushType isEqualToString:@"NEW_POST_COMMENT"]){
+            NSLog(@"NEW_POST_COMMENT dict : %@", dict);
+            
+            NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            NSString *snsName =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+            NSNumber *snsNo = [[dataSet objectAtIndex:0] objectForKey:@"SNS_NO"];
+            //NSNumber *writerNo = [[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_NO"];
+            //NSString *writerId = [[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_ID"];
+            NSString *writerNm =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"POST_WRITER_NM"]];
+            //NSNumber *postNo = [[dataSet objectAtIndex:0] objectForKey:@"POST_NO"];
+            NSNumber *cWriterNo = [[dataSet objectAtIndex:0] objectForKey:@"NEW_COMMENT_USER_NO"];
+            NSString *cWriterNm =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"NEW_COMMENT_USER_NM"]];
+            //NSString *cWriterId = [[dataSet objectAtIndex:0] objectForKey:@"NEW_COMMENT_USER_ID"];
+            
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+            
+            //            SqlSelectHelper *selectHelper = [[SqlSelectHelper alloc]init];
+            //            NSMutableArray *selectArr = [selectHelper selectQuery:[NSString stringWithFormat:@"SELECT COMMENT_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+            NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT COMMENT_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            //NSLog(@"comment selectArr : %@", selectArr);
+            
+            NSString *commNoti = [[selectArr objectAtIndex:0] objectForKey:@"COMMENT_NOTI"];
+            if([commNoti isEqualToString:@"1"]){
+                AVAudioSession * session = [AVAudioSession sharedInstance];
+                [session setCategory: AVAudioSessionCategoryPlayback error: nil];
+                
+                
+                if(![[NSString stringWithFormat:@"%@", cWriterNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    NSString *noticeMsg = [NSString stringWithFormat:@"%@님이 %@님의 글에 댓글을 남겼습니다.", cWriterNm, writerNm];
+                    UILocalNotification *notice = [[UILocalNotification alloc] init];
+                    notice.alertTitle = snsName;
+                    notice.alertBody = noticeMsg;
+                    notice.userInfo = payload.dictionaryPayload;
+                    notice.alertAction = @"Open";
+                    
+                    if(isPush==1){
+                        AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+                        NSError *err = nil;
+                        [audioSession setCategory: AVAudioSessionCategoryPlayback  error:&err];
+                        
+                        AudioServicesPlaySystemSound(1007);
+                        AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                        //AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                    }
+                    [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                }
+            }
+            
+        } else if([pushType isEqualToString:@"NEW_TASK"]){
+            NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            NSString *snsName = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+            NSNumber *snsNo = [[dataSet objectAtIndex:0] objectForKey:@"SNS_NO"];
+            NSNumber *writerNo = [[dataSet objectAtIndex:0] objectForKey:@"TASK_WRITER_NO"];
+            NSString *writerNm =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"TASK_WRITER_NM"]];
+            
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+            
+            MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+            NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            //NSLog(@"post selectArr : %@", selectArr);
+            
+            NSString *postNoti = [[selectArr objectAtIndex:0] objectForKey:@"POST_NOTI"];
+            if([postNoti isEqualToString:@"1"]){
+                if(![[NSString stringWithFormat:@"%@", writerNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    NSString *noticeMsg = [NSString stringWithFormat:@"%@님이 새로운 업무를 생성하였습니다.", writerNm];
+                    UILocalNotification *notice = [[UILocalNotification alloc] init];
+                    notice.alertTitle = snsName;
+                    notice.alertBody = noticeMsg;
+                    notice.userInfo = payload.dictionaryPayload;
+                    notice.alertAction = @"Open";
+                    if(isPush==1){
+                        AudioServicesPlaySystemSound(1007);
+                        AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                    }
+                    [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                }
+            }
+            
+        } else if([pushType isEqualToString:@"EDIT_TASK"]){
+            NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            NSString *snsName = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"SNS_NM"]];
+            NSNumber *snsNo = [[dataSet objectAtIndex:0] objectForKey:@"SNS_NO"];
+            NSNumber *writerNo = [[dataSet objectAtIndex:0] objectForKey:@"TASK_WRITER_NO"];
+            NSString *writerNm =  [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"TASK_WRITER_NM"]];
+            
+            NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+            NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+            
+            MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+            NSMutableArray *selectArr = [dbHelper selectQuery:[NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo]];
+            //NSLog(@"post selectArr : %@", selectArr);
+            
+            NSString *postNoti = [[selectArr objectAtIndex:0] objectForKey:@"POST_NOTI"];
+            if([postNoti isEqualToString:@"1"]){
+                if(![[NSString stringWithFormat:@"%@", writerNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                    NSString *noticeMsg = [NSString stringWithFormat:@"%@님이 업무를 수정하였습니다.", writerNm];
+                    UILocalNotification *notice = [[UILocalNotification alloc] init];
+                    notice.alertTitle = snsName;
+                    notice.alertBody = noticeMsg;
+                    notice.userInfo = payload.dictionaryPayload;
+                    notice.alertAction = @"Open";
+                    if(isPush==1){
+                        AudioServicesPlaySystemSound(1007);
+                        AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                    }
+                    [[UIApplication sharedApplication] scheduleLocalNotification:notice];
+                }
+            }
+            
+        } else if([pushType isEqualToString:@"FORCE_DELETE_SNS"]){
+            //게시판 강제탈퇴 푸시
+            //NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            //NSLog(@"FORCE_DELETE_SNS dataSet : %@", dataSet);
+            
+            
+        } else if([pushType isEqualToString:@"DELETE_SNS"]){
+            //게시판삭제 푸시
+            //NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            //NSLog(@"DELETE_SNS dataSet : %@", dataSet);
+            
+            
+        } else if([pushType isEqualToString:@"APPROVE_SNS"]){
+            //게시판 가입 승인 푸시
+            //NSArray *dataSet = [dict objectForKey:@"DATASET"];
+            //NSLog(@"APPROVE_SNS dataSet : %@", dataSet);
+            //[게시판명]에 가입되었습니다. \n새로운 글 or 업무를 등록해주세요
+        }
+    }
+    
+    // set a member variable to tell the new delegate that this is background
+    PushReceivedHandler *pushHandle = [[PushReceivedHandler alloc]init];
+    //푸시도착
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"pushNotificationReceived" object:nil userInfo:payload.dictionaryPayload];
+}
+
+- (void)applicationWillResignActive:(UIApplication *)application {
+    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+    // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+}
+
+
+- (void)applicationDidEnterBackground:(UIApplication *)application {
+    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    NSLog(@"%s", __func__);
+    self.isChatViewing = NO;
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"applicationDidEnterBackground" object:nil];
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+        // 작업이 오래 걸리는 API를 백그라운드 스레드에서 실행한다.
+        [rmq disconnectServer];
+    });
+}
+
+
+- (void)applicationWillEnterForeground:(UIApplication *)application {
+    // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+    NSLog(@"%s", __func__);
+    
+    /*
+     NSString *result;
+     NSNumber *dataNetworkItemView = nil;
+     
+     NSArray *subviews = nil;
+     id statusBar = [[UIApplication sharedApplication] valueForKey:@"statusBar"];
+     if ([statusBar isKindOfClass:NSClassFromString(@"UIStatusBar_Modern")]) {
+     subviews = [[[statusBar valueForKey:@"statusBar"] valueForKey:@"foregroundView"] subviews];
+     } else {
+     subviews = [[statusBar valueForKey:@"foregroundView"] subviews];
+     }
+     
+     for (id subview in subviews) {
+     if([subview isKindOfClass:[NSClassFromString(@"UIStatusBarDataNetworkItemView") class]]) {
+     dataNetworkItemView = subview;
+     break;
+     }
+     }
+     
+     switch ([[dataNetworkItemView valueForKey:@"dataNetworkType"]integerValue]) {
+     case 0:
+     NSLog(@"No wifi or cellular");
+     break;
+     case 1:
+     result = @"Cellular";
+     break;
+     case 2:
+     result = @"Cellular";
+     break;
+     case 3:
+     result = @"Cellular";
+     break;
+     case 4:
+     result = @"Cellular";
+     break;
+     case 5:
+     result = @"WIFI";
+     break;
+     default:
+     break;
+     }*/
+    
+    [self dataNetworkCheck];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if([self.networkStatus integerValue]==2||[self.networkStatus integerValue]==3){
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+                [rmq connectServer:nil];
+            });
+        }
+    });
+    
+    
+    //    if([result isEqualToString:@"Cellular"] || [result isEqualToString:@"WIFI"]){
+    //        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+    //            [rmq connectServer:nil];
+    //        });
+    //    }
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application {
+    // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    NSLog(@"%s", __func__);
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"applicationDidBecomeActive" object:nil];
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application {
+    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    NSLog(@"%s", __func__);
+    self.isChatViewing = NO;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+        [rmq disconnectServer];
+    });
+    
+}
+
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
+    NSLog(@"%s",__FUNCTION__);
+    NSDictionary *paramDic = [MFUtil getParametersByString:[url query]];
+    NSLog(@"openURL paramDic : %@", paramDic);
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    if([[paramDic objectForKey:@"call"] isEqualToString:@"com.dbvalley.mfinity.emmp"]) {
+        [prefs setObject:[paramDic objectForKey:@"USER_ID"] forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"DEVICE_ID"] forKey:@"DEVICE_ID"];
+        [prefs setObject:[paramDic objectForKey:@"IS_ROOT"] forKey:@"IS_ROOT"];
+        //[prefs setObject:[paramDic objectForKey:@"PUSH_ID"] forKey:@"PUSH_ID1"];
+        [prefs setObject:[paramDic objectForKey:@"CUSER_NO"] forKey:@"CUSER_NO"];
+        [prefs setObject:[paramDic objectForKey:@"USER_ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"USER_ID"] != nil){
+            IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc nextPage];
+            [ivc callWebService];
+        }
+        
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity.test"]) {
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+        
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity.dev"]){
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+        
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity"]){
+        self.executeHHI = YES;
+        
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+    }
+    
+    return YES;
+}
+
+- (BOOL)application:application handleOpenURL:(nonnull NSURL *)url {
+    NSLog(@"%s",__FUNCTION__);
+    NSDictionary *paramDic = [MFUtil getParametersByString:[url query]];
+    NSLog(@"handleOpenURL paramDic : %@", paramDic);
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    if([[paramDic objectForKey:@"call"] isEqualToString:@"com.dbvalley.mfinity.emmp"]) {
+        [prefs setObject:[paramDic objectForKey:@"USER_ID"] forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"DEVICE_ID"] forKey:@"DEVICE_ID"];
+        [prefs setObject:[paramDic objectForKey:@"IS_ROOT"] forKey:@"IS_ROOT"];
+        [prefs setObject:[paramDic objectForKey:@"CUSER_NO"] forKey:@"CUSER_NO"];
+        [prefs setObject:[paramDic objectForKey:@"USER_ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"USER_ID"] != nil){
+            IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            [ivc callWebService];
+        }
+        
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity.test"]){
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+        
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity.dev"]){
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+    } else if([[paramDic objectForKey:@"call"] isEqualToString:@"hhi.mobile.ios.mfinity"]){
+        NSString *userId = [[paramDic objectForKey:@"ID"] uppercaseString];
+        [prefs setObject:userId forKey:@"USER_ID"];
+        [prefs setObject:[paramDic objectForKey:@"PWD"] forKey:@"USER_PWD"];
+        [prefs setObject:[paramDic objectForKey:@"ID"] forKey:@"DB_NAME"];
+        [prefs synchronize];
+        
+        if([paramDic objectForKey:@"ID"] != nil && [paramDic objectForKey:@"PWD"] != nil){
+            //IntroViewController *ivc = (IntroViewController *)[UIViewController currentViewController];
+            //[ivc callWebService];
+        }
+    }
+    
+    return YES;
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    self.appDeviceToken = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    self.appDeviceToken = [self.appDeviceToken stringByReplacingOccurrencesOfString:@" " withString:@""];
+    //NSLog(@"appDeviceToken : %@", self.appDeviceToken);
+    
+}
+
+
+- (void)application:application didFailToRegisterForRemoteNotificationsWithError:(nonnull NSError *)error {
+    NSLog(@"error : %@", error);
+    self.appDeviceToken = @"-";
+}
+
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
+    NSLog(@"%s userInfo : %@", __func__, userInfo);
+    
+}
+
+
+-(void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler{
+    NSLog(@"%s", __func__);
+    if( SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO( @"10.0" ) )
+    {
+        NSLog( @"iOS version >= 10. Let NotificationCenter handle this one." );
+        return;
+    }
+    NSLog( @"HANDLE PUSH, didReceiveRemoteNotification: %@", userInfo );
+    
+    // custom code to handle notification content
+    
+    if( [UIApplication sharedApplication].applicationState == UIApplicationStateInactive )
+    {
+        NSLog( @"INACTIVE" );
+        self.inactivePushInfo = userInfo;
+        completionHandler( UIBackgroundFetchResultNewData );
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"pushNotification" object:nil userInfo:userInfo];
+    }
+    else if( [UIApplication sharedApplication].applicationState == UIApplicationStateBackground )
+    {
+        NSLog( @"BACKGROUND" );
+        self.inactivePushInfo = userInfo;
+        completionHandler( UIBackgroundFetchResultNewData );
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"pushNotification" object:nil userInfo:userInfo];
+    }
+    else
+    {
+        NSLog( @"FOREGROUND" );
+        completionHandler( UIBackgroundFetchResultNewData );
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"pushNotification" object:nil userInfo:userInfo];
+    }
+}
+
+#pragma mark - UNUserNotificationCenterDelegate
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+{
+    
+    NSLog( @"Handle push from foreground" );
+    // custom code to handle push while app is in the foreground
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"pushNotification" object:nil userInfo:notification.request.content.userInfo];
+    NSLog(@"%@", notification.request.content.userInfo);
+    completionHandler(UNNotificationPresentationOptionAlert);
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response
+         withCompletionHandler:(void (^)())completionHandler
+{
+    //푸시 노티 클릭
+    NSLog( @"Handle push from background or closed" );
+    
+    self.inactivePostPushInfo = [[NSDictionary alloc]init];
+    self.inactiveChatPushInfo = [[NSDictionary alloc]init];
+    
+    if([UIApplication sharedApplication].applicationState == UIApplicationStateInactive) {
+        self.inactivePushInfo = response.notification.request.content.userInfo;
+        NSLog(@"INACTIVE : %@", self.inactivePushInfo);
+        
+        NSString *message = [self.inactivePushInfo objectForKey:@"MESSAGE"];
+        
+        NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+        NSError *error;
+        NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        //NSLog(@"dict : %@", dict);
+        
+        NSString *pushType = [dict objectForKey:@"TYPE"];
+        if([pushType isEqualToString:@"NEW_POST"]){
+            self.inactivePostPushInfo = self.inactivePushInfo;
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewPostPush" object:nil userInfo:self.inactivePostPushInfo];
+            
+        } else if([pushType isEqualToString:@"NEW_POST_COMMENT"]){
+            self.inactivePostPushInfo = self.inactivePushInfo;
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewPostPush" object:nil userInfo:self.inactivePostPushInfo];
+            
+        } else if([pushType isEqualToString:@"ADD_CHAT"]){
+            self.inactiveChatPushInfo = self.inactivePushInfo;
+            
+            //            NSString *currentClass = NSStringFromClass([[UIViewController currentViewController] class]);
+            //            NSLog(@"currentClass : %@", currentClass);
+            
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewChatPush" object:nil userInfo:self.inactiveChatPushInfo];
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChatList" object:nil userInfo:self.inactiveChatPushInfo];
+            
+        } else if([pushType isEqualToString:@"NEW_TASK"]){
+            self.inactivePostPushInfo = self.inactivePushInfo;
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewTaskPush" object:nil userInfo:self.inactivePostPushInfo];
+            
+        } else if([pushType isEqualToString:@"EDIT_TASK"]){
+            self.inactivePostPushInfo = self.inactivePushInfo;
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_NewTaskPush" object:nil userInfo:self.inactivePostPushInfo];
+            
+        } else if([pushType isEqualToString:@"FORCE_DELETE_SNS"]){
+            //게시판 강제탈퇴 푸시
+            
+        } else if([pushType isEqualToString:@"DELETE_SNS"]){
+            //게시판삭제 푸시
+            
+        } else if([pushType isEqualToString:@"APPROVE_SNS"]){
+            //게시판 가입 승인 푸시
+        }
+        
+        completionHandler(UNNotificationPresentationOptionAlert);
+        
+    } else if([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
+        self.inactivePushInfo = response.notification.request.content.userInfo;
+        NSLog(@"BACKGROUND : %@", self.inactivePushInfo);
+        //completionHandler( UNNotificationPresent );
+    }
+    
+    self.inactivePushInfo = response.notification.request.content.userInfo;
+}
+
+#pragma mark - background Notification
+- (void)applicationDidBecomeActiveNotification:(NSNotification *)notification{
+    NSLog(@"applicationDidBecomeActive notification : %@",notification.userInfo);
+}
+
+
+- (void)noti_RmqConnect:(NSNotification *)notification{
+    NSLog(@"%s",__func__);
+    
+    NSString *userID = [[NSUserDefaults standardUserDefaults] objectForKey:@"USER_ID"];
+    NSLog(@"noti_RmqConnect userID : %@", userID);
+    if(userID!=nil && ![userID isEqualToString:@""]){
+        [[AFNetworkReachabilityManager sharedManager] startMonitoring];
+        [[AFNetworkReachabilityManager sharedManager] setReachabilityStatusChangeBlock:^(AFNetworkReachabilityStatus status) {
+            if (status == AFNetworkReachabilityStatusNotReachable) {
+                NSLog(@"네트워크 사용 할 수 없음");
+            } else if (status == AFNetworkReachabilityStatusUnknown){
+                NSLog(@"네트워크 상태 알 수 없음");
+            } else {
+                dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
+                    if(notification.userInfo!=nil){
+                        NSLog(@"noti_RmqConnect userInfo : %@", notification.userInfo);
+                        [rmq connectServer:notification.userInfo];
+                    } else {
+                        NSLog(@"noti_RmqConnect userInfo nil : %@", notification.userInfo);
+                        [rmq connectServer:nil];
+                    }
+                });
+            }
+        }];
+    }
+}
+@end
+
+
+
+@implementation NSString (URLEncoding)
+
+- (NSString *)urlEncodeUsingEncoding:(NSStringEncoding)encoding{
+    return (NSString *)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(NULL, (CFStringRef)self, NULL, (CFStringRef)@"!*'\"();:@&=+$,/?%#[]% ", CFStringConvertNSStringEncodingToEncoding(encoding)));
+}
++ (NSString *)urlDecodeString:(NSString *)str
+{
+    NSString *temp = [str stringByReplacingOccurrencesOfString:@"+" withString:@"%20"];
+    NSString *result = (NSString *)CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault,
+                                                                                                             (CFStringRef)temp,
+                                                                                                             CFSTR(""),
+                                                                                                             kCFStringEncodingUTF8));
+    return result;
+}
+- (NSString *)AES256EncryptWithKeyString:(NSString *)key
+{
+    NSData *plainData = [self dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *encryptedData = [plainData AES256EncryptWithKey:key];
+    
+    NSString *encryptedString = [encryptedData base64Encoding];
+    
+    return encryptedString;
+}
+
+- (NSString *)AES256DecryptWithKeyString:(NSString *)key
+{
+    NSData *encryptedData = [NSData dataWithBase64EncodedString:self];
+    NSData *plainData = [encryptedData AES256DecryptWithKey:key];
+    
+    NSString *plainString = [[NSString alloc] initWithData:plainData encoding:NSUTF8StringEncoding];
+    
+    return plainString;
+}
+
+@end
+@implementation NSData (NSData_AES256)
+- (NSData *)AES256EncryptWithKey:(NSString *)key
+{
+    // 'key' should be 32 bytes for AES256, will be null-padded otherwise
+    char keyPtr[kCCKeySizeAES256+1]; // room for terminator (unused)
+    bzero(keyPtr, sizeof(keyPtr)); // fill with zeroes (for padding)
+    
+    // fetch key data
+    [key getCString:keyPtr maxLength:sizeof(keyPtr) encoding:NSUTF8StringEncoding];
+    
+    NSUInteger dataLength = [self length];
+    
+    //See the doc: For block ciphers, the output size will always be less than or
+    //equal to the input size plus the size of one block.
+    //That's why we need to add the size of one block here
+    size_t bufferSize = dataLength + kCCBlockSizeAES128;
+    void *buffer = malloc(bufferSize);
+    
+    size_t numBytesEncrypted = 0;
+    CCCryptorStatus cryptStatus = CCCrypt(kCCEncrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
+                                          keyPtr, kCCKeySizeAES256,
+                                          NULL /* initialization vector (optional) */,
+                                          [self bytes], dataLength, /* input */
+                                          buffer, bufferSize, /* output */
+                                          &numBytesEncrypted);
+    if (cryptStatus == kCCSuccess) {
+        //the returned NSData takes ownership of the buffer and will free it on deallocation
+        return [NSData dataWithBytesNoCopy:buffer length:numBytesEncrypted];
+    }
+    
+    free(buffer); //free the buffer;
+    return nil;
+}
+
+- (NSData *)AES256DecryptWithKey:(NSString *)key
+{
+    // 'key' should be 32 bytes for AES256, will be null-padded otherwise
+    char keyPtr[kCCKeySizeAES256+1]; // room for terminator (unused)
+    bzero(keyPtr, sizeof(keyPtr)); // fill with zeroes (for padding)
+    
+    // fetch key data
+    [key getCString:keyPtr maxLength:sizeof(keyPtr) encoding:NSUTF8StringEncoding];
+    
+    NSUInteger dataLength = [self length];
+    
+    //See the doc: For block ciphers, the output size will always be less than or
+    //equal to the input size plus the size of one block.
+    //That's why we need to add the size of one block here
+    size_t bufferSize = dataLength + kCCBlockSizeAES128;
+    void *buffer = malloc(bufferSize);
+    
+    size_t numBytesDecrypted = 0;
+    CCCryptorStatus cryptStatus = CCCrypt(kCCDecrypt, kCCAlgorithmAES128, kCCOptionPKCS7Padding,
+                                          keyPtr, kCCKeySizeAES256,
+                                          NULL /* initialization vector (optional) */,
+                                          [self bytes], dataLength, /* input */
+                                          buffer, bufferSize, /* output */
+                                          &numBytesDecrypted);
+    
+    if (cryptStatus == kCCSuccess) {
+        //the returned NSData takes ownership of the buffer and will free it on deallocation
+        return [NSData dataWithBytesNoCopy:buffer length:numBytesDecrypted];
+    }
+    
+    free(buffer); //free the buffer;
+    return nil;
+}
+@end
+

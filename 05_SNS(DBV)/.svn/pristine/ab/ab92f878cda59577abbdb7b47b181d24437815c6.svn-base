@@ -1,0 +1,180 @@
+//
+//  ChatMessageData.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 4. 21..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "ChatMessageData.h"
+#import <sqlite3.h>
+#import "AppDelegate.h"
+
+@implementation ChatMessageData
+
+- (instancetype)initwithRoomNo:(NSString *)roomNo{
+    _roomNum = roomNo;
+    return [self init];
+}
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        //self.chatArray = [[NSMutableArray alloc]init];
+        self.chatArray = [NSMutableArray array];
+        
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        _myUserNo = [prefs objectForKey:@"CUSER_NO"];
+        
+        // 앱의 파일 시스템 경로를 구한다.
+        NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *documentsDir = [documentPaths objectAtIndex:0];
+        
+        // 데이터베이스 이름과 경로를 저장한다.
+        self.DBName = [AppDelegate getDBName];
+        self.DBPath = [documentsDir stringByAppendingPathComponent:self.DBName];
+        [self readFromDatabase:0];
+    }
+    return self;
+}
+
+- (void)checkAndCreateDatabase {
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    
+    if ([fileManager fileExistsAtPath:self.DBPath]) {
+        return;
+    } else {
+        NSString *databasePathFromApp = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:self.DBName];
+        [fileManager copyItemAtPath:databasePathFromApp toPath:self.DBPath error:nil];
+    }
+}
+
+-(NSMutableArray *) selectStatement:(NSString *)dbPath :(NSString *)selectStmt{
+    //self.chatArray = [NSMutableArray array];
+    
+    sqlite3 *database;
+    NSMutableDictionary *dic = nil;
+    
+    if (sqlite3_open([dbPath UTF8String], &database) == SQLITE_OK) {
+        NSString *sql2 = selectStmt;
+        const char *sqlStatement = [sql2 UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(database, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            //int rowCount = 0;
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                //rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dic = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    //NSLog(@"key String : %@",keyString);
+                    //NSLog(@"value String : %@",valueString);
+                    [dic setObject:valueString forKey:keyString];
+                }
+                [self.chatArray insertObject:dic atIndex:0];
+                
+                //NSLog(@"self.chatArray : %@", self.chatArray);
+            }
+            
+        }else {
+            NSLog(@"not SQLITE_OK");
+            printf("could not prepare statement: %s\n", sqlite3_errmsg(database));
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    }else{
+        NSLog(@"db not open");
+    }
+    sqlite3_close(database);
+    
+    /*
+     NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+     [dateFormatter setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+     NSString *date = [dateFormatter stringFromDate:[NSDate date]];
+     //NSDate *cDate = [dateFormatter dateFromString:date];
+     
+     NSDateFormatter *dateFormat = [[NSDateFormatter alloc] init];
+     [dateFormat setDateFormat:@"yyyy-MM-dd"];
+     
+     //NSString *cDateStr = [dateFormat stringFromDate:cDate];
+     
+     if(self.chatArray.count==0){
+     NSMutableDictionary *userInfoDic = [[NSMutableDictionary alloc]init];
+     [userInfoDic setObject:@"DATE" forKey:@"CONTENT_TY"];
+     [userInfoDic setObject:_myUserNo forKey:@"USER_NO"];
+     [userInfoDic setObject:date forKey:@"DATE"];
+     [userInfoDic setObject:_roomNum forKey:@"ROOM_NO"];
+     [userInfoDic setObject:@"" forKey:@"CONTENT"];
+     [userInfoDic setObject:@"" forKey:@"ADIT_INFO"];
+     [userInfoDic setObject:@"" forKey:@"FILE_THUMB"];
+     [self.chatArray addObject:userInfoDic];
+     
+     } else {
+     for(int i=0; i<self.chatArray.count; i++){
+     NSDictionary *chatDic = [self.chatArray objectAtIndex:i];
+     NSDictionary *pChatDic = [NSDictionary dictionary];
+     
+     if(i==0){
+     NSMutableDictionary *userInfoDic = [[NSMutableDictionary alloc]init];
+     [userInfoDic setObject:@"DATE" forKey:@"CONTENT_TY"];
+     [userInfoDic setObject:[chatDic objectForKey:@"USER_NO"] forKey:@"USER_NO"];
+     [userInfoDic setObject:[chatDic objectForKey:@"DATE"] forKey:@"DATE"];
+     [userInfoDic setObject:_roomNum forKey:@"ROOM_NO"];
+     [userInfoDic setObject:@"" forKey:@"CONTENT"];
+     [userInfoDic setObject:@"" forKey:@"ADIT_INFO"];
+     [userInfoDic setObject:@"" forKey:@"FILE_THUMB"];
+     [self.chatArray insertObject:userInfoDic atIndex:0];
+     
+     pChatDic = chatDic;
+     } else {
+     pChatDic = [self.chatArray objectAtIndex:i-1];
+     }
+     
+     NSString *previousDate = [chatDic objectForKey:@"DATE"];
+     NSDate *pDate = [dateFormatter dateFromString:previousDate];
+     NSString *pDateStr = [dateFormat stringFromDate:pDate];
+     
+     NSString *previousDate2 = [pChatDic objectForKey:@"DATE"];
+     NSDate *pDate2 = [dateFormatter dateFromString:previousDate2];
+     NSString *pDateStr2 = [dateFormat stringFromDate:pDate2];
+     
+     //NSLog(@"pDateStr : %@, pDateStr2 : %@", pDateStr, pDateStr2);
+     
+     if(![pDateStr isEqualToString:pDateStr2]){
+     NSMutableDictionary *userInfoDic = [[NSMutableDictionary alloc]init];
+     [userInfoDic setObject:@"DATE" forKey:@"CONTENT_TY"];
+     [userInfoDic setObject:[chatDic objectForKey:@"USER_NO"] forKey:@"USER_NO"];
+     [userInfoDic setObject:previousDate forKey:@"DATE"];
+     [userInfoDic setObject:_roomNum forKey:@"ROOM_NO"];
+     [userInfoDic setObject:@"" forKey:@"CONTENT"];
+     [userInfoDic setObject:@"" forKey:@"ADIT_INFO"];
+     [userInfoDic setObject:@"" forKey:@"FILE_THUMB"];
+     [self.chatArray addObject:userInfoDic];
+     }
+     }
+     }
+     */
+    
+    //NSLog(@"chatArr : %@", self.chatArray);
+    return self.chatArray;
+}
+
+- (NSMutableArray *)readFromDatabase :(int)rowCnt{
+    //NSLog(@"%s", __func__);
+    _rowCnt = rowCnt;
+    //NSLog(@"ChatMessageData rowCnt : %d", _rowCnt);
+    NSString *sqlString = [[NSString alloc] initWithString:[NSString stringWithFormat:@"SELECT * FROM ( SELECT '' TYPE, A.UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, A.USER_NO, B.USER_NM, B.USER_IMG, A.CONTENT_TY, A.CONTENT, A.LOCAL_CONTENT, A.FILE_NM, A.DATE, A.ADIT_INFO, A.CONTENT_PREV FROM CHATS A, USERS B WHERE ROOM_NO = %@ AND A.USER_NO = B.USER_NO UNION SELECT 'MISSED' TYPE, 0 UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, %@, '', '', A.CONTENT_TY, A.CONTENT, '', A.FILE_NM, DATETIME('now','localtime'), A.ADIT_INFO, A.CONTENT_PREV FROM MISSED_CHATS A WHERE A.ROOM_NO = %@ ) X ORDER BY X.TYPE DESC, X.CHAT_NO DESC LIMIT 20 OFFSET %d;", _roomNum, _myUserNo, _roomNum, _rowCnt]];
+    
+    return [self selectStatement:self.DBPath :sqlString];
+}
+
+@end

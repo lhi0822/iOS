@@ -1,0 +1,19 @@
+//
+//  MFStyle.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 10. 24..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+
+@interface MFStyle : NSObject
+
++(UILabel *)navigationTitleStyle1 :(NSString *)title;
++(UILabel *)navigationTitleStyle2 :(NSString *)title;
+//+(UITabBarController *)setTabBar;
++(UITabBarController *)setDefualtTabBar;
++(UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width;
+
+@end

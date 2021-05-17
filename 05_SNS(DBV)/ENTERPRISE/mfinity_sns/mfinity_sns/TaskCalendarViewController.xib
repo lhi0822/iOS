@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="13771" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13772"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TaskCalendarViewController">
+            <connections>
+                <outlet property="calendar" destination="0aq-DN-5HD" id="OB4-FS-Xea"/>
+                <outlet property="calendarHeightConstraint" destination="Ja3-AO-OCo" id="vd2-d2-M0Q"/>
+                <outlet property="naviBar" destination="p5p-qk-pOE" id="Qes-82-sLK"/>
+                <outlet property="naviItem" destination="3OY-kL-g4p" id="NCl-Sq-k3n"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="300" height="394"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="0aq-DN-5HD" customClass="FSCalendar">
+                    <rect key="frame" x="0.0" y="44" width="300" height="350"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="350" id="Ja3-AO-OCo"/>
+                    </constraints>
+                    <connections>
+                        <outlet property="dataSource" destination="-1" id="gwH-wl-aDl"/>
+                        <outlet property="delegate" destination="-1" id="OX3-Tb-9JO"/>
+                    </connections>
+                </view>
+                <navigationBar contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="p5p-qk-pOE">
+                    <rect key="frame" x="0.0" y="0.0" width="300" height="44"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxY="YES"/>
+                    <items>
+                        <navigationItem id="3OY-kL-g4p"/>
+                    </items>
+                </navigationBar>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstAttribute="trailing" secondItem="0aq-DN-5HD" secondAttribute="trailing" id="PrT-Vy-Jmf"/>
+                <constraint firstItem="0aq-DN-5HD" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="r6s-x9-NlI"/>
+                <constraint firstItem="0aq-DN-5HD" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="44" id="uqM-7o-nAj"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+        </view>
+    </objects>
+</document>

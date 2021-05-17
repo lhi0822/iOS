@@ -1,0 +1,73 @@
+/* 
+  UsedLibraryList.strings
+  mfinity_sns
+
+  Created by hilee on 2018. 11. 9..
+  Copyright © 2018년 com.dbvalley. All rights reserved.
+*/
+
+
+오픈소스 라이브러리 목록 (2018.11.12_hilee)
+
+*2018-11-12 최초작성
+*2018-11-14 업데이트 (WRNavigation 삭제)
+============================================================================
+
+1. TOCropViewController (MIT) : 사진 자르기
+https://github.com/TimOliver/TOCropViewController
+
+2. LGSideMenuController (MIT) : 사이드 메뉴
+- 채팅 사이드메뉴에서 사용중
+https://github.com/Friend-LGA/LGSideMenuController
+
+3. VCFloatingActionButton (MIT) : 플로팅 버튼
+https://github.com/giridharvc7/VCFloatingActionButton
+
+4. YLProgressBar (MIT) : 커스텀 프로그레스 바
+- 프로젝트 진행율 표시할 때 사용
+https://github.com/yannickl/YLProgressBar
+
+5. MJPopupViewController (MIT) : 팝업
+https://github.com/martinjuhasz/MJPopupViewController
+
+6. HDNotificationView (MIT) : Notification
+- 앱 실행 중 Notification
+https://github.com/nhdang103/HDNotificationView
+
+7. AFNetworking (MIT) : 네트워크 체크
+https://github.com/AFNetworking/AFNetworking
+
+8. ARSegmentPager (MIT) : 커스텀 Segment
+- 프로필 글/댓글 화면에 사용
+https://github.com/AugustRush/ARSegmentPager
+
+9. FSCalendar (MIT) : 캘린더
+https://github.com/WenchaoD/FSCalendar
+
+10. SWTableViewCell (MIT) : Swipe Table Cell
+- 채팅방 목록 스와이프로 나가기/알림끄기
+https://github.com/CEWendel/SWTableViewCell
+
+11. JTSImageViewController (MIT) : 이미지 뷰
+https://github.com/jaredsinclair/JTSImageViewController
+
+12. SDWebImage (MIT) : 이미지 캐싱
+https://github.com/SDWebImage/SDWebImage
+
+13. SVProgressHUD (MIT) : 프로그레스 뷰
+https://github.com/SVProgressHUD/SVProgressHUD
+
+
+
+*JSQMessagesViewController (MIT) : 채팅
+- 안쓰고있을텐데 한번 확인해봐야함 -> deprecated되서 쓰고있어도 걷어내야함.
+- JSQMessagesToolbarButtonFactory 사용중
+https://github.com/jessesquires/JSQMessagesViewController
+
+*STCollapseTableView (MIT) : 테이블 뷰 셀 열기/닫기
+- 채팅 초대(부서별) 사용자 목록에서 쓰는지 안쓰는지 확인 필요
+https://github.com/iSofTom/STCollapseTableView
+
+*AMQPLibrary : RabbitMQ 라이브러리인데 라이센스 기억이 안남
+
+

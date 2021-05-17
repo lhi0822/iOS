@@ -1,0 +1,50 @@
+//
+//  RMQServerViewController.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 5. 4..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+//#import <UIKit/UIKit.h>
+#import "AppDelegate.h"
+#import "MFURLSession.h"
+#import "MFSyncURLSession.h"
+
+#import "AMQPChannel.h"
+#import "AMQPConnection.h"
+#import "AMQPExchange.h"
+#import "AMQPQueue.h"
+#import "AMQPConsumer.h"
+#import "AMQPConsumerThread.h"
+#import "AMQPMessage.h"
+#import "amqp_framing.h"
+#import "amqp.h"
+
+#import <sqlite3.h>
+#import <MessageUI/MessageUI.h>
+
+@interface RMQServerViewController : NSObject <MFURLSessionDelegate, MFMessageComposeViewControllerDelegate, MFSyncURLSessionDelegate>
+
+@property (strong, nonatomic) AMQPConnection *connection;
+@property (strong, nonatomic) NSMutableDictionary *recvDict;
+@property (strong, nonatomic) NSString *roomName;
+//@property (strong, nonatomic) NSString *roomNo;
+//@property (strong, nonatomic) NSString *roomNoti;
+@property (nonatomic, strong) NSString *DBName;
+@property (nonatomic, strong) NSString *DBPath;
+
+@property (strong, nonatomic) NSMutableArray *array;
+@property (strong, nonatomic) NSString *recvRoomNo;
+@property (strong, nonatomic) NSString *recvRoomNm;
+@property (strong, nonatomic) NSMutableArray *tempArr;
+@property (strong, nonatomic) NSString *myUserNo;
+@property (strong, nonatomic) NSMutableDictionary *readCntDic;
+@property (strong, nonatomic) NSDictionary *rmqDict;
+
+-(void)connectServer :(NSDictionary *)dic;
+-(void)disconnectServer;
+
+@end
+

@@ -1,0 +1,506 @@
+/*
+  WebServiceList.strings
+  mfinity_sns
+
+  Created by hilee on 2018. 11. 9..
+  Copyright © 2018년 com.dbvalley. All rights reserved.
+*/
+
+
+
+SNS 웹서비스 목록 (2018.11.09_hilee)
+
+*2018-11-09 최초작성
+============================================================================
+
+
+
+"============================================================================"
+[LOGIN]
+"============================================================================"
+*changeDevice
+
+dvcId
+dvcKind
+dvcOs
+appVersion
+dvcVer
+carrier
+extRam
+extTotVol
+extUseVol
+useVol
+pushId1
+pushId2
+isRooted
+usrId
+usrPwd
+legacyNm
+if(LEGACY_NAME = “ANYMATE") {
+cpnCode
+compNo
+}
+----------------------------------------------------------------------------
+*chkUsrLogin
+
+usrId
+usrPwd
+dvcId
+dvcOs
+appVersion
+dvcKind
+isRooted
+pushId1
+pushId2
+legacyNm
+if(LEGACY_NAME = “ANYMATE") {
+cpnCode
+compNo
+dvcVer
+carrier
+extRam
+extTotVol
+extUseVol
+useVol
+}
+----------------------------------------------------------------------------
+*chkUsrLoginNotAuth
+
+usrId
+usrPwd
+dvcId
+dvcOs
+appVersion
+dvcKind
+isRooted
+pushId1
+pushId2
+legacyNm
+if(LEGACY_NAME = "ANYMATE") {
+cpnCode
+compNo
+dvcVer
+carrier
+extRam
+extTotVol
+extUseVol
+useVol
+}
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[BOARD]
+"============================================================================"
+*getUserSNSLists
+
+usrId
+snsKind : "1":일반형 or "2":프로젝트형
+searchNm
+----------------------------------------------------------------------------
+*getSNSMemberList
+
+snsNo
+----------------------------------------------------------------------------
+*getSNSNo : 게시판생성전 SNS_NO를 생성
+
+usrNo
+compNo
+snsKind
+----------------------------------------------------------------------------
+*createSNS : 게시판 생성 및 수정
+
+usrNo
+targetUserNo(리더위임시 위임된 유저번호, 위임이 아닐경우 usrNo와 같은값 전송)
+snsNo
+snsNm
+snsTy
+snsNeedAllow
+snsDesc
+snsCoverImg
+compNo
+isCreateSNS("true":생성 or "false":수정)
+mfpsId
+snsKind (1 : Normal, 2 : Project)
+----------------------------------------------------------------------------
+*deleteSNS : 게시판 삭제
+
+usrNo
+compNo
+snsNo
+----------------------------------------------------------------------------
+*joinSNS : 게시판 가입
+
+usrNo
+snsNo
+
+AFFECTED=1, NEED_ALLOW=0 -> 가입완료
+AFFECTED=0, NEED_ALLOW=0 -> 이미 가입된 상태
+AFFECTED=1, NEED_ALLOW=1 -> 가입 신청 완료
+AFFECTED=0. NEED_ALLOW=1 -> 이미 가입 신청된 상태
+
+SNS_IS_NULL 이면 게시판없음
+----------------------------------------------------------------------------
+*withdrawSNS : 게시판 탈퇴
+
+usrNo
+compNo
+snsNo
+mfpsId
+isJoin("true":탈퇴 or "false":가입신청취소)
+----------------------------------------------------------------------------
+*getSNSWaitingMemberList : 게시판 가입 신청자 리스트
+
+snsNo
+----------------------------------------------------------------------------
+*editSNSMember : 게시판 가입 및 강제탈퇴 처리
+
+mode("APPROVE":가입승인 or "FORCE_DELETE":강제탈퇴)
+compNo
+snsNo
+snsNm
+users("[45,68,63]" : 승인 및 강퇴 대상 유저번호)
+usrNo
+snsKind
+----------------------------------------------------------------------------
+*getSNSInfo : 게시판 정보
+
+usrNo
+snsNo
+snsKind
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[POST]
+"============================================================================"
+*getPostDetail
+
+postNo
+usrNo
+eadStatus (리턴 detail 정보에 IS_READ 값)
+
+리턴에
+POST_READ_COUNT  -> 읽음 카운팅
+POST_COMMENT_COUNT -> 댓글 개수
+----------------------------------------------------------------------------
+*getPostLists
+
+stPostSeq
+usrNo
+snsNo
+searchNm
+
+리턴에
+POST_READ_COUNT  -> 읽음 카운팅
+POST_COMMENT_COUNT -> 댓글 개수
+----------------------------------------------------------------------------
+*savePost
+
+usrNo
+snsNo
+postNo
+content
+----------------------------------------------------------------------------
+*deletePost
+
+usrNo
+postNo
+----------------------------------------------------------------------------
+*savePostComment
+
+usrNo
+snsNo
+postNo
+content
+isNewComment (댓글 수정일 경우 false, 새 댓글일 경우 true)
+
+코멘트 수정 시 :  commentNo추가
+----------------------------------------------------------------------------
+*deletePostComment
+
+usrNo
+commentNo
+----------------------------------------------------------------------------
+*saveBookmark (x)
+
+usrNo
+postNo
+----------------------------------------------------------------------------
+*deleteBookmark (x)
+
+usrNo
+postNo
+----------------------------------------------------------------------------
+*saveInterest (x)
+
+usrNo
+refTy
+refNo
+----------------------------------------------------------------------------
+*deleteInterest (x)
+
+usrNo
+refTy
+refNo
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[TASK]
+"============================================================================"
+*getTaskLists
+
+stTaskSeq
+usrNo
+sans
+searchNm
+----------------------------------------------------------------------------
+*getTaskDetail
+
+taskNo
+usrNo
+readStatus (리턴 detail 정보에 IS_READ 값)
+----------------------------------------------------------------------------
+*getTaskComment
+
+taskNo
+usrNo
+stSeq
+----------------------------------------------------------------------------
+*getTaskHistory
+
+taskNo
+usrNo
+stSeq
+----------------------------------------------------------------------------
+*getTaskNo : 업무 생성시 업무번호
+
+- 파라미터 없음
+----------------------------------------------------------------------------
+*saveTask
+
+usrNo
+ownerNo
+snsNo
+taskNo
+progress
+status
+title
+caption
+startDate
+endDate
+importance
+manager : jsonArr, 없을경우 공백
+referencer : jsonArr, 없을경우 공백
+
+수정일 때 추가
+isManagerChange (true, false)
+isReferencerChange (true, false)
+history : jsonArr ( {"TYPE":"STATUS","NAME":"김동현","CONTENT":"완료"} )
+----------------------------------------------------------------------------
+*deleteTask
+
+usrNo
+snsNo
+taskNo
+
+업무를 생성한 사람만 업무삭제가능
+----------------------------------------------------------------------------
+*saveTaskComment
+
+usrNo
+snsNo
+taskNo
+commentNo
+content
+isNewComment (isNewComment=true 일때, commentNo 없어도됨)
+----------------------------------------------------------------------------
+*deleteTaskComment
+
+usrNo
+commentNo
+taskNo
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[CHAT]
+"============================================================================"
+*getOrganization : 조직도(부서기준)
+
+compNo
+deptNo
+retVal
+currentUserNos : 현재가입된 유저번호 or 채팅방에 들어와있는 유저번호("[45,59,68]")
+----------------------------------------------------------------------------
+*getUsers  : 조직도(유저기준)
+
+deptNo : 본인 부서번호
+retVal : 검색어
+stSeq : 페이지번호(1부터)
+currentUserNos : "[59,64,68,45]" : 제외유저  or "[]" : 제외할 유저가 없을 경우
+legacyNm
+----------------------------------------------------------------------------
+*getDeptLists (x)
+
+compNo
+deptNo
+retVal
+----------------------------------------------------------------------------
+*getDeptNodes (x)
+
+deptNo
+retVal
+----------------------------------------------------------------------------
+*getDeptUsers (x)
+
+deptNo
+retVal
+----------------------------------------------------------------------------
+*getRoomInfo
+
+usrId
+usrNo
+roomNo
+
+리턴에 ROOM_TYPE 추가
+"1" : 1:1채팅방
+"2" : 여러명 채팅방
+"3" :  나와의 채팅
+"~~~" : 비밀방등등 추가될 예정임
+----------------------------------------------------------------------------
+*saveChatAttn
+
+usrId
+usrNm
+roomNo
+attendants
+
+리턴이 {"MESSAGE":"NO_CHAT_TARGET","RESULT":"FAIL"} 이면,
+‘채팅 대상이 없습니다.’ 띄우고 창 닫기
+----------------------------------------------------------------------------
+*saveChat
+
+usrNo
+roomNo
+content
+aditInfo
+----------------------------------------------------------------------------
+*saveChatInfo
+
+usrId
+usrNo
+attendants
+
+//usrId=dhkim&usrNo=59&attendants={"depts":[],"users":["63","59"]}
+
+리턴이 {"MESSAGE":"NO_CHAT_TARGET","RESULT":"FAIL"} 이면,
+'채팅 대상이 없습니다.' 띄우고 창 닫기
+
+리턴에 ROOM_TYPE 추가
+"1" : 1:1채팅방
+"2" : 여러명 채팅방
+"3" :  나와의 채팅
+"~~~" : 비밀방등등 추가될 예정임
+----------------------------------------------------------------------------
+*saveChatReadStatus
+
+roomNo
+usrNo
+bookmarkNo
+----------------------------------------------------------------------------
+*deleteChatUser
+
+roomNo
+usrNo
+usrNm
+queueName
+routingKey
+----------------------------------------------------------------------------
+*getChatInfo : 채팅에서 긴 글 읽어오는 웹서비스
+
+usrNo
+roomNo
+chatNo
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[PROFILE]
+"============================================================================"
+*getProfile
+
+usrNo
+============================================================================
+*saveProfileMsg
+
+usrNo
+msg
+----------------------------------------------------------------------------
+*deleteProfileImage
+
+usrNo
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[FILE UPLOAD]
+"============================================================================"
+*saveAttachedFile
+
+snsNo (채팅일때 : roomNo)
+usrId
+usrNo
+refTy (게시판생성 : 0)
+refNo (게시판생성 : userNo)
+aditInfo
+
+<refTy>
+1 : Post
+2: PostComment
+3: Chat
+4: Profile
+5 : Profile Background
+6 : Task
+7 : Task Comment
+----------------------------------------------------------------------------
+
+
+"============================================================================"
+[ETC]
+"============================================================================"
+*chkDvcAuth
+
+dvcId
+dvcOs
+pushId1
+pushId2
+usrId
+----------------------------------------------------------------------------
+*saveNotification (푸시 사일런트모드 항상 1로 보내므로 안써도 될것같음)
+
+usrNo
+notiFlag
+refTy
+refNo
+
+<chat>
+usrNo = 유저번호
+notiFlag = 0 or 1
+refTy = 3
+refNo = roomNo
+
+<post & comment>
+usrNo = queneName
+notiFlag = 0 or 1
+refTy = 1 or 2 (1:post, 2:comment)
+refNo = routingkey
+
+notiFlag -> 0:off, 1:on
+refTy -> 1:Post, 2:Post Comment , 3:chatRoom
+refNo : refTy가 1or2일 경우는 SNS_No, refTy가 3일경우는 ROOM_NO
+----------------------------------------------------------------------------
+        
+                
+        

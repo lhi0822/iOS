@@ -1,0 +1,512 @@
+//
+//  TableViewController.m
+//  ARSegmentPager
+//
+//  Created by August on 15/3/28.
+//  Copyright (c) 2015年 August. All rights reserved.
+//
+
+#import "TableViewController.h"
+#import "MFDBHelper.h"
+#import "PostDetailViewController.h"
+
+@interface TableViewController () {
+    MFDBHelper *dbHelper;
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation TableViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    [self.tableView registerClass:[UITableViewCell class] forCellReuseIdentifier:@"cell"];
+    
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    
+    dbHelper = [[MFDBHelper alloc]init];
+    
+    self.lastPostNo = @"1";
+    [self callGetPostList];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(NSString *)segmentTitle
+{
+    return @"게시글";
+}
+
+-(UIScrollView *)streachScrollView
+{
+    return self.tableView;
+}
+
+- (void)callGetPostList{
+    NSString *urlString = appDelegate.main_url;
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+    NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+    
+    NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&compNo=%@&refTy=1&stPostSeq=%@&target_usrNo=%@", myUserNo, compNo, self.lastPostNo, self.userNo];
+    //NSLog(@"paramString : %@",paramString);
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"getWriteLists"]];
+    MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+    session.delegate = self;
+    if ([session start]) {
+        [SVProgressHUD show];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+-(void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    //Progress stop..gesture recognizers added to a view
+    [SVProgressHUD dismiss];
+    
+    if (error!=nil || [error isEqualToString:@"(null)"]) {
+        if ([error isEqualToString:@"The request timed out."]) {
+            [self callGetPostList];
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,error);
+            NSString *errorMsg =[error stringByAppendingFormat:@"\n=======WebService========\n%@",session.url.absoluteString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======Parameter========\n%@",session.paramString];
+            errorMsg = [errorMsg stringByAppendingFormat:@"\n=======return string========\n%@",session.returnDataString];
+            UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                           message:errorMsg
+                                                                    preferredStyle:UIAlertControllerStyleAlert];
+            
+            UIAlertAction* okAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {}];
+            UIAlertAction* retryAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg19", @"") style:UIAlertActionStyleDefault
+                                                                handler:^(UIAlertAction * action) {[self callGetPostList]; }];
+            
+            [alert addAction:okAction];
+            [alert addAction:retryAction];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+        
+        
+    }else{
+        NSString *result = [session.returnDictionary objectForKey:@"RESULT"];
+        NSMutableArray *dataSets = [session.returnDictionary objectForKey:@"DATASET"];
+        
+        NSString *seq = [[NSString alloc]init];
+        for(int i=1; i<=dataSets.count; i++){
+            seq = [NSString stringWithFormat:@"%d", [self.lastPostNo intValue]+i];
+        }
+        
+        if ([result isEqualToString:@"SUCCESS"]) {
+            if ([self.lastPostNo intValue]==1) {
+                self.lastPostNo = seq;
+                self.dataSetArray = [NSMutableArray arrayWithArray:dataSets];
+                //NSLog(@"self.lastPostNo2 : %@", self.lastPostNo);
+            }else{
+                if (dataSets.count>0){
+                    self.lastPostNo = seq;
+                    [self.dataSetArray addObjectsFromArray:dataSets]; //deep copy
+                    //NSLog(@"self.dataSetArray2 : %@",self.dataSetArray);
+                }
+            }
+            [self.tableView reloadData];
+            
+        }else{
+            NSLog(@"%s \n Error Message : %@",__FUNCTION__,[session.returnDictionary objectForKey:@"MESSAGE"]);
+        }
+    }
+}
+
+#pragma mark - UITableView Delegate & DataSource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    if(self.dataSetArray.count > 0){
+        return self.dataSetArray.count;
+        
+    } else {
+        return 0;
+    }
+}
+
+
+- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    if(self.dataSetArray.count>0){
+        NSDictionary *dataSetItem = [self.dataSetArray objectAtIndex:indexPath.row];
+        NSString *dataContent = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_CONTENT"]];
+        
+        NSError *error;
+        NSArray *contentArr = [NSArray array];
+        NSData *jsonData = [dataContent dataUsingEncoding:NSUTF8StringEncoding];
+        contentArr = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        
+        BOOL isText = false;
+        BOOL isImg = false;
+        BOOL isFile = false;
+        
+        for (NSDictionary *content in contentArr) {
+            if ([[content objectForKey:@"TYPE"] isEqualToString:@"TEXT"]) {
+                isText = YES;
+            } else if ([[content objectForKey:@"TYPE"] isEqualToString:@"IMG"]) {
+                isImg = YES;
+            } else if ([[content objectForKey:@"TYPE"] isEqualToString:@"FILE"]) {
+                isFile = YES;
+            }
+        }
+        
+        if(isText && !isImg && !isFile) {
+            return 208;
+            
+        } else if(isText && isImg && !isFile){
+            return 458;
+            
+        } else if(isText && !isImg && isFile){
+            return 258;
+            
+        } else if(isText && isImg && isFile){
+            return 513;
+            
+        } else if(!isText && isImg && !isFile){
+            return 422;
+            
+        } else if(!isText && isImg && isFile){
+            return 482;
+            
+        } else if(!isText && !isImg && isFile){
+            return 217;
+            
+        } else {
+            return 513;
+        }
+    }
+    
+    return 0;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    SearchTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"SearchTableViewCell"];
+    if (cell == nil) {
+        NSArray *topLevelObject = [[NSBundle mainBundle] loadNibNamed:@"SearchTableViewCell" owner:self options:nil];
+        
+        for (id currentObject in topLevelObject) {
+            if ([currentObject isKindOfClass:[SearchTableViewCell class]]) {
+                cell = (SearchTableViewCell *) currentObject;
+                [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
+            }
+        }
+    }
+    
+    cell.descriptionLabel.text = nil;
+    cell.contentImageView.image = nil;
+    cell.fileName.text = nil;
+    
+    if(cell!=nil && self.dataSetArray.count>0){
+        NSDictionary *dataSetItem = [self.dataSetArray objectAtIndex:indexPath.item];
+        NSLog(@"dataSetItem : %@", dataSetItem);
+        
+        NSString *dataContent = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_CONTENT"]];
+        NSString *dataDate = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_DATE"]];
+        //NSString *dataNo = [dataSetItem objectForKey:@"DATA_NO"];
+        //NSString *dataType = [NSString urlDecodeString:[dataSetItem objectForKey:@"DATA_TYPE"]];
+        NSString *ref1 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_01"]];
+        NSString *ref2 = [NSString urlDecodeString:[dataSetItem objectForKey:@"REF_02"]];
+        //NSString *ref3 = [dataSetItem objectForKey:@"REF_03"];
+        NSLog(@"ref2 : %@", ref2);
+        
+        NSError *error;
+        NSArray *contentArr = [NSArray array];
+        NSData *jsonData = [dataContent dataUsingEncoding:NSUTF8StringEncoding];
+        contentArr = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+        
+        NSDictionary *ref1Dict = [NSDictionary dictionary];
+        NSData *jsonData1 = [ref1 dataUsingEncoding:NSUTF8StringEncoding];
+        ref1Dict = [NSJSONSerialization JSONObjectWithData:jsonData1 options:kNilOptions error:&error];
+        
+        NSDictionary *ref2Dict = [NSDictionary dictionary];
+        NSData *jsonData2 = [ref2 dataUsingEncoding:NSUTF8StringEncoding];
+        ref2Dict = [NSJSONSerialization JSONObjectWithData:jsonData2 options:NSJSONReadingAllowFragments error:&error];
+        NSLog(@"error : %@", error);
+        NSLog(@"ref2Dict : %@", ref2Dict);
+        
+        NSDate *currentDate = [NSDate date];
+        NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm";
+        NSString *tmp = [dataDate substringToIndex:dataDate.length-5];
+        NSDate *regiDate = [formatter dateFromString:tmp];
+        
+        NSCalendar *sysCalendar = [NSCalendar currentCalendar];
+        unsigned int unitFlags = NSCalendarUnitDay;
+        NSDateComponents *dateComp = [sysCalendar components:unitFlags fromDate:regiDate toDate:currentDate options:0];//날짜 비교해서 차이값 추출
+        NSInteger date = dateComp.day;
+        
+        NSString *postDateString = [[NSString alloc]init];
+        if(date > 0){
+            postDateString = tmp;
+        } else{
+            postDateString = [MFUtil getTimeIntervalFromDate:regiDate ToDate:currentDate];
+        }
+        
+        if(![self.userImgPath isEqualToString:@""]&&self.userImgPath!=nil){
+            UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(120, 120) :[dbHelper saveThumbImage:@"profile" :self.userImgPath]];
+            [cell.userImageButton setImage:userImg forState:UIControlStateNormal];
+        } else {
+            UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(120, 120) :[UIImage imageNamed:@"profile_default.png"]];
+            [cell.userImageButton setImage:userImg forState:UIControlStateNormal];
+        }
+        /*
+         if(![self.userImgPath isEqualToString:@""]){
+         NSString *profileName = [self.userImgPath lastPathComponent];
+         NSString *chkTmpPath = NSTemporaryDirectory();
+         NSString *imagePath =[chkTmpPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@",profileName]];
+         NSData *data = [NSData dataWithContentsOfFile:imagePath];
+         UIImage *image = [UIImage imageWithData:data];
+         
+         UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(120, 120) :image];
+         [cell.userImageButton setImage:userImg forState:UIControlStateNormal];
+         } else {
+         UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(120, 120) :[UIImage imageNamed:@"profile_default.png"]];
+         [cell.userImageButton setImage:userImg forState:UIControlStateNormal];
+         }
+         */
+        
+        cell.userNameLabel.text = self.userNm;
+        cell.dateLabel.text = postDateString;
+        cell.teamNameLabel.text = [NSString urlDecodeString:[ref1Dict objectForKey:@"SNS_NM"]];
+        
+        //NSLog(@"self.userImg  : %@", self.userImgPath);
+        
+        //[cell.userImageButton setImage:self.userImg forState:UIControlStateNormal];
+        //        [cell.userImageButton addTarget:self action:@selector(tapDetected:) forControlEvents:UIControlEventTouchUpInside];
+        //        cell.userImageButton.tag = indexPath.item;
+        
+        NSLog(@"POST_COMMENT_COUNT : %@", [ref2Dict objectForKey:@"POST_COMMENT_COUNT"]);
+        cell.commentCnt.text = [NSString stringWithFormat:@"댓글 %@", [ref2Dict objectForKey:@"POST_COMMENT_COUNT"]];
+        cell.readCnt.text = [NSString stringWithFormat:@"%@", [ref2Dict objectForKey:@"POST_READ_COUNT"]];
+        
+        //읽음카운트 20이상 줄바꿈 현상 수정
+        NSDictionary *attributes = @{NSFontAttributeName: [cell.readCnt font]};
+        CGSize textSize = [[cell.readCnt text] sizeWithAttributes:attributes];
+        CGFloat strikeWidth = textSize.width;
+        //NSLog(@"strikeWidth : %f", strikeWidth);
+        
+        if(strikeWidth < 14.0f){
+            cell.readCntConstraint.constant = 15;
+        } else {
+            cell.readCntConstraint.constant = strikeWidth+5;
+        }
+        cell.readCnt.textAlignment = NSTextAlignmentRight;
+        
+        NSString *description = @"";
+        NSString *thumbImagePath =  @"";
+        NSString *originImagePath =  @"";
+        NSString *filePath =  @"";
+        
+        NSInteger count = [contentArr count]-1;
+        
+        for (int i=(int)count; i>=0; i--) {
+            NSDictionary *content = [contentArr objectAtIndex:i];
+            if ([[content objectForKey:@"TYPE"] isEqualToString:@"TEXT"]) {
+                description = [NSString urlDecodeString:[content objectForKey:@"VALUE"]];
+                
+                NSString *newString = [description stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+                if(![newString isEqualToString:@""]){
+                    cell.descriptionLabel.text = newString;
+                    [cell.descriptionLabel setNumberOfLines:2];
+                }
+            }
+            if ([[content objectForKey:@"TYPE"] isEqualToString:@"IMG"]) {
+                NSDictionary *value = [content objectForKey:@"VALUE"];
+                thumbImagePath = [NSString urlDecodeString:[value objectForKey:@"THUMB"]];
+                originImagePath = [NSString urlDecodeString:[value objectForKey:@"ORIGIN"]];
+            }
+            if ([[content objectForKey:@"TYPE"] isEqualToString:@"FILE"]) {
+                filePath = [NSString urlDecodeString:[content objectForKey:@"VALUE"]];
+                NSRange range = [filePath rangeOfString:@"/" options:NSBackwardsSearch];
+                NSString *fileName = [filePath substringFromIndex:range.location+1];
+                cell.fileName.text = fileName;
+            }
+        }
+        
+        if (originImagePath!=nil && ![originImagePath isEqualToString:@""]) {
+            NSString *contentsImagePath = originImagePath;
+            
+            NSURL *url = [NSURL URLWithString:[contentsImagePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+            NSURLSessionTask *task = [[NSURLSession sharedSession] dataTaskWithURL:url completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+                if (data) {
+                    UIImage *image = [UIImage imageWithData:data];
+                    if (image) {
+                        dispatch_async(dispatch_get_main_queue(), ^{
+                            cell.contentImageView.image = [self imageByScalingAndCroppingForSize:CGSizeMake(cell.contentImageView.frame.size.width, cell.contentImageView.frame.size.height) :image];
+                            cell.contentImageView.hidden = NO;
+                        });
+                    }
+                }
+            }];
+            [task resume];
+            
+        } else{
+            cell.contentImageView.hidden = YES;
+        }
+        
+        if(filePath!=nil && ![filePath isEqualToString:@""]){
+            //NSLog(@"filePath : %@", filePath);
+            cell.fileView.hidden = NO;
+            cell.fileIcon.hidden = NO;
+            cell.fileName.hidden = NO;
+            
+            cell.fileView.frame = CGRectMake(cell.frame.origin.x, 350, cell.contentView.frame.size.width, 0);
+            
+            
+            if(![description isEqualToString:@""] && ![originImagePath isEqualToString:@""]) {
+                cell.fileView.frame = CGRectMake(cell.frame.origin.x, cell.contentImageView.frame.origin.y+cell.contentImageView.frame.size.height+7, cell.contentView.frame.size.width, 50);
+                
+            } else if([description isEqualToString:@""] && ![originImagePath isEqualToString:@""]){
+                cell.fileView.frame = CGRectMake(cell.frame.origin.x, cell.descriptionLabel.frame.origin.y+cell.contentImageView.frame.size.height+10, cell.contentView.frame.size.width, 50);
+                
+            } else if(![description isEqualToString:@""] && [originImagePath isEqualToString:@""]){
+                cell.fileView.frame = CGRectMake(cell.frame.origin.x, cell.descriptionLabel.frame.origin.y+cell.descriptionLabel.frame.size.height+4, cell.contentView.frame.size.width, 50);
+                
+            } else {
+                cell.fileView.frame = CGRectMake(cell.frame.origin.x, cell.descriptionLabel.frame.origin.y, cell.contentView.frame.size.width, 50);
+                //NSLog(@"cell.fileView.frame.origin.y : %f, cell.fileView.frame.size.height : %f", cell.fileView.frame.origin.y, cell.fileView.frame.size.height);
+            }
+        }
+        else {
+            cell.fileView.hidden = YES;
+            cell.fileIcon.hidden = YES;
+            cell.fileName.hidden = YES;
+            cell.fileView.frame = CGRectMake(cell.frame.origin.x, cell.fileView.frame.origin.y, cell.contentView.frame.size.width, 0);
+        }
+        
+    }
+    
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    //[self performSegueWithIdentifier:@"PROFILE_POST_DETAIL2" sender:indexPath];
+    
+    UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+    PostDetailViewController *destination = (PostDetailViewController *)[storyboard instantiateViewControllerWithIdentifier:@"PostDetailViewController"];
+    UINavigationController *navController = [[UINavigationController alloc] initWithRootViewController:destination];
+    
+    navController.navigationBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    //UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+    //statusBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    //self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    NSError *error;
+    
+    destination._postNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_NO"];
+    destination._postDate = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_DATE"]];
+    
+    NSString *ref1 = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_01"]];
+    NSDictionary *ref1Dict = [NSDictionary dictionary];
+    NSData *jsonData1 = [ref1 dataUsingEncoding:NSUTF8StringEncoding];
+    ref1Dict = [NSJSONSerialization JSONObjectWithData:jsonData1 options:kNilOptions error:&error];
+    destination._snsName = [ref1Dict objectForKey:@"SNS_NM"];
+    destination.indexPath  = indexPath;
+    destination.fromSegue = @"PROFILE_POST_DETAIL2";
+    
+    NSDictionary *postInfo = [[NSDictionary alloc]initWithObjectsAndKeys:self.userNo,@"CUSER_NO", nil];
+    destination.postInfo = postInfo;
+    
+    [self presentViewController:navController animated:YES completion:nil];
+}
+
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    /*if([segue.identifier isEqualToString:@"PROFILE_POST_DETAIL2"] || [segue.identifier isEqualToString:@"PROFILE_COMM_DETAIL2"]){
+     //self.navigationController.navigationBar.topItem.title = @"";
+     
+     UINavigationController *nav = segue.destinationViewController;
+     PostDetailViewController *destination = [[nav childViewControllers] objectAtIndex:0];
+     //PostDetailViewController *destination = segue.destinationViewController;
+     NSError *error;
+     
+     NSIndexPath *indexPath = (NSIndexPath *)sender;
+     destination._postNo = [[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_NO"];
+     destination._postDate = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"DATA_DATE"]];
+     
+     NSString *ref1 = [NSString urlDecodeString:[[self.dataSetArray objectAtIndex:indexPath.item] objectForKey:@"REF_01"]];
+     NSDictionary *ref1Dict = [NSDictionary dictionary];
+     NSData *jsonData1 = [ref1 dataUsingEncoding:NSUTF8StringEncoding];
+     ref1Dict = [NSJSONSerialization JSONObjectWithData:jsonData1 options:kNilOptions error:&error];
+     destination._snsName = [ref1Dict objectForKey:@"SNS_NM"];
+     destination.indexPath  = indexPath;
+     destination.fromSegue = segue.identifier;
+     
+     NSDictionary *postInfo = [[NSDictionary alloc]initWithObjectsAndKeys:self.userNo,@"CUSER_NO", nil];
+     destination.postInfo = postInfo;
+     //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_DeletePost:) name:@"noti_DeletePost" object:nil];
+     }*/
+}
+
+- (void)closeButtonClick{
+    
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image
+{
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+@end

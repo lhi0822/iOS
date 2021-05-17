@@ -1,0 +1,809 @@
+//
+//  MemberManageViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 1. 15..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "MemberManageViewController.h"
+#import "ChatUserListCell.h"
+#import "MFUtil.h"
+#import "MFDBHelper.h"
+#import "MFStyle.h"
+
+@interface MemberManageViewController () {
+    NSInteger count;
+    NSMutableArray *userArr;
+    AppDelegate *appDelegate;
+}
+
+@property (nonatomic, strong) NSMutableArray *dataSetArray;
+@property (nonatomic, strong) NSMutableArray *checkArray;
+
+@property (nonatomic, strong)NSMutableDictionary *rowCheckDictionary;
+
+@end
+
+
+@implementation MemberManageViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    NSLog(@"MemberManageViewController fromSegue : %@", self.fromSegue);
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    //self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    UIView *statusBar = [[[UIApplication sharedApplication] valueForKey:@"statusBarWindow"] valueForKey:@"statusBar"];
+    statusBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.backgroundColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.checkArray = [NSMutableArray array];
+    self.dataSetArray = [NSMutableArray array];
+    count = 0;
+    
+    NSLog(@"userListArr : %@", _userListArr);
+    
+    if([self.fromSegue isEqualToString:@"MEMBER_WITHDRAW"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"멤버 강제탈퇴", @"멤버 강제탈퇴")];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"강제탈퇴", @"강제탈퇴")
+                                                                                 style:UIBarButtonItemStylePlain
+                                                                                target:self
+                                                                                action:@selector(rightSideMenuButtonPressed:)];
+        [self callWebService:@"getSNSMemberList"];
+        
+        
+    } else if([self.fromSegue isEqualToString:@"MEMBER_REQUEST"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"가입 신청자 목록", @"가입 신청자 목록")];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"승인", @"승인")
+                                                                                 style:UIBarButtonItemStylePlain
+                                                                                target:self
+                                                                                action:@selector(rightSideMenuButtonPressed:)];
+        [self callWebService:@"getSNSWaitingMemberList"];
+    
+    } else if([self.fromSegue isEqualToString:@"TASK_MANAGER"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"수행자 선택", @"수행자 선택")];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"완료", @"완료")
+                                                                                 style:UIBarButtonItemStylePlain
+                                                                                target:self
+                                                                                action:@selector(rightSideMenuButtonPressed:)];
+        [self callWebService:@"getSNSMemberList"];
+    
+    } else if([self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"참조자 선택", @"수행자 선택")];
+        self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"완료", @"완료")
+                                                                                 style:UIBarButtonItemStylePlain
+                                                                                target:self
+                                                                                action:@selector(rightSideMenuButtonPressed:)];
+        [self callWebService:@"getSNSMemberList"];
+    }
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)rightSideMenuButtonPressed:(id)sender{
+    NSInteger checkCnt = self.checkArray.count;
+    NSLog(@"self.checkArray : %@", self.checkArray);
+    NSLog(@"self.fromSegue : %@", self.fromSegue);
+    
+    @try{
+        if([self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+           if([self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+                NSDictionary *dic = [NSDictionary dictionary];
+                dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"TASK_REFERENCE", @"TYPE", self.checkArray, @"CHECK_USER_LIST", nil];
+                [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeTaskUser" object:nil userInfo:dic];
+                [self.navigationController popViewControllerAnimated:YES];
+            }
+        } else {
+            if(checkCnt>0){
+                if([self.fromSegue isEqualToString:@"MEMBER_WITHDRAW"]){
+                    userArr = [NSMutableArray array];
+                    for(int i=0; i<checkCnt; i++){
+                        if(![[self.checkArray objectAtIndex:i] isEqualToString:@"1"]) {
+                            NSNumber *userNo = [NSNumber numberWithInteger:[[self.checkArray objectAtIndex:i]integerValue]];
+                            [userArr addObject:userNo];
+                        }
+                    }
+                    
+                    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"force_delete", @"force_delete") message:@"" preferredStyle:UIAlertControllerStyleAlert];
+                    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                                     handler:^(UIAlertAction * action) {
+                                                                         [self callWebService:@"editSNSMember"];
+                                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                     }];
+                    
+                    UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:@"취소" style:UIAlertActionStyleDefault
+                                                                         handler:^(UIAlertAction * action) {
+                                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                         }];
+                    [alert addAction:okButton];
+                    [alert addAction:cancelButton];
+                    [self presentViewController:alert animated:YES completion:nil];
+                    
+                } else if([self.fromSegue isEqualToString:@"MEMBER_REQUEST"]){
+                    userArr = [NSMutableArray array];
+                    for(int i=0; i<checkCnt; i++){
+                        if(![[self.checkArray objectAtIndex:i] isEqualToString:@"1"]) {
+                            NSNumber *userNo = [NSNumber numberWithInteger:[[self.checkArray objectAtIndex:i]integerValue]];
+                            [userArr addObject:userNo];
+                        }
+                    }
+                    [self callWebService:@"editSNSMember"];
+                    
+                } else if([self.fromSegue isEqualToString:@"TASK_MANAGER"]){
+                    NSDictionary *dic = [NSDictionary dictionary];
+                    dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"TASK_MANAGER", @"TYPE", self.checkArray, @"CHECK_USER_LIST", nil];
+                    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeTaskUser" object:nil userInfo:dic];
+                    [self.navigationController popViewControllerAnimated:YES];
+                }
+                
+            } else {
+                UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:@"선택된 사용자가 없습니다." delegate:self cancelButtonTitle:@"확인" otherButtonTitles:nil, nil];
+                [alert show];
+            }
+            
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+- (void)callWebService:(NSString *)serviceName{
+    NSLog(@"%s",__FUNCTION__);
+    NSString *urlString = appDelegate.main_url;
+    NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:serviceName]];
+    NSString *paramString;
+    
+    @try{
+        if([serviceName isEqualToString:@"getSNSMemberList"]){
+            paramString = [NSString stringWithFormat:@"snsNo=%@&currentUserNos=", self.snsNo];
+            
+        } else if([serviceName isEqualToString:@"editSNSMember"]){
+            NSData* data = [NSJSONSerialization dataWithJSONObject:userArr options:NSJSONWritingPrettyPrinted error:nil];
+            NSString* jsonData = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+            
+            //("APPROVE":가입승인 or "FORCE_DELETE":강제탈퇴)
+            NSString *mode = @"";
+            if([self.fromSegue isEqualToString:@"MEMBER_WITHDRAW"]){
+                mode = @"FORCE_DELETE";
+            } else if([self.fromSegue isEqualToString:@"MEMBER_REQUEST"]){
+                mode = @"APPROVE";
+            }
+            NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+            NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+            paramString = [NSString stringWithFormat:@"mode=%@&compNo=%@&snsNo=%@&snsNm=%@&users=%@&usrNo=%@&snsKind=%@",mode, compNo, self.snsNo, self.snsName, jsonData, myUserNo, self.snsKind];
+            
+        } else if([serviceName isEqualToString:@"getSNSWaitingMemberList"]){
+            paramString = [NSString stringWithFormat:@"snsNo=%@", self.snsNo];
+            
+        } else if([serviceName isEqualToString:@"getSNSInfo"]){
+            //usrNo snsNo snsKind
+            NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+            paramString = [NSString stringWithFormat:@"usrNo=%@&snsNo=%@&snsKind=%@", myUserNo, self.snsNo, self.snsKind];
+        }
+        
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        session.delegate = self;
+        if([session start]){
+            [SVProgressHUD show];
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    //NSLog(@"reteurnDataString : %@",session.returnDataString);
+    NSString *wsName = [[session.url absoluteString] lastPathComponent];
+    
+    NSLog(@"error : %@",error);
+    if (error!=nil) {
+        NSLog(@"error : %@",error);
+    }else{
+        NSDictionary *dic = session.returnDictionary;
+        
+        if([wsName isEqualToString:@"getSNSMemberList"]){
+            @try{
+                NSArray *dataSet = [dic objectForKey:@"DATASET"];
+                //NSLog(@"getSNSMemberList dataSet : %@", dataSet);
+                count = dataSet.count;
+                
+                NSMutableArray *dataArr = [NSMutableArray array];
+                self.rowCheckDictionary = [NSMutableDictionary dictionary];
+                
+                NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+                
+                if([self.fromSegue isEqualToString:@"TASK_MANAGER"] || [self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+                    for(int i=0; i<count; i++){
+                        NSString *userNo = [[dataSet objectAtIndex:i] objectForKey:@"CUSER_NO"];
+                        [dataArr addObject:[dataSet objectAtIndex:i]];
+                        [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"%@", userNo]];
+                    }
+                    
+                    if(self.userListArr.count>0){
+                        for(int i=0; i<self.userListArr.count; i++){
+                            //NSString *userNo = [[self.userListArr objectAtIndex:i] objectForKey:@"CUSER_NO"];
+                            NSString *userNo = [self.userListArr objectAtIndex:i];
+                            [self.rowCheckDictionary setObject:@"Y" forKey:[NSString stringWithFormat:@"%@", userNo]];
+                        }
+                        
+                        [self.checkArray addObjectsFromArray:self.userListArr];
+                    }
+                    
+                } else {
+                    NSDictionary *upNodeDic = [[NSDictionary alloc] initWithObjectsAndKeys:@"1",@"CUSER_NO",@"전체선택",@"USER_NM", nil];
+                    [dataArr addObject:upNodeDic];
+                    [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"1"]];
+                    
+                    for(int i=0; i<count; i++){
+                        NSString *userNo = [[dataSet objectAtIndex:i] objectForKey:@"CUSER_NO"];
+                        if(![[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", myUserNo]]){
+                            [dataArr addObject:[dataSet objectAtIndex:i]];
+                            [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"%@", userNo]];
+                        }
+                    }
+                }
+                
+                self.dataSetArray = [[NSMutableArray alloc] init];
+                [self.dataSetArray addObjectsFromArray:dataArr];
+                
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{ //지워야 될 수도 있음, 다시 테스트 해보기
+                [self.tableView reloadData];
+                });
+                
+            } @catch(NSException *exception){
+                //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+            }
+            
+        } else if([wsName isEqualToString:@"editSNSMember"]){
+            @try{
+                int affected = [[dic objectForKey:@"AFFECTED"] intValue];
+                if(affected>0){
+                    self.checkArray = [NSMutableArray array];
+                    
+                    if([self.fromSegue isEqualToString:@"MEMBER_WITHDRAW"]){
+                        [self callWebService:@"getSNSMemberList"];
+                        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil]; //게시판목록갱신
+                        
+                        //게시판목록, 게시판선택, 게시판정보 갱신필요
+                        //NSLog(@"MEMBER_WITHDRAW self.snsInfoDic : %@", self.snsInfoDic);
+                        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ModifyBoard" object:nil userInfo:self.snsInfoDic];
+                        
+                        [self callWebService:@"getSNSInfo"];
+                        
+                        UIAlertController * alert = [UIAlertController alertControllerWithTitle:@"" message:[NSString stringWithFormat:NSLocalizedString(@"force_delete_succeed", @"force_delete_succeed"), userArr.count] preferredStyle:UIAlertControllerStyleAlert];
+                        [self presentViewController:alert animated:YES completion:nil];
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                            [alert dismissViewControllerAnimated:YES completion:nil];
+                        });
+
+                    } else if([self.fromSegue isEqualToString:@"MEMBER_REQUEST"]){
+                        [self callWebService:@"getSNSWaitingMemberList"];
+                        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_RefreshTeamList" object:nil]; //게시판목록갱신
+                        
+                        //게시판목록, 게시판선택, 게시판정보 갱신필요
+                        //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ModifyBoard" object:nil userInfo:self.snsInfoDic];
+                        [self callWebService:@"getSNSInfo"];
+
+                        UIAlertController * alert = [UIAlertController alertControllerWithTitle:@"" message:[NSString stringWithFormat:NSLocalizedString(@"approve_succeed", @"approve_succeed"), userArr.count] preferredStyle:UIAlertControllerStyleAlert];
+                        [self presentViewController:alert animated:YES completion:nil];
+                        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                            [alert dismissViewControllerAnimated:YES completion:nil];
+                        });
+                    }
+                } else {
+                    NSLog(@"강퇴실패?");
+                }
+                
+            } @catch(NSException *exception){
+                //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+            }
+            
+        } else if([wsName isEqualToString:@"getSNSWaitingMemberList"]){
+            @try{
+                NSArray *dataSet = [dic objectForKey:@"DATASET"];
+                NSLog(@"dataSet : %@", dataSet);
+                count = dataSet.count;
+                
+                NSMutableArray *dataArr = [NSMutableArray array];
+                self.rowCheckDictionary = [NSMutableDictionary dictionary];
+                
+                NSDictionary *upNodeDic = [[NSDictionary alloc] initWithObjectsAndKeys:@"1",@"CUSER_NO",@"전체선택",@"USER_NM", nil];
+                [dataArr addObject:upNodeDic];
+                [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"1"]];
+                
+                for(int i=0; i<count; i++){
+                    NSString *userNo = [[dataSet objectAtIndex:i] objectForKey:@"CUSER_NO"];
+                    [dataArr addObject:[dataSet objectAtIndex:i]];
+                    [self.rowCheckDictionary setObject:@"N" forKey:[NSString stringWithFormat:@"%@", userNo]];
+                }
+                //self.dataSetArray = dataArr;
+                self.dataSetArray = [[NSMutableArray alloc] init];
+                [self.dataSetArray addObjectsFromArray:dataArr];
+                [self.tableView reloadData];
+                
+            } @catch(NSException *exception){
+                [self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+            }
+        
+        } else if([wsName isEqualToString:@"getSNSInfo"]){
+            NSArray *dataSet = [dic objectForKey:@"DATASET"];
+            NSLog(@"getSNSInfo dataSet : %@", dataSet);
+            self.snsInfoDic = [dataSet objectAtIndex:0];
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ModifyBoard" object:nil userInfo:self.snsInfoDic];
+        }
+    }
+}
+
+
+#pragma mark - UITableViewDelegate & UITableViewDatasource
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleSingleLine];
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    @try{
+        if(self.dataSetArray.count>1){
+            return self.dataSetArray.count;
+        } else {
+            return 0;
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    @try{
+        ChatUserListCell *cell = [tableView dequeueReusableCellWithIdentifier:@"ChatUserListCell" forIndexPath:indexPath];
+        [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
+        
+        if(self.dataSetArray.count>1){
+            [cell.checkButton setFrame:CGRectMake(cell.checkButton.frame.origin.x, cell.frame.size.height-(cell.frame.size.height/2)-(30/2), cell.checkButton.frame.size.width, 30)];
+            
+            cell.nodeNameLabel.font = [UIFont systemFontOfSize:17];
+            
+            cell.checkButton.layer.cornerRadius = cell.checkButton.frame.size.width/10;
+            cell.checkButton.clipsToBounds = YES;
+            //[cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+            [cell.checkButton addTarget:self action:@selector(checkAction:) forControlEvents:UIControlEventTouchUpInside];
+            
+            //[cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateSelected];
+            //[cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+            
+            if(![self.fromSegue isEqualToString:@"TASK_MANAGER"] && ![self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+                if(indexPath.row==0){//(indexPath.section==0){
+                    cell.userImgView.hidden = YES;
+                    [cell.nodeNameLabel setFrame:CGRectMake(20, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+                    cell.checkButton.tag = [[NSString stringWithFormat:@"1"] integerValue];
+                    
+                    if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"1"]] isEqualToString:@"Y"]) {
+                        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                    }else{
+                        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                    }
+                    
+                    NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+                    
+                    //NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+                    NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+                    cell.nodeNameLabel.text = userName;
+                    
+                } else {
+                    cell.userImgView.image = nil;
+                    cell.userImgView.hidden = NO;
+                    
+                    NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+                    //NSString *userId = [NSString urlDecodeString:[dataDict objectForKey:@"CUSER_ID"]];
+                    NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+                    NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+                    NSString *profileImg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_IMG"]];
+                    NSString *profileMsg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_MSG"]];
+                    NSString *corpName = [NSString urlDecodeString:[dataDict objectForKey:@"CORP_NM"]];
+                    
+                    if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"%@",userNo]] isEqualToString:@"Y"]) {
+                        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                    }else{
+                        [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                    }
+                    
+                    [cell.userImgView setFrame:CGRectMake(20, (cell.frame.size.height/2) - (45/2), 45, 45)];
+                    [cell.nodeNameLabel setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width+10, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+                    
+                    cell.userImgView.layer.cornerRadius = cell.userImgView.frame.size.width/2;
+                    cell.userImgView.clipsToBounds = YES;
+                    cell.userImgView.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+                    cell.userImgView.layer.borderWidth = 0.3;
+                    
+                    cell.checkButton.tag = [userNo integerValue];
+                    
+                    cell.leaderBtn.hidden = YES;
+                    
+                    if(![profileImg isEqualToString:@""]){
+                        MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+                        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+                        cell.userImgView.image = userImg;
+                    } else {
+                        UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+                        cell.userImgView.image = userImg;
+                    }
+                    
+                    NSString *userStr;
+                    if([profileMsg isEqualToString:@""]) userStr = [NSString stringWithFormat:@"%@ (%@)", userName, corpName];
+                    else userStr = [NSString stringWithFormat:@"%@ (%@ , %@)", userName, corpName, profileMsg];
+                    
+                    cell.nodeNameLabel.text = userStr;
+                }
+            } else {
+                cell.userImgView.image = nil;
+                cell.userImgView.hidden = NO;
+                
+                NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+                //NSString *userId = [NSString urlDecodeString:[dataDict objectForKey:@"CUSER_ID"]];
+                NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+                NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+                NSString *profileImg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_IMG"]];
+                NSString *profileMsg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_MSG"]];
+                NSString *corpName = [NSString urlDecodeString:[dataDict objectForKey:@"CORP_NM"]];
+                
+                if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"%@",userNo]] isEqualToString:@"Y"]) {
+                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                }else{
+                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+                }
+                
+                [cell.userImgView setFrame:CGRectMake(20, (cell.frame.size.height/2) - (45/2), 45, 45)];
+                [cell.nodeNameLabel setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width+10, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+                
+                cell.userImgView.layer.cornerRadius = cell.userImgView.frame.size.width/2;
+                cell.userImgView.clipsToBounds = YES;
+                cell.userImgView.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+                cell.userImgView.layer.borderWidth = 0.3;
+                
+                cell.checkButton.tag = [userNo integerValue];
+                
+                cell.leaderBtn.hidden = YES;
+                
+                if(![profileImg isEqualToString:@""]){
+                    MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+                    UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+                    cell.userImgView.image = userImg;
+                } else {
+                    UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+                    cell.userImgView.image = userImg;
+                }
+                
+                NSString *userStr;
+                if([profileMsg isEqualToString:@""]) userStr = [NSString stringWithFormat:@"%@ (%@)", userName, corpName];
+                else userStr = [NSString stringWithFormat:@"%@ (%@ , %@)", userName, corpName, profileMsg];
+                
+                cell.nodeNameLabel.text = userStr;
+            }
+//            if(indexPath.row==0){//(indexPath.section==0){
+//                cell.userImgView.hidden = YES;
+//                [cell.nodeNameLabel setFrame:CGRectMake(20, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+//                cell.checkButton.tag = [[NSString stringWithFormat:@"1"] integerValue];
+//
+//                if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"1"]] isEqualToString:@"Y"]) {
+//                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+//                }else{
+//                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+//                }
+//
+//                NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+//                //NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+//                NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+//                cell.nodeNameLabel.text = userName;
+//
+//            } else {
+//                cell.userImgView.image = nil;
+//                cell.userImgView.hidden = NO;
+//
+//                NSDictionary *dataDict = [self.dataSetArray objectAtIndex:indexPath.row];
+//                //NSString *userId = [NSString urlDecodeString:[dataDict objectForKey:@"CUSER_ID"]];
+//                NSString *userNo = [dataDict objectForKey:@"CUSER_NO"];
+//                NSString *userName = [NSString urlDecodeString:[dataDict objectForKey:@"USER_NM"]];
+//                NSString *profileImg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_IMG"]];
+//                NSString *profileMsg = [NSString urlDecodeString:[dataDict objectForKey:@"PROFILE_MSG"]];
+//                NSString *corpName = [NSString urlDecodeString:[dataDict objectForKey:@"CORP_NM"]];
+//
+//                if ([[self.rowCheckDictionary objectForKey:[NSString stringWithFormat:@"%@",userNo]] isEqualToString:@"Y"]) {
+//                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+//                }else{
+//                    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_false.png"] scaledToMaxWidth:24.0f] forState:UIControlStateNormal];
+//                }
+//
+//                [cell.userImgView setFrame:CGRectMake(20, (cell.frame.size.height/2) - (45/2), 45, 45)];
+//                [cell.nodeNameLabel setFrame:CGRectMake(cell.userImgView.frame.origin.x+cell.userImgView.frame.size.width+10, cell.nodeNameLabel.frame.origin.y, cell.nodeNameLabel.frame.size.width, cell.nodeNameLabel.frame.size.height)];
+//
+//                cell.userImgView.layer.cornerRadius = cell.userImgView.frame.size.width/2;
+//                cell.userImgView.clipsToBounds = YES;
+//                cell.userImgView.layer.borderColor = [[UIColor lightGrayColor] CGColor];
+//                cell.userImgView.layer.borderWidth = 0.3;
+//
+//                cell.checkButton.tag = [userNo integerValue];
+//
+//                cell.leaderBtn.hidden = YES;
+//
+//                if(![profileImg isEqualToString:@""]){
+//                    MFDBHelper *dbHelper = [[MFDBHelper alloc]init];
+//                    UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[dbHelper saveThumbImage:@"profile" :profileImg]];
+//                    cell.userImgView.image = userImg;
+//                } else {
+//                    UIImage *userImg = [self imageByScalingAndCroppingForSize:CGSizeMake(50, 50) :[UIImage imageNamed:@"profile_default.png"]];
+//                    cell.userImgView.image = userImg;
+//                }
+//
+//                NSString *userStr;
+//                if([profileMsg isEqualToString:@""]) userStr = [NSString stringWithFormat:@"%@ (%@)", userName, corpName];
+//                else userStr = [NSString stringWithFormat:@"%@ (%@ , %@)", userName, corpName, profileMsg];
+//
+//                cell.nodeNameLabel.text = userStr;
+//            }
+            return cell;
+            
+        } else {
+            return cell;
+        }
+        
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+-(void)checkAction:(UIButton *)sender{
+    @try{
+        UIButton *button = sender;
+        NSString *buttonTag = [NSString stringWithFormat:@"%ld", (long)button.tag];
+        //NSLog(@"buttonTag : %@", buttonTag);
+        //NSLog(@"checkArr : %@", _checkArray);
+        
+//        NSDictionary *selectDict = [NSDictionary dictionary];
+//        for(int i=0; i<self.dataSetArray.count; i++){
+//            NSString *userNo = [[self.dataSetArray objectAtIndex:i] objectForKey:@"CUSER_NO"];
+//            if([[NSString stringWithFormat:@"%@", userNo] isEqualToString:[NSString stringWithFormat:@"%@", buttonTag]]){
+//                selectDict = [self.dataSetArray objectAtIndex:i];
+//                break;
+//            }
+//        }
+//        NSLog(@"selectDict : %@", selectDict);
+
+        BOOL isAlready = NO;
+        for (int i=0; i<self.checkArray.count; i++) {
+            if([self.fromSegue isEqualToString:@"TASK_MANAGER"] || [self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+//                NSString *userNo = [[self.checkArray objectAtIndex:i] objectForKey:@"CUSER_NO"];
+//                if ([[NSString stringWithFormat:@"%@", userNo] isEqualToString:buttonTag]) {
+//                    [self.checkArray removeObjectAtIndex:i];
+//                    isAlready = YES;
+//                }
+                if ([[NSString stringWithFormat:@"%@",[self.checkArray objectAtIndex:i]] isEqualToString:buttonTag]) {
+                    //[self.checkArray removeObject:buttonTag];
+                    [self.checkArray removeObjectAtIndex:i];
+                    isAlready = YES;
+                }
+            } else {
+                if ([[self.checkArray objectAtIndex:i] isEqualToString:buttonTag]) {
+                    [self.checkArray removeObject:buttonTag];
+                    isAlready = YES;
+                }
+            }
+            
+        }
+        
+        if (!isAlready) {
+            if([buttonTag isEqualToString:@"1"]){
+                NSArray *uArr = [self.rowCheckDictionary allKeys];
+                for(int i=0; i<uArr.count; i++){
+                    [self.rowCheckDictionary setObject:@"Y" forKey:uArr[i]];
+                    [self.checkArray addObject:uArr[i]];
+                }
+            } else {
+                [self.rowCheckDictionary setObject:@"Y" forKey:buttonTag];
+                //[self.checkArray addObject:buttonTag];
+                
+                if([self.fromSegue isEqualToString:@"MEMBER_WITHDRAW"]){
+                    [self.checkArray addObject:buttonTag];
+                    if(self.checkArray.count==count-1){
+                        [self.rowCheckDictionary setObject:@"Y" forKey:@"1"];
+                        [self.checkArray addObject:@"1"];
+                    }
+                } else if([self.fromSegue isEqualToString:@"MEMBER_REQUEST"]){
+                    [self.checkArray addObject:buttonTag];
+                    if(self.checkArray.count==count){
+                        [self.rowCheckDictionary setObject:@"Y" forKey:@"1"];
+                        [self.checkArray addObject:@"1"];
+                    }
+                } else if([self.fromSegue isEqualToString:@"TASK_MANAGER"]){
+                    //[self.checkArray addObject:selectDict];
+                    [self.checkArray addObject:buttonTag];
+                    
+                } else if([self.fromSegue isEqualToString:@"TASK_REFERENCE"]){
+                    //[self.checkArray addObject:selectDict];
+                    [self.checkArray addObject:buttonTag];
+                }
+            }
+            
+        } else{
+            if([buttonTag isEqualToString:@"1"]){
+                [self.checkArray removeAllObjects];
+                
+                NSArray *uArr = [self.rowCheckDictionary allKeys];
+                for(int i=0; i<uArr.count; i++){
+                    //if(![uArr[i] isEqualToString:@"1"])
+                    [self.rowCheckDictionary setObject:@"N" forKey:uArr[i]];
+                }
+                
+            } else {
+                [self.rowCheckDictionary setObject:@"N" forKey:buttonTag];
+                
+                if([[self.rowCheckDictionary objectForKey:@"1"] isEqualToString:@"Y"]){
+                    [self.rowCheckDictionary setObject:@"N" forKey:@"1"];
+                    [self.checkArray removeObject:@"1"];
+                }
+            }
+        }
+        NSLog(@"checkArr2 : %@", _checkArray);
+        [self.tableView reloadData];
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+- (UIImage*)imageByScalingAndCroppingForSize:(CGSize)targetSize :(UIImage *)image {
+    UIImage *sourceImage = image;
+    UIImage *newImage = nil;
+    CGSize imageSize = sourceImage.size;
+    CGFloat width = imageSize.width;
+    CGFloat height = imageSize.height;
+    CGFloat targetWidth = targetSize.width;
+    CGFloat targetHeight = targetSize.height;
+    CGFloat scaleFactor = 0.0;
+    CGFloat scaledWidth = targetWidth;
+    CGFloat scaledHeight = targetHeight;
+    CGPoint thumbnailPoint = CGPointMake(0.0,0.0);
+    
+    if (CGSizeEqualToSize(imageSize, targetSize) == NO)
+    {
+        CGFloat widthFactor = targetWidth / width;
+        CGFloat heightFactor = targetHeight / height;
+        
+        if (widthFactor > heightFactor)
+            scaleFactor = widthFactor; // scale to fit height
+        else
+            scaleFactor = heightFactor; // scale to fit width
+        scaledWidth  = width * scaleFactor;
+        scaledHeight = height * scaleFactor;
+        
+        // center the image
+        if (widthFactor > heightFactor)
+        {
+            thumbnailPoint.y = (targetHeight - scaledHeight) * 0.5;
+        }
+        else
+            if (widthFactor < heightFactor)
+            {
+                thumbnailPoint.x = (targetWidth - scaledWidth) * 0.5;
+            }
+    }
+    
+    //UIGraphicsBeginImageContext(targetSize); // this will crop
+    UIGraphicsBeginImageContextWithOptions(targetSize, NO, [UIScreen mainScreen].scale);
+    
+    CGRect thumbnailRect = CGRectZero;
+    thumbnailRect.origin = thumbnailPoint;
+    thumbnailRect.size.width  = scaledWidth;
+    thumbnailRect.size.height = scaledHeight;
+    
+    [sourceImage drawInRect:thumbnailRect];
+    
+    newImage = UIGraphicsGetImageFromCurrentImageContext();
+    if(newImage == nil)
+        NSLog(@"could not scale image");
+    
+    //pop the context to get back to the default
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+-(void)sendToHilee:(NSString *)func :(NSException *)exception{
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:NSLocalizedString(@"exception_msg_exception", @"exception_msg_exception") preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* sendButton = [UIAlertAction actionWithTitle:@"관리자에게 전송" style:UIAlertActionStyleDefault
+                                                       handler:^(UIAlertAction * action) {
+                                                           [alert dismissViewControllerAnimated:YES completion:nil];
+                                                           
+                                                           UIDevice *device = [UIDevice currentDevice];
+                                                           NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+                                                           NSString *dvcKind = [device modelName];
+                                                           NSString *dvcVer = device.systemVersion;
+                                                           
+                                                           MFMessageComposeViewController *controller = [[MFMessageComposeViewController alloc] init];
+                                                           if([MFMessageComposeViewController canSendText])
+                                                           {
+                                                               controller.body = [NSString stringWithFormat:@"%@ / %@ / %@ \n%@ \n\n%@", dvcKind, dvcVer, myUserNo, func, exception];
+                                                               controller.recipients = [NSArray arrayWithObject:@"01093917822"];
+                                                               controller.messageComposeDelegate = self;
+                                                               [self presentViewController:controller animated:YES completion:nil];
+                                                           }
+                                                       }];
+    
+    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                     handler:^(UIAlertAction * action) {
+                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                     }];
+    
+    [alert addAction:sendButton];
+    [alert addAction:okButton];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)messageComposeViewController:(nonnull MFMessageComposeViewController *)controller didFinishWithResult:(MessageComposeResult)result {
+    NSString *resultString;
+    switch (result) {
+        case MessageComposeResultCancelled:
+            resultString = NSLocalizedString(@"cancel", @"");
+            break;
+            
+        case MessageComposeResultFailed:
+        {
+            resultString = NSLocalizedString(@"fail", @"");
+            break;
+        }
+            
+        case MessageComposeResultSent:
+            resultString = NSLocalizedString(@"success", @"");
+            break;
+            
+        default:
+            break;
+    }
+    [self dismissViewControllerAnimated:YES completion:^{
+        NSLog(@"%s resultString : %@",__FUNCTION__,resultString);
+    }];
+}
+
+@end

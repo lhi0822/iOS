@@ -1,0 +1,43 @@
+//
+//  MFDBHelper.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 22..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "AppDelegate.h"
+#import <sqlite3.h>
+
+@interface MFDBHelper : NSObject {
+    sqlite3 *db;
+}
+
+//@property (nonatomic, strong) NSArray *documentPaths;
+//@property (nonatomic, strong) NSString *documentsDir;
+//@property (nonatomic, strong) NSString *DBName;
+//@property (nonatomic, strong) NSString *DBPath;
+
+@property (nonatomic, strong) NSString *userId;
+@property (nonatomic, strong) NSMutableDictionary *versionDic;
+@property (strong, nonatomic) NSMutableArray *selectArr;
+
+- (instancetype)init :(NSString *)userId;
+- (void)checkAndCreateDatabase;
+- (void)changeDBVersion;
+- (NSString *)filePath;
+
+- (void)selectStatement:(NSString *)dbPath :(NSString *)selectStmt;
+- (void)crudStatement:(NSString *)crudStmt;
+- (void)crudStatement:(NSString *)dbPath :(NSString *)crudStmt;
+
+- (NSString *)selectPushNoti:(NSString *)query;
+- (NSMutableArray *)selectRoomList;
+- (NSMutableArray *)selectQuery: (NSString *)sqlString;
+- (NSMutableArray *)selectStmtHelper:(NSString *)dbPath :(NSString *)selectStmt;
+
+- (void)createLocalFolder;
+- (UIImage *)saveThumbImage :(NSString *)folder :(NSString *)thumbFilePath;
+
+@end

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14490.49"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner"/>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view contentMode="scaleToFill" id="iN0-l3-epB" customClass="CustomHeader">
+            <rect key="frame" x="0.0" y="0.0" width="375" height="305"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="mVh-F3-E7u">
+                    <rect key="frame" x="0.0" y="0.0" width="375" height="140"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="140" id="Pnr-1j-FsT"/>
+                    </constraints>
+                </imageView>
+                <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="BoD-Fb-EzF">
+                    <rect key="frame" x="16" y="103" width="114" height="114"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxY="YES"/>
+                    <state key="normal" image="profile_default.png"/>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" semanticContentAttribute="forceRightToLeft" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="p5T-Hr-1hH">
+                    <rect key="frame" x="147" y="151" width="212" height="29"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="20"/>
+                    <state key="normal" title="-">
+                        <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    </state>
+                </button>
+                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalCompressionResistancePriority="751" fixedFrame="YES" text="-" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Wtb-a0-dNX">
+                    <rect key="frame" x="147" y="184" width="212" height="33"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <color key="textColor" white="0.33333333329999998" alpha="1" colorSpace="calibratedWhite"/>
+                    <nil key="highlightedColor"/>
+                </label>
+                <button opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="249" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="6At-wZ-KPM">
+                    <rect key="frame" x="16" y="242" width="160" height="44"/>
+                    <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                    <color key="backgroundColor" red="0.90196079019999997" green="0.90196079019999997" blue="0.90196079019999997" alpha="1" colorSpace="calibratedRGB"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                    <state key="normal">
+                        <color key="titleColor" red="0.1137254902" green="0.27450980390000002" blue="0.58823529409999997" alpha="1" colorSpace="calibratedRGB"/>
+                    </state>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="249" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jaz-Yl-rdT">
+                    <rect key="frame" x="199" y="242" width="160" height="44"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMinX="YES" widthSizable="YES" flexibleMaxY="YES"/>
+                    <color key="backgroundColor" red="0.90196079019999997" green="0.90196079019999997" blue="0.90196079019999997" alpha="1" colorSpace="calibratedRGB"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                    <state key="normal">
+                        <color key="titleColor" red="0.1137254902" green="0.27450980390000002" blue="0.58823529409999997" alpha="1" colorSpace="calibratedRGB"/>
+                    </state>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="8tK-5C-EQT">
+                    <rect key="frame" x="24" y="26" width="75" height="69"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="75" id="IaK-cQ-M8c"/>
+                        <constraint firstAttribute="height" constant="69" id="TFh-vP-3ZM"/>
+                    </constraints>
+                    <state key="normal" image="btn_close.png"/>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="1gQ-mh-iiy">
+                    <rect key="frame" x="16" y="242" width="343" height="44"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMinY="YES" flexibleMaxY="YES"/>
+                    <fontDescription key="fontDescription" type="system" pointSize="15"/>
+                    <state key="normal">
+                        <color key="titleColor" red="0.1137254902" green="0.27450980390000002" blue="0.58823529409999997" alpha="1" colorSpace="calibratedRGB"/>
+                    </state>
+                </button>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="mVh-F3-E7u" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" id="3x6-rc-t6W"/>
+                <constraint firstAttribute="trailing" secondItem="mVh-F3-E7u" secondAttribute="trailing" id="axg-Yi-uQI"/>
+                <constraint firstItem="8tK-5C-EQT" firstAttribute="top" secondItem="mVh-F3-E7u" secondAttribute="top" constant="26" id="hcq-Ib-SXa"/>
+                <constraint firstItem="8tK-5C-EQT" firstAttribute="leading" secondItem="mVh-F3-E7u" secondAttribute="leading" constant="24" id="nuS-Jj-imu"/>
+                <constraint firstItem="mVh-F3-E7u" firstAttribute="leading" secondItem="iN0-l3-epB" secondAttribute="leading" id="tA3-88-pZD"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <connections>
+                <outlet property="closeButton" destination="8tK-5C-EQT" id="rT4-MW-g8v"/>
+                <outlet property="closeButtonTopHeight" destination="hcq-Ib-SXa" id="Oh4-nh-vLh"/>
+                <outlet property="menuButton1" destination="6At-wZ-KPM" id="ekK-GV-WBf"/>
+                <outlet property="menuButton2" destination="jaz-Yl-rdT" id="QoY-EN-YuP"/>
+                <outlet property="menuButton3" destination="1gQ-mh-iiy" id="lRS-Yk-9br"/>
+                <outlet property="profileBgImgView" destination="mVh-F3-E7u" id="yLI-Hq-02i"/>
+                <outlet property="profileImageButton" destination="BoD-Fb-EzF" id="PZu-04-oWc"/>
+                <outlet property="userNameButton" destination="p5T-Hr-1hH" id="vhU-tH-XTU"/>
+                <outlet property="userStatusLabel" destination="Wtb-a0-dNX" id="MVV-mq-Lf1"/>
+            </connections>
+            <point key="canvasLocation" x="340" y="331.48425787106447"/>
+        </view>
+    </objects>
+    <resources>
+        <image name="btn_close.png" width="33" height="33"/>
+        <image name="profile_default.png" width="116" height="116"/>
+    </resources>
+</document>

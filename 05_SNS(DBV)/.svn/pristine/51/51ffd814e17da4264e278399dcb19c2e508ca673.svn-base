@@ -1,0 +1,247 @@
+//
+//  MyMessageViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 6. 4..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "MyMessageViewController.h"
+#import "MFStyle.h"
+
+@interface MyMessageViewController () {
+    AppDelegate *appDelegate;
+}
+
+@property (nonatomic, weak) NSLayoutConstraint *heightConstraint;
+@property (nonatomic, weak) NSLayoutConstraint *minHeightConstraint;
+@property (nonatomic, weak) NSLayoutConstraint *maxHeightConstraint;
+
+@end
+
+@implementation MyMessageViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    NSLog(@"MyMessageViewController fromSegue : %@", self.fromSegue);
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillAnimate:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillAnimate:) name:UIKeyboardWillHideNotification object:nil];
+    
+    NSArray *subViews = [self.navigationController.navigationBar subviews];
+    
+    for (UIView *subview in subViews) {
+        NSString *viewName = [NSString stringWithFormat:@"%@",[subview class]];
+        if ([viewName isEqualToString:@"UITextField"]) {
+            [subview removeFromSuperview];
+        }
+    }
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.navigationController.navigationBar.topItem.title = @"";
+    
+    /*
+     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 5, 20)];
+     self.textView.leftView = paddingView;
+     self.textView.leftViewMode = UITextFieldViewModeAlways;
+     
+     self.textView.text = self.statusMsg;
+     self.textView.delegate = self;
+     */
+    
+    self.msgCount.hidden = YES;
+    
+    self.msgTextView.text = self.statusMsg;
+    self.msgTextView.textContainer.maximumNumberOfLines = 0;
+    self.msgTextView.fromSegue = self.fromSegue;
+    
+    if([self.fromSegue isEqualToString:@"BOARD_MSG_NAME"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"게시판이름", @"게시판이름")];
+        self.label1.text = @"게시판 이름을 입력해 주세요.";
+        
+    } else if([self.fromSegue isEqualToString:@"BOARD_MSG_DESC"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"게시판소개", @"게시판소개")];
+        self.label1.text = @"게시판 소개를 입력해 주세요.";
+        
+    } else if([self.fromSegue isEqualToString:@"MY_MSG_CHANGE_PUSH"]){
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"상태메시지", @"상태메시지")];
+        self.label1.text = @"상태메시지를 입력해 주세요.";
+        
+    } else {
+        
+    }
+    self.navigationItem.rightBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"msg25", @"")
+                                                                            style:UIBarButtonItemStylePlain
+                                                                           target:self
+                                                                           action:@selector(rightSideMenuButtonPressed:)];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self.view endEditing:YES];
+}
+
+- (void)noti_ChangeProfilePush:(NSNotification *)notification {
+    NSLog(@"%s", __func__);
+    //NSLog(@"notification : %@", notification.userInfo );
+    NSArray *dataSet = [notification.userInfo objectForKey:@"DATASET"];
+    NSString *profileMsg = [NSString urlDecodeString:[[dataSet objectAtIndex:0] objectForKey:@"PROFILE_MSG"]];
+    self.msgTextView.text = profileMsg;
+}
+
+
+#pragma mark - UITextView Delegate
+/*
+ - (BOOL)textField:(UITextField *)inputTextField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string
+ {
+ self.msgCount.hidden = NO;
+ if([self.fromSegue isEqualToString:@"BOARD_MSG_NAME"]){
+ self.msgCount.text = [NSString stringWithFormat:@"%lu/60", inputTextField.text.length];
+ 
+ if (inputTextField.text.length > 60){
+ NSLog(@"게시판 이름 글자수 제한");
+ return NO;
+ }
+ 
+ } else if([self.fromSegue isEqualToString:@"BOARD_MSG_DESC"]){
+ self.msgCount.text = [NSString stringWithFormat:@"%lu/300", inputTextField.text.length];
+ 
+ if (inputTextField.text.length > 300){
+ NSLog(@"게시판 설명 글자수 제한");
+ return NO;
+ }
+ 
+ } else {
+ self.msgCount.text = [NSString stringWithFormat:@"%lu/60", inputTextField.text.length];
+ 
+ if (inputTextField.text.length > 60){
+ NSLog(@"상태메시지 글자수 제한");
+ return NO;
+ }
+ }
+ 
+ return YES;
+ }
+ */
+
+- (void)rightSideMenuButtonPressed:(id)sender {
+    [self callWebService];
+}
+
+- (void)callWebService{
+    NSString *urlString = appDelegate.main_url;
+    NSString *userNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+    NSString *compNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"COMP_NO"];
+    //NSString *msg = self.msgTextView.text;
+    
+    NSString *msg = [self.msgTextView.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    //NSLog(@"userNo : %@, msg : %@", userNo, msg);
+    
+    NSString *encodeMsg = [msg stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    if([encodeMsg rangeOfString:@"&"].location != NSNotFound){
+        encodeMsg = [encodeMsg stringByReplacingOccurrencesOfString:@"&" withString:@"%26"];
+    }
+    
+    if([self.fromSegue isEqualToString:@"BOARD_MSG_NAME"]){
+        if(msg!=nil&&![msg isEqualToString:@""]){
+            //NSDictionary *dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"NAME",@"TYPE", msg,@"SNS_NAME", nil];
+            NSDictionary *dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"NAME",@"TYPE", encodeMsg,@"SNS_NAME", nil];
+            [self.navigationController popViewControllerAnimated:YES];
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeSubInfo1" object:nil userInfo:dic];
+            
+        } else {
+            UIAlertController * alert = [UIAlertController alertControllerWithTitle:nil message:@"게시판 이름을 입력해주세요." preferredStyle:UIAlertControllerStyleAlert];
+            [self presentViewController:alert animated:YES completion:nil];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [alert dismissViewControllerAnimated:YES completion:nil];
+            });
+        }
+        
+    } else if([self.fromSegue isEqualToString:@"BOARD_MSG_DESC"]){
+        if(msg==nil&&[msg isEqualToString:@""]){
+            msg = @"";
+        }
+        NSDictionary *dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"DESC",@"TYPE", encodeMsg,@"SNS_DESC", nil];
+        [self.navigationController popViewControllerAnimated:YES];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeSubInfo1" object:nil userInfo:dic];
+        
+    } else if([self.fromSegue isEqualToString:@"MY_MSG_CHANGE_PUSH"]){
+        NSString *paramString = [NSString stringWithFormat:@"usrNo=%@&msg=%@&compNo=%@", userNo, encodeMsg, compNo];
+        NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:@"saveProfileMsg"]];
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        session.delegate = self;
+        if ([session start]) {
+            [SVProgressHUD show];
+        }
+        
+    } else {
+        
+    }
+}
+
+- (void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    [SVProgressHUD dismiss];
+    if (error!=nil) {
+        NSLog(@"error : %@",error);
+    }else{
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+}
+
+- (void)keyboardWillAnimate:(NSNotification *)notification{
+    CGRect keyboardBounds;
+    [[notification.userInfo valueForKey:UIKeyboardFrameEndUserInfoKey] getValue:&keyboardBounds];
+    NSNumber *duration = [notification.userInfo objectForKey:UIKeyboardAnimationDurationUserInfoKey];
+    NSNumber *curve = [notification.userInfo objectForKey:UIKeyboardAnimationCurveUserInfoKey];
+    
+    keyboardBounds = [self.view convertRect:keyboardBounds toView:nil];
+    [UIView beginAnimations:nil context:NULL];
+    [UIView setAnimationDuration:[duration doubleValue]];
+    [UIView setAnimationCurve:[curve intValue]];
+    NSDictionary* info = [notification userInfo];
+    //CGSize kbSize = [[info objectForKey:UIKeyboardFrameBeginUserInfoKey] CGRectValue].size;
+    CGSize kbSize = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size;
+    NSLog(@"kbSize : %f, %f",kbSize.width, kbSize.height);
+    NSLog(@"[notification name] : %@",[notification name]);
+    if (@available(iOS 11.0, *)) {
+        kbSize.height = kbSize.height - self.view.safeAreaInsets.bottom;
+    } else {
+        kbSize.height = kbSize.height;
+    }
+    
+    if ([notification name]==UIKeyboardWillShowNotification) {
+        
+        self.keyboardHeight.constant = kbSize.height;
+        [self.view layoutIfNeeded];
+        //CGPoint bottomOffset = CGPointMake(0, self.tableView.contentSize.height - self.tableView.bounds.size.height);
+        //[self.tableView setContentOffset:bottomOffset animated:YES];
+    }else if([notification name]==UIKeyboardWillHideNotification){
+        NSLog(@"else if([notification name]==UIKeyboardWillHideNotification)");
+        
+        self.keyboardHeight.constant = 0;
+        [self.view layoutIfNeeded];
+    }
+    [UIView commitAnimations];
+}
+
+
+/*
+ #pragma mark - Navigation
+ 
+ // In a storyboard-based application, you will often want to do a little preparation before navigation
+ - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+ // Get the new view controller using [segue destinationViewController].
+ // Pass the selected object to the new view controller.
+ }
+ */
+
+@end

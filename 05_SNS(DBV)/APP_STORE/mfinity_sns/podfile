@@ -1,0 +1,10 @@
+target 'mfinity_sns' do
+
+	pod 'Firebase/Analytics'
+	pod 'Firebase/Messaging'
+
+	use_frameworks!
+
+	pod 'RMQClient', '~> 0.10.0' 
+
+end

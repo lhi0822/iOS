@@ -1,0 +1,448 @@
+//
+//  TaskHistoryViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 3. 23..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "TaskHistoryViewController.h"
+#import "TaskHistoryTableViewCell.h"
+#import "MFStyle.h"
+
+@interface TaskHistoryViewController () {
+    float historyHeight;
+    AppDelegate *appDelegate;
+}
+
+@end
+
+@implementation TaskHistoryViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+    
+    self.navigationController.navigationBar.translucent = NO;
+    self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+    self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+    
+    self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"변동이력", @"변동이력")];
+    
+    //    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"msg3", @"")
+    //                                                                             style:UIBarButtonItemStylePlain
+    //                                                                            target:self
+    //                                                                            action:@selector(rightSideMenuButtonPressed:)];
+    
+    self.navigationItem.leftBarButtonItem =[[UIBarButtonItem alloc]initWithImage:[self getScaledImage:[UIImage imageNamed:@"btn_close.png"] scaledToMaxWidth:20] style:UIBarButtonItemStylePlain target:self action:@selector(closeModal:)];
+    
+    historyHeight = 0;
+    self.lastHistNo = @"1";
+    self.dataSetArr = [NSMutableArray array];
+    [self callWebService:@"getTaskHistory"];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+//-(void)rightSideMenuButtonPressed:(id)sender{
+//    @try{
+//
+//    } @catch(NSException *exception){
+//        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+//    }
+//}
+-(void)closeModal:(id)sender {
+    NSLog(@"%s", __func__);
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+-(void)callWebService:(NSString *)serviceName{
+    @try{
+        NSString *urlString = appDelegate.main_url;
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *myUserNo = [prefs objectForKey:@"CUSER_NO"];
+        NSURL *url = [NSURL URLWithString:[urlString stringByAppendingPathComponent:serviceName]];
+        NSString *paramString = nil;
+        
+        if([serviceName isEqualToString:@"getTaskHistory"]){
+            paramString = [NSString stringWithFormat:@"usrNo=%@&taskNo=%@&stSeq=%@", myUserNo, self.taskNo, self.lastHistNo];
+        }
+        
+        MFURLSession *session = [[MFURLSession alloc]initWithURL:url option:paramString];
+        session.delegate = self;
+        if ([session start]) {
+            [SVProgressHUD show];
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+#pragma mark - MFURLSessionDelegate
+-(void)returnDataWithObject:(MFURLSession *)session error:(NSString *)error{
+    //Progress stop..gesture recognizers added to a view
+    [SVProgressHUD dismiss];
+    
+    @try {
+        if(error!=nil || [error isEqualToString:@"(null)"]) {
+            if ([error isEqualToString:@"The request timed out."]) {
+                
+            } else {
+                NSLog(@"%s \n Error Message : %@",__FUNCTION__,error);
+                NSString *errorMsg =[error stringByAppendingFormat:@"\n=======WebService========\n%@",session.url.absoluteString];
+                errorMsg = [errorMsg stringByAppendingFormat:@"\n=======Parameter========\n%@",session.paramString];
+                errorMsg = [errorMsg stringByAppendingFormat:@"\n=======return string========\n%@",session.returnDataString];
+                UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"msg18", @"")
+                                                                               message:errorMsg
+                                                                        preferredStyle:UIAlertControllerStyleAlert];
+                
+                UIAlertAction* okAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg3", @"") style:UIAlertActionStyleDefault
+                                                                 handler:^(UIAlertAction * action) {}];
+                UIAlertAction* retryAction = [UIAlertAction actionWithTitle:NSLocalizedString(@"msg19", @"") style:UIAlertActionStyleDefault
+                                                                    handler:^(UIAlertAction * action) { /*[self callWebService:@"getPostLists"];*/ }];
+                
+                [alert addAction:okAction];
+                [alert addAction:retryAction];
+                [self presentViewController:alert animated:YES completion:nil];
+            }
+        } else {
+            NSString *result = [session.returnDictionary objectForKey:@"RESULT"];
+            NSString *wsName = [[session.url absoluteString] lastPathComponent];
+            
+            if([wsName isEqualToString:@"getTaskHistory"]){
+                NSLog(@"session.returnDictionary : %@", session.returnDictionary);
+                self.dataSetArr = [session.returnDictionary objectForKey:@"DATASET"];
+                NSUInteger count = self.dataSetArr.count;
+                NSString *seq = [[NSString alloc]init];
+                for(int i=1; i<=count; i++){
+                    seq = [NSString stringWithFormat:@"%d", [self.lastHistNo intValue]+i];
+                }
+                
+                [self.tableView reloadData];
+            }
+        }
+        
+    } @catch (NSException *exception) {
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+-(void)returnError:(MFURLSession *)session error:(NSError *)error{
+    //NSLog(@"error : %@", error);
+    @try{
+        if(error.code == -1009){
+            [SVProgressHUD dismiss];
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:@"인터넷 연결이 오프라인 상태입니다." preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {
+                                                                 NSURL *url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                                                                 [[UIApplication sharedApplication] openURL:url];
+                                                                 
+                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                             }];
+            [alert addAction:okButton];
+            [self presentViewController:alert animated:YES completion:nil];
+        }
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+
+#pragma mark - UITableViewDelegate UITableViewDataSource
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static TaskHistoryTableViewCell *cell   = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        cell = [[NSBundle mainBundle] loadNibNamed:@"TaskHistoryTableViewCell" owner:self options:nil][0];
+    });
+    
+    [self tmpSetUpHistoryCell:cell atIndexPath:indexPath];
+    return historyHeight+50;
+}
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.dataSetArr.count;
+}
+
+-(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    TaskHistoryTableViewCell *cell = (TaskHistoryTableViewCell *)[tableView dequeueReusableCellWithIdentifier:@"TaskHistoryTableViewCell"];
+    if (cell == nil) {
+        NSArray *topLevelObject = [[NSBundle mainBundle] loadNibNamed:@"TaskHistoryTableViewCell" owner:self options:nil];
+        
+        for (id currentObject in topLevelObject) {
+            if ([currentObject isKindOfClass:[TaskHistoryTableViewCell class]]) {
+                cell = (TaskHistoryTableViewCell *) currentObject;
+                [cell setSelectionStyle:UITableViewCellSelectionStyleNone];
+            }
+        }
+    }
+    
+    NSString *content = [NSString urlDecodeString:[[self.dataSetArr objectAtIndex:indexPath.item] objectForKey:@"CONTENT"]];
+    NSString *histDate = [NSString urlDecodeString:[[self.dataSetArr objectAtIndex:indexPath.item] objectForKey:@"HISTORY_DATE"]];
+    NSString *histUserNo = [[self.dataSetArr objectAtIndex:indexPath.item] objectForKey:@"CUSER_NO"];
+    
+    NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *error;
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+    
+    NSString *histType = [dict objectForKey:@"TYPE"];
+    NSString *histName = [dict objectForKey:@"NAME"];
+    NSString *histContent = [dict objectForKey:@"CONTENT"];
+    
+    NSString *tyStr = nil;
+    NSString *postPosition = nil;;
+    
+    if([histType isEqualToString:@"TITLE"]){
+        tyStr = @"업무명";
+        postPosition = @"을";
+    } else if([histType isEqualToString:@"STATUS"]){
+        tyStr = @"상태";
+        postPosition = @"를";
+        
+        if([histContent isEqualToString:@"1"]) histContent=@"요청";
+        else if([histContent isEqualToString:@"2"]) histContent=@"진행";
+        else if([histContent isEqualToString:@"3"]) histContent=@"완료";
+        else if([histContent isEqualToString:@"4"]) histContent=@"보류";
+        
+    } else if([histType isEqualToString:@"MANAGER"]){
+        tyStr = @"수행자";
+        postPosition = @"를";
+        
+    } else if([histType isEqualToString:@"REFERENCER"]){
+        tyStr = @"참조자";
+        postPosition = @"를";
+        
+    } else if([histType isEqualToString:@"START_DATE"]){
+        tyStr = @"시작일";
+        postPosition = @"을";
+        
+    } else if([histType isEqualToString:@"END_DATE"]){
+        tyStr = @"완료일";
+        postPosition = @"을";
+        
+    }  else if([histType isEqualToString:@"PROGRESS"]){
+        tyStr = @"진행률";
+        postPosition = @"을";
+        
+    } else if([histType isEqualToString:@"CAPTION"]){
+        tyStr = @"설명";
+        postPosition = @"을";
+    }
+    else if([histType isEqualToString:@"ATTACHED_FILE"]){
+        tyStr = @"첨부파일";
+        postPosition = @"을";
+    }
+    
+    if([[NSString stringWithFormat:@"%@", self.createUserNo] isEqualToString:[NSString stringWithFormat:@"%@", histUserNo]]){
+        cell.iconView.image = [UIImage imageNamed:@"icon_crown.png"];
+    } else {
+        
+    }
+    
+    NSMutableAttributedString *attrHistName = [[NSMutableAttributedString alloc] initWithString:histName attributes:@{NSFontAttributeName:[UIFont boldSystemFontOfSize:13]}];
+    NSMutableAttributedString *str = [[NSMutableAttributedString alloc] init];
+    [str appendAttributedString:attrHistName];
+    
+    NSAttributedString *str3;
+    if(histContent==nil||[histContent isEqualToString:@""]){
+        NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition] attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]}];
+        if([histType isEqualToString:@"ATTACHED_FILE"]){
+            //NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:@"님이 "];
+            [str appendAttributedString:str2];
+            str3 = [[NSAttributedString alloc] initWithString:@"변경하였습니다." attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]}];
+        } else {
+            //NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+            [str appendAttributedString:str2];
+            str3 = [[NSAttributedString alloc] initWithString:@"미지정 하였습니다." attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]}];
+        }
+        
+    } else {
+        NSMutableAttributedString *attrHistContent = [[NSMutableAttributedString alloc] initWithString:histContent attributes:@{NSFontAttributeName:[UIFont boldSystemFontOfSize:13],  NSForegroundColorAttributeName:[MFUtil myRGBfromHex:@"1D4696"]}];
+        
+        //                if([histType isEqualToString:@"ATTACHED_FILE"]){
+        //                    NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:@"님이 "];
+        //                    [str appendAttributedString:str2];
+        //                    [str appendAttributedString:attrHistContent];
+        //                    str3 = [[NSAttributedString alloc] initWithString:@"을 변경하였습니다."];
+        //                } else {
+        NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition] attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]}];
+        [str appendAttributedString:str2];
+        [str appendAttributedString:attrHistContent];
+        str3 = [[NSAttributedString alloc] initWithString:@"(으)로 변경하였습니다." attributes:@{NSFontAttributeName:[UIFont systemFontOfSize:13]}];
+        //                }
+        
+    }
+    
+    [str appendAttributedString:str3];
+    
+    cell.contentLbl.attributedText = str;
+    //cell.contentTextView.attributedText = str;
+    cell.dateLbl.text = histDate;
+    
+    return cell;
+}
+
+- (void)tmpSetUpHistoryCell:(TaskHistoryTableViewCell *)cell atIndexPath:(NSIndexPath *)indexPath {
+    historyHeight = 0;
+    NSString *content = [NSString urlDecodeString:[[self.dataSetArr objectAtIndex:indexPath.item] objectForKey:@"CONTENT"]];
+    
+    NSData *jsonData = [content dataUsingEncoding:NSUTF8StringEncoding];
+    NSError *error;
+    NSDictionary *dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+    
+    NSString *histType = [dict objectForKey:@"TYPE"];
+    NSString *histName = [dict objectForKey:@"NAME"];
+    NSString *histContent = [dict objectForKey:@"CONTENT"];
+    
+    NSString *tyStr = nil;
+    NSString *postPosition = nil;;
+    
+    if([histType isEqualToString:@"TITLE"]){
+        tyStr = @"업무명";
+        postPosition = @"을";
+    } else if([histType isEqualToString:@"STATUS"]){
+        tyStr = @"상태";
+        postPosition = @"를";
+        
+        if([histContent isEqualToString:@"1"]) histContent=@"요청";
+        else if([histContent isEqualToString:@"2"]) histContent=@"진행";
+        else if([histContent isEqualToString:@"3"]) histContent=@"완료";
+        else if([histContent isEqualToString:@"4"]) histContent=@"보류";
+        
+    } else if([histType isEqualToString:@"MANAGER"]){
+        tyStr = @"수행자";
+        postPosition = @"를";
+        
+    } else if([histType isEqualToString:@"REFERENCER"]){
+        tyStr = @"참조자";
+        postPosition = @"를";
+        
+    } else if([histType isEqualToString:@"START_DATE"]){
+        tyStr = @"시작일";
+        postPosition = @"을";
+        
+    } else if([histType isEqualToString:@"END_DATE"]){
+        tyStr = @"완료일";
+        postPosition = @"을";
+        
+    }  else if([histType isEqualToString:@"PROGRESS"]){
+        tyStr = @"진행률";
+        postPosition = @"을";
+        
+    } else if([histType isEqualToString:@"CAPTION"]){
+        tyStr = @"설명";
+        postPosition = @"을";
+        
+    } else if([histType isEqualToString:@"ATTACHED_FILE"]){
+        tyStr = @"첨부파일";
+        postPosition = @"을";
+    }
+    
+    NSMutableAttributedString *attrHistName = [[NSMutableAttributedString alloc] initWithString:histName attributes:@{NSFontAttributeName:[UIFont boldSystemFontOfSize:13]}];
+    NSMutableAttributedString *str = [[NSMutableAttributedString alloc] init];
+    [str appendAttributedString:attrHistName];
+    
+    NSAttributedString *str3;
+    if(histContent==nil||[histContent isEqualToString:@""]){
+        NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+        if([histType isEqualToString:@"ATTACHED_FILE"]){
+            //NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:@"님이 "];
+            [str appendAttributedString:str2];
+            str3 = [[NSAttributedString alloc] initWithString:@"변경하였습니다."];
+        } else {
+            //NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+            [str appendAttributedString:str2];
+            str3 = [[NSAttributedString alloc] initWithString:@"미지정 하였습니다."];
+        }
+        
+    } else {
+        NSMutableAttributedString *attrHistContent = [[NSMutableAttributedString alloc] initWithString:histContent attributes:@{NSFontAttributeName:[UIFont boldSystemFontOfSize:13],  NSForegroundColorAttributeName:[MFUtil myRGBfromHex:@"1D4696"]}];
+        
+        //                if([histType isEqualToString:@"ATTACHED_FILE"]){
+        //                    NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:@"님이 "];
+        //                    [str appendAttributedString:str2];
+        //                    [str appendAttributedString:attrHistContent];
+        //                    str3 = [[NSAttributedString alloc] initWithString:@"을 변경하였습니다."];
+        //                } else {
+        NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+        [str appendAttributedString:str2];
+        [str appendAttributedString:attrHistContent];
+        str3 = [[NSAttributedString alloc] initWithString:@"(으)로 변경하였습니다."];
+        //                }
+        
+    }
+    //    if(histContent==nil){
+    //        NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+    //        [str appendAttributedString:str2];
+    //        str3 = [[NSAttributedString alloc] initWithString:@"미지정 하였습니다."];
+    //
+    //    } else {
+    //        NSMutableAttributedString *attrHistContent = [[NSMutableAttributedString alloc] initWithString:histContent attributes:@{NSFontAttributeName:[UIFont boldSystemFontOfSize:13],  NSForegroundColorAttributeName:[MFUtil myRGBfromHex:@"1D4696"]}];
+    //
+    //        if([histType isEqualToString:@"ATTACHED_FILE"]){
+    //            NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:@"님이 "];
+    //            [str appendAttributedString:str2];
+    //            [str appendAttributedString:attrHistContent];
+    //            str3 = [[NSAttributedString alloc] initWithString:@"을 변경하였습니다."];
+    //        } else {
+    //            NSAttributedString *str2 = [[NSAttributedString alloc] initWithString:[NSString stringWithFormat:@"님이 %@%@ ", tyStr, postPosition]];
+    //            [str appendAttributedString:str2];
+    //            [str appendAttributedString:attrHistContent];
+    //            str3 = [[NSAttributedString alloc] initWithString:@"(으)로 변경하였습니다."];
+    //        }
+    //        //NSAttributedString *str3 = [[NSAttributedString alloc] initWithString:@"(으)로 변경 하였습니다."];
+    //    }
+    [str appendAttributedString:str3];
+    
+    CGSize maximumSize = CGSizeMake(300, 9999);
+    CGRect rect = [str boundingRectWithSize:(CGSize)maximumSize options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+    CGSize textStringSize = rect.size;
+    
+    //    if(textStringSize.height>cell.contentTextView.frame.size.height){
+    //        historyHeight = textStringSize.height-cell.contentTextView.frame.size.height;
+    //    }
+    if(textStringSize.height>cell.contentLbl.frame.size.height){
+        historyHeight = textStringSize.height-cell.contentLbl.frame.size.height;
+    }
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+@end

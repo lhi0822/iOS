@@ -1,0 +1,237 @@
+//
+//  BoardTypeViewController.m
+//  mfinity_sns
+//
+//  Created by hilee on 2018. 1. 3..
+//  Copyright © 2018년 com.dbvalley. All rights reserved.
+//
+
+#import "BoardTypeViewController.h"
+#import "BoardTypeViewCell.h"
+#import "UIViewController+MJPopupViewController.h"
+#import "UIDevice-Hardware.h"
+
+@interface BoardTypeViewController () {
+    NSArray *keyArray;
+    NSArray *valArray;
+    BoardTypeViewCell *cell;
+    NSInteger currentSelectedIndex;
+    UIButton *currentBtn;
+    NSMutableArray *btnArray;
+    int cellHeight;
+}
+
+@end
+
+@implementation BoardTypeViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    NSLog(@"BoardTypeViewController fromSegue : %@", self.fromSegue);
+    
+    cellHeight = 0;
+    
+    self.tableView.delegate = self;
+    self.tableView.dataSource = self;
+    
+    self.tableView.rowHeight = UITableViewAutomaticDimension;
+    self.tableView.estimatedRowHeight = 50;
+    
+    btnArray = [NSMutableArray array];
+    
+    CGFloat width = [UIScreen mainScreen].bounds.size.width;
+    
+    [self.tableView registerNib:[UINib nibWithNibName:@"BoardTypeViewCell" bundle:nil] forCellReuseIdentifier:@"BoardTypeViewCell"];
+    
+    if([self.fromSegue isEqualToString:@"SELECT_SNS_KIND"]){
+        keyArray = @[@"일반형", @"프로젝트형"];
+        valArray = @[@"일반 게시판을 생성합니다.", @"프로젝트 관리 게시판을 생성합니다."];
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_TYPE"]){
+        keyArray = @[@"공개", /*@"이름공개",*/ @"비공개"];
+        valArray = @[@"사용자가 게시판 검색 시 검색결과에 노출 되는 게시판 입니다.",
+                     /*@"사용자가 게시판 검색 시 검색결과에 노출되지만 게시판에 가입 할 수 없는 게시판 입니다. 초대로 가입 가능 합니다.",*/
+                     @"사용자가 게시판 검색 시 검색결과에 노출 되지 않으며 가입 할 수 없는 게시판 입니다. 초대로 가입 가능 합니다."];
+        
+        //[self.view setFrame:CGRectMake(0, 0, width-60, 220)];
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_ALLOW"]){
+        keyArray = @[@"비승인", @"승인"];
+        valArray = @[@"리더의 승인 없이 바로 가입 가능합니다.", @"가입 시 리더의 승인이 필요합니다."];
+        
+        //[self.view setFrame:CGRectMake(0, 0, width-60, 190)];
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_TASK_STATUS"]){
+        keyArray = @[@"요청", @"진행", @"완료", @"보류"];
+        valArray = @[@"요청", @"진행", @"완료", @"보류"];
+        
+        //[self.view setFrame:CGRectMake(0, 0, width-60, 250)];
+    }
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self.view setFrame:CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.tableView.frame.size.width, self.tableView.contentSize.height)];
+    });
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - UITableView Delegate & Datasrouce
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return keyArray.count;
+}
+//
+//-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+////    if([self.fromSegue isEqualToString:@"SELECT_TASK_STATUS"]){
+////        return 50;
+////    } else {
+////        return 70;
+////    }
+////    return 0;
+//
+//    NSLog(@"self.tableView.frame.size.height : %f", self.tableView.frame.size.height);
+//    NSLog(@"self.tableView.contentSize.height : %f", self.tableView.contentSize.height);
+//
+//    cellHeight += self.tableView.contentSize.height;
+//
+//    [self.view setFrame:CGRectMake(self.view.frame.origin.x, self.view.frame.origin.y, self.tableView.frame.size.width, self.tableView.contentSize.height)];
+//    return UITableViewAutomaticDimension;
+//}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    if([self.fromSegue isEqualToString:@"SELECT_SNS_KIND"]){
+        return @"타입";
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_TYPE"]){
+        return @"공개 여부";
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_ALLOW"]){
+        return @"가입시 승인 여부";
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_TASK_STATUS"]){
+        return @"상태";
+    }
+    return nil;
+}
+- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section {
+    UITableViewHeaderFooterView *header = (UITableViewHeaderFooterView *)view;
+    
+    header.textLabel.textColor = [UIColor blackColor];
+    header.textLabel.font = [UIFont boldSystemFontOfSize:20];
+    CGRect headerFrame = header.frame;
+    header.textLabel.frame = headerFrame;
+}
+- (CGFloat) tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 45;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    cell = [tableView dequeueReusableCellWithIdentifier:@"BoardTypeViewCell"];
+    if(cell == nil){
+        cell = [[BoardTypeViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"BoardTypeViewCell"];
+    }
+    cell.selectionStyle = UITableViewCellSelectionStyleNone;
+    
+    cell.titleLabel.text = [keyArray objectAtIndex:indexPath.row];
+    cell.descLabel.numberOfLines=0;
+    if(valArray.count>0) cell.descLabel.text = [valArray objectAtIndex:indexPath.row];
+    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_blue_blank.png"] scaledToMaxWidth:25.0f] forState:UIControlStateNormal];
+    [cell.checkButton setImage:[self getScaledImage:[UIImage imageNamed:@"checkbox_blue.png"] scaledToMaxWidth:25.0f] forState:UIControlStateSelected];
+    [cell.checkButton addTarget:self action:@selector(checkAction:) forControlEvents:UIControlEventTouchUpInside];
+    cell.checkButton.tag = indexPath.row;
+    
+    [cell.checkButton setSelected:NO];
+    
+    currentSelectedIndex = [self.codeNo integerValue];
+    //NSLog(@"currentSelectedIndex : %ld", (long)currentSelectedIndex);
+    
+    if (indexPath.row == currentSelectedIndex) {
+        [cell.checkButton setSelected:YES];
+        currentBtn = cell.checkButton;
+    }
+    
+    
+    [btnArray addObject:cell.checkButton];
+    
+    return cell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+    //[[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeSubInfo2" object:nil];
+    [self checkAction:[btnArray objectAtIndex:indexPath.row]];
+}
+
+-(void)checkAction:(id)sender{
+    currentBtn.selected = NO;
+    UIButton *button = (UIButton *) sender;
+    button.selected = !button.isSelected;
+    currentBtn = button;
+    currentSelectedIndex = button.tag;
+    
+    NSDictionary *dic = [NSDictionary dictionary];
+    NSString *valueStr;
+    if([self.fromSegue isEqualToString:@"SELECT_SNS_KIND"]){
+        if(currentSelectedIndex==0) valueStr = @"1";
+        else if(currentSelectedIndex==1) valueStr = @"2";
+        dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"KIND", @"TYPE", valueStr, @"SNS_KIND", nil];
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_TYPE"]){
+        if(currentSelectedIndex==0) valueStr = @"3";
+        else if(currentSelectedIndex==1) valueStr = @"1";
+        //else if(currentSelectedIndex==1) valueStr = @"2";
+        //else if(currentSelectedIndex==2) valueStr = @"1";
+        dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"TYPE", @"TYPE", valueStr, @"SNS_TYPE", nil];
+        
+    } else if([self.fromSegue isEqualToString:@"SELECT_SNS_ALLOW"]){
+        if(currentSelectedIndex==0) valueStr = @"0";
+        else if(currentSelectedIndex==1) valueStr = @"1";
+        dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"ALLOW", @"TYPE", valueStr, @"SNS_ALLOW", nil];
+        
+    } else if ([self.fromSegue isEqualToString:@"SELECT_TASK_STATUS"]){
+        if(currentSelectedIndex==0) valueStr = @"1";
+        else if(currentSelectedIndex==1) valueStr = @"2";
+        else if(currentSelectedIndex==2) valueStr = @"3";
+        else if(currentSelectedIndex==3) valueStr = @"4";
+        dic = [[NSDictionary alloc] initWithObjectsAndKeys:@"TASK_STATUS", @"TYPE", valueStr, @"TASK_STATUS", nil];
+    }
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"noti_ChangeSubInfo2" object:nil userInfo:dic];
+}
+
+- (UIImage *)getScaledImage:(UIImage *)image scaledToMaxWidth:(CGFloat)width {
+    CGFloat oldWidth = image.size.width;
+    CGFloat oldHeight = image.size.height;
+    
+    CGFloat scaleFactor=1;
+    
+    //if (oldWidth > width) {
+    scaleFactor = width / oldWidth;
+    //} else  //oldWidth<width and height==0이면, scale하지 않음.
+    //    return image;
+    
+    CGFloat newHeight = oldHeight * scaleFactor;
+    CGFloat newWidth = oldWidth * scaleFactor;
+    CGSize newSize = CGSizeMake(newWidth, newHeight);
+    
+    //NSLog(@"oldWidth : %f, oldHeight : %f", oldWidth, oldHeight);
+    //NSLog(@"newWidth : %f, newHeight : %f", newWidth, newHeight);
+    
+    //UIGraphicsBeginImageContext(newSize);
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, [UIScreen mainScreen].scale);
+    [image drawInRect:CGRectMake(0, 0, newSize.width, newSize.height)];
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    
+    return newImage;
+}
+
+@end

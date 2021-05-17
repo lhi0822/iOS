@@ -1,0 +1,358 @@
+//
+//  PHLibListViewController.m
+//  MFINITY_SNS
+//
+//  Created by Jun HyungPark on 2016. 8. 31..
+//  Copyright © 2016년 DBValley. All rights reserved.
+//
+
+#import "PHLibListViewController.h"
+#import "AAPLAssetGridViewController.h"
+#import "PostDetailViewController.h"
+#import "MFStyle.h"
+
+#define IS_OS_9_OR_LATER ([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0)
+@interface PHLibListViewController () {
+    NSString *orgFilename;
+    int videoCount;
+}
+
+@end
+
+@implementation PHLibListViewController
+static CGSize AssetGridThumbnailSize;
+
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    @try{
+        self.navigationController.navigationBar.translucent = NO;
+        self.navigationController.navigationBar.barTintColor = [MFUtil myRGBfromHex:@"1D4696"];
+        self.navigationController.navigationBar.tintColor = [UIColor whiteColor];
+        self.navigationItem.titleView = [MFStyle navigationTitleStyle1:NSLocalizedString(@"사진 선택", @"사진 선택")];
+        
+        self.navigationItem.leftBarButtonItem =[[UIBarButtonItem alloc]initWithTitle:NSLocalizedString(@"닫기", @"닫기")
+                                                                               style:UIBarButtonItemStylePlain
+                                                                              target:self
+                                                                              action:@selector(leftSideMenuButtonPressed:)];
+        
+        [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(noti_NewPostPush:) name:@"noti_NewPostPush" object:nil];
+        
+        AssetGridThumbnailSize = CGSizeMake(50,50);
+        self.imageManager = [[PHCachingImageManager alloc] init];
+        
+        PHFetchOptions *allPhotosOptions = [[PHFetchOptions alloc] init];
+        allPhotosOptions.sortDescriptors = @[[NSSortDescriptor sortDescriptorWithKey:@"creationDate" ascending:YES]];
+        allPhotosOptions.predicate = [NSPredicate predicateWithFormat:@"mediaType==%d",PHAssetMediaTypeImage];
+        
+        PHFetchResult *smartAlbums = [PHAssetCollection fetchAssetCollectionsWithType:PHAssetCollectionTypeSmartAlbum subtype:PHAssetCollectionSubtypeAlbumRegular options:nil];
+        
+        PHFetchResult *topLevelUserCollections = [PHCollectionList fetchTopLevelUserCollectionsWithOptions:nil];
+        self.sectionFetchResults = [NSMutableArray array];
+        
+        PHCollection *collection = [[PHCollection alloc]init];
+        
+        for (int i=0; i<smartAlbums.count; i++) {
+            collection = smartAlbums[i];
+            PHAssetCollection *assetCollection = smartAlbums[i];
+            
+            if ([collection isKindOfClass:[PHAssetCollection class]]) {
+                PHFetchResult *assetsFetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:allPhotosOptions];
+                //NSLog(@"assetFetchResult : %@", assetsFetchResult);
+                NSString *collStr = [NSString stringWithFormat:@"%ld",assetsFetchResult.count];
+                
+                if (assetsFetchResult.count > 0) {
+                    [assetsFetchResult enumerateObjectsUsingBlock : ^(PHAsset *asset, NSUInteger idx, BOOL *stop) {
+                        
+                        NSArray *resourceList = [PHAssetResource assetResourcesForAsset:asset];
+                        [resourceList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                            PHAssetResource *resource = obj;
+                            
+                            NSRange range = [resource.uniformTypeIdentifier rangeOfString:@"." options:NSBackwardsSearch];
+                            NSString *fileExt = [[resource.uniformTypeIdentifier substringFromIndex:range.location+1] lowercaseString];
+                            
+                            if (asset.mediaType==PHAssetMediaTypeImage) {
+                                if([fileExt isEqualToString:@"png"] || [fileExt isEqualToString:@"jpg"] || [fileExt isEqualToString:@"jpeg"]){
+                                    if(![collStr isEqualToString:@"0"]) [self.sectionFetchResults addObject:collection];
+                                    
+                                    if (IS_OS_9_OR_LATER && [collection.localizedTitle isEqualToString:@"Favorites"]) {
+                                        [self.sectionFetchResults addObject:collection];
+                                    }
+                                }
+                            }
+                        }];
+                        
+                        *stop = YES;
+                    }];
+                }
+            }
+        }
+        
+        for (int i=0; i<topLevelUserCollections.count; i++) {
+            collection = topLevelUserCollections[i];
+            //어플에서 생성된 앨범
+            if ([collection isKindOfClass:[PHAssetCollection class]]) {
+                PHAssetCollection *assetCollection = (PHAssetCollection *)collection;
+                PHFetchResult *assetsFetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:allPhotosOptions];
+                
+                if(assetsFetchResult.count>0){
+                    [assetsFetchResult enumerateObjectsUsingBlock : ^(PHAsset *asset, NSUInteger idx, BOOL *stop) {
+                        
+                        NSArray *resourceList = [PHAssetResource assetResourcesForAsset:asset];
+                        [resourceList enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                            PHAssetResource *resource = obj;
+                            
+                            NSRange range = [resource.uniformTypeIdentifier rangeOfString:@"." options:NSBackwardsSearch];
+                            NSString *fileExt = [[resource.uniformTypeIdentifier substringFromIndex:range.location+1] lowercaseString];
+                            
+                            if (asset.mediaType==PHAssetMediaTypeImage) {
+                                if([fileExt isEqualToString:@"png"] || [fileExt isEqualToString:@"jpg"] || [fileExt isEqualToString:@"jpeg"]){
+                                    [self.sectionFetchResults addObject:collection];
+                                }
+                            }
+                        }];
+                        
+                        *stop = YES;
+                    }];
+                }
+            }
+        }
+        [[PHPhotoLibrary sharedPhotoLibrary] registerChangeObserver:self];
+        
+    } @catch(NSException *exception){
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+}
+
+
+-(void)dealloc{
+    [[PHPhotoLibrary sharedPhotoLibrary] unregisterChangeObserver:self];
+}
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (void)noti_NewPostPush:(NSNotification *)notification {
+    if(notification.userInfo!=nil){
+        @try{
+            NSString *message = [notification.userInfo objectForKey:@"MESSAGE"];
+            NSDictionary *dict = [NSDictionary dictionary];
+            if(message!=nil){
+                NSData *jsonData = [message dataUsingEncoding:NSUTF8StringEncoding];
+                NSError *error;
+                dict = [NSJSONSerialization JSONObjectWithData:jsonData options:kNilOptions error:&error];
+            } else {
+                dict = notification.userInfo;
+            }
+            
+            UIStoryboard *storyboard = [UIStoryboard storyboardWithName:@"Main" bundle:nil];
+            PostDetailViewController *vc = (PostDetailViewController *)[storyboard instantiateViewControllerWithIdentifier:@"PostDetailViewController"];
+            UINavigationController *nav = [[UINavigationController alloc] initWithRootViewController:vc];
+            
+            vc.fromSegue = @"NOTI_POST_DETAIL";
+            vc.notiPostDic = dict;
+            [self presentViewController:nav animated:YES completion:nil];
+            
+        } @catch(NSException *exception){
+            //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+        }
+    }
+}
+
+
+
+-(void)leftSideMenuButtonPressed:(id)sender {
+    //[SVProgressHUD dismiss];
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+#pragma mark - Table view data source
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return self.sectionFetchResults.count;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    //    videoCount=0;
+    MFPhotoLibTableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
+    
+    @try {
+        PHCollection *collection = self.sectionFetchResults[indexPath.row];
+        cell.libNameLabel.text = NSLocalizedString(collection.localizedTitle, @"") ;
+        PHAssetCollection *assetCollection = (PHAssetCollection *)collection;
+        
+        PHFetchOptions *allPhotosOptions = [[PHFetchOptions alloc] init];
+        allPhotosOptions.predicate = [NSPredicate predicateWithFormat:@"mediaType==%d",PHAssetMediaTypeImage];
+        PHFetchResult *assetsFetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:allPhotosOptions];
+        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+        
+        PHAsset *asset = assetsFetchResult[assetsFetchResult.count-1];
+        
+        
+        //        NSLog(@"first asset : %@", asset);
+        //        PHAsset *asset;
+        //        for(int i=0; i<assetsFetchResult.count; i++){
+        //            asset = [assetsFetchResult objectAtIndex:i];
+        //
+        //            float ver = [[[UIDevice currentDevice] systemVersion] floatValue];
+        //            if (ver >= 9.0) {
+        //                NSArray *resources = [PHAssetResource assetResourcesForAsset:asset];
+        //                orgFilename = ((PHAssetResource*)resources[0]).originalFilename;
+        //            } else {
+        //                PHImageRequestOptions *option = [PHImageRequestOptions new];
+        //                option.synchronous = YES;
+        //                option.networkAccessAllowed = YES;
+        //                [[PHImageManager defaultManager] requestImageForAsset:asset targetSize:[self targetSize] contentMode:PHImageContentModeAspectFill options:option resultHandler:^(UIImage *result, NSDictionary *info) {
+        //                    NSURL* fileURL = [info objectForKey:@"PHImageFileURLKey"];
+        //                    orgFilename = [[NSFileManager defaultManager] displayNameAtPath:[fileURL path]];
+        //                }];
+        //            }
+        //            NSRange range = [orgFilename rangeOfString:@"." options:NSBackwardsSearch];
+        //            NSString *fileExt = [[orgFilename substringFromIndex:range.location+1] lowercaseString];
+        //
+        //            if(![fileExt isEqualToString:@"png"] && ![fileExt isEqualToString:@"jpg"] && ![fileExt isEqualToString:@"jpeg"]){
+        //                videoCount++;
+        //            }
+        //        }
+        //        NSLog(@"videoCount : %d", videoCount);
+        //        cell.photoCountLabel.text = [NSString stringWithFormat:@"%ld",assetsFetchResult.count-videoCount];
+        
+        cell.photoCountLabel.text = [NSString stringWithFormat:@"%ld",assetsFetchResult.count];
+        
+        [self.imageManager requestImageForAsset:asset
+                                     targetSize:AssetGridThumbnailSize
+                                    contentMode:PHImageContentModeAspectFill
+                                        options:nil
+                                  resultHandler:^(UIImage *result, NSDictionary *info) {
+                                      //NSLog(@"info : %@",info);
+                                      cell.thumnailImage.image = result;
+                                  }];
+        
+    } @catch (NSException *exception) {
+        //[self sendToHilee:[NSString stringWithFormat:@"%s", __func__] :exception];
+    }
+    
+    return cell;
+}
+
+-(void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    //[SVProgressHUD show];
+    PHCollection *collection = self.sectionFetchResults[indexPath.row];
+    [self performSegueWithIdentifier:@"PHGRID_VIEW_PUSH" sender:collection];
+}
+
+-(void)photoLibraryDidChange:(PHChange *)changeInstance{
+    
+}
+
+- (CGSize)targetSize {
+    CGFloat scale = [UIScreen mainScreen].scale;
+    CGSize targetSize = CGSizeMake(CGRectGetWidth(self.view.bounds) * scale, CGRectGetHeight(self.view.bounds) * scale);
+    return targetSize;
+}
+
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    AAPLAssetGridViewController *destination = segue.destinationViewController;
+    PHCollection *collection = sender;
+    PHAssetCollection *assetCollection = (PHAssetCollection *)collection;
+    
+    PHFetchOptions *allPhotosOptions = [[PHFetchOptions alloc] init];
+    allPhotosOptions.predicate = [NSPredicate predicateWithFormat:@"mediaType==%d",PHAssetMediaTypeImage];
+    PHFetchResult *assetsFetchResult = [PHAsset fetchAssetsInAssetCollection:assetCollection options:allPhotosOptions];
+    
+    destination.assetsFetchResults = assetsFetchResult;
+    //    NSLog(@"assetsFetchResult : %@", assetsFetchResult);
+    
+    if([segue.identifier isEqualToString:@"PHGRID_VIEW_PUSH"]){
+        NSLog(@"MF Lib fromSegue : %@", self.fromSegue);
+        //UIBarButtonItem *left = [[UIBarButtonItem alloc]initWithTitle:@"" style:UIBarButtonItemStylePlain target:self action:nil];
+        //self.navigationItem.backBarButtonItem = left;
+        self.navigationController.navigationBar.topItem.title = @"";
+        MFPHLibGridViewController *destination = segue.destinationViewController;
+        
+        if([self.fromSegue isEqualToString:@"POST_PHLIB_MODAL"]){
+            destination.fromSegue = @"POST_PHLIB_MODAL";
+            
+        } else if([self.fromSegue isEqualToString:@"MY_PHLIB_MODAL"]){
+            destination.fromSegue = @"MY_PHLIB_MODAL";
+            
+        } else if([self.fromSegue isEqualToString:@"CHAT_PHLIB_MODAL"]){
+            destination.fromSegue = @"CHAT_PHLIB_MODAL";
+            
+        } else if([self.fromSegue isEqualToString:@"POST_MODIFY_PHLIB_MODAL"]){
+            destination.fromSegue = @"POST_MODIFY_PHLIB_MODAL";
+            
+        } else if([self.fromSegue isEqualToString:@"BOARD_PHLIB_MODAL"]){
+            destination.fromSegue = @"BOARD_PHLIB_MODAL";
+            
+        } else if([self.fromSegue isEqualToString:@"TASK_PHLIB_MODAL"]){
+            destination.fromSegue = @"TASK_PHLIB_MODAL";
+        }
+    }
+}
+
+-(void)sendToHilee:(NSString *)func :(NSException *)exception{
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"" message:NSLocalizedString(@"exception_msg_exception", @"exception_msg_exception") preferredStyle:UIAlertControllerStyleAlert];
+    UIAlertAction* sendButton = [UIAlertAction actionWithTitle:@"관리자에게 전송" style:UIAlertActionStyleDefault
+                                                       handler:^(UIAlertAction * action) {
+                                                           [alert dismissViewControllerAnimated:YES completion:nil];
+                                                           
+                                                           UIDevice *device = [UIDevice currentDevice];
+                                                           NSString *myUserNo = [[NSUserDefaults standardUserDefaults] objectForKey:@"CUSER_NO"];
+                                                           NSString *dvcKind = [device modelName];
+                                                           NSString *dvcVer = device.systemVersion;
+                                                           
+                                                           MFMessageComposeViewController *controller = [[MFMessageComposeViewController alloc] init];
+                                                           if([MFMessageComposeViewController canSendText])
+                                                           {
+                                                               controller.body = [NSString stringWithFormat:@"%@ / %@ / %@ \n%@ \n\n%@", dvcKind, dvcVer, myUserNo, func, exception];
+                                                               controller.recipients = [NSArray arrayWithObject:@"01093917822"];
+                                                               controller.messageComposeDelegate = self;
+                                                               [self presentViewController:controller animated:YES completion:nil];
+                                                           }
+                                                       }];
+    
+    UIAlertAction* okButton = [UIAlertAction actionWithTitle:@"확인" style:UIAlertActionStyleDefault
+                                                     handler:^(UIAlertAction * action) {
+                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                     }];
+    
+    [alert addAction:sendButton];
+    [alert addAction:okButton];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)messageComposeViewController:(nonnull MFMessageComposeViewController *)controller didFinishWithResult:(MessageComposeResult)result {
+    NSString *resultString;
+    switch (result) {
+        case MessageComposeResultCancelled:
+            resultString = NSLocalizedString(@"cancel", @"");
+            break;
+            
+        case MessageComposeResultFailed:
+        {
+            resultString = NSLocalizedString(@"fail", @"");
+            break;
+        }
+            
+        case MessageComposeResultSent:
+            resultString = NSLocalizedString(@"success", @"");
+            break;
+            
+        default:
+            break;
+    }
+    [self dismissViewControllerAnimated:YES completion:^{
+        NSLog(@"%s resultString : %@",__FUNCTION__,resultString);
+    }];
+}
+
+@end

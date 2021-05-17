@@ -1,0 +1,39 @@
+/* 
+  Localizable.strings
+  mfinity_sns
+
+  Created by hilee on 2017. 3. 7..
+  Copyright © 2017년 com.dbvalley. All rights reserved.
+*/
+
+"msg0"="--Update contents--";
+
+"msg1"="Login Error";
+"msg2"="Login Result";
+"msg3"="OK";
+"msg4"="Account";
+"msg5"="Password";
+"msg6"="Next";
+"msg7"="Please enter your account.";
+"msg8"="Please enter password.";
+"msg9"="Company No.";
+"msg10"="Auth. No.";
+"msg11"="Authentication";
+"msg12"="Auth. Request";
+"msg13"="Auth. Error";
+"msg14"="Please enter authentication code.";
+"msg15"="Please check your authentication code.";
+"msg16"="Login";
+"msg17"="Search";
+"msg18"="Error";
+"msg19"="Retry";
+"msg20"="Export";
+"msg21"="Bookmark";
+"msg22"="Delete";
+"msg23"="Cancel";
+"msg24"="Close";
+"msg25"="Complete";
+"msg26"="Chatting";
+"msg27"="Edit";
+"join_sns_toast1"="[%@]에 가입되었습니다.";
+"join_sns_toast2"="[%@]에 가입신청이 되었습니다. 리더의 승인 후 가입됩니다.";

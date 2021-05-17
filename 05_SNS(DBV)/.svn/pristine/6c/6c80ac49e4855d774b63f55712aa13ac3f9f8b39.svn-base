@@ -1,0 +1,53 @@
+
+SNS Notification List (2018.11.13_hilee)
+
+*2018-11-13 최초작성
+
+============================================================================
+
+푸시받아서 노티보낼 때 : noti_노티명Push
+그 이외에 등록한 노티 : noti_노티명
+
+<게시판>
+noti_ChangeSubInfo1 : 게시판 생성(수정) 화면에서 이름,설명 변경했을 때 게시판 생성(수정) 화면 갱신
+noti_ChangeSubInfo2 : 게시판 생성(수정) 화면에서 라디오버튼, 리더 변경했을 때 게시판 생성(수정) 화면 갱신
+noti_CommentEdit : 댓글 수정 시 글 상세보기 화면 갱신
+noti_DeletePost : 글을 삭제했을 때 게시판, 새글피드, 프로필 갱신
+noti_ForceDeleteSNS : 게시판 강제탈퇴 푸시 받았을 때
+noti_ModifyBoard : 게시판 수정 완료할 때 게시판 목록 갱신 용도
+noti_NewPostPush : 새글, 새댓글 푸시 받았을 때
+noti_PostDetailView : 새글,새댓글 푸시받아서 노티 눌렀을 때 글 상세화면 보여줌
+noti_PostModify : 글 등록/수정 시 글 상세보기 화면 갱신
+noti_RefreshTeamList : 게시판 목록 새로고침
+noti_RefreshTeamSelect : 게시판 새로고침 -> self.snsInfoDic = notification.userInfo; 값 필요
+noti_RefreshFeed : 새글피드 새로고침
+noti_SaveBoard : (게시판 생성, 수정 등 완료할 때)게시판 목록 갱신 용도 (noti_ModifyBoard와 같은데, noti_SaveBoard는 여러군데서 사용함)
+noti_SavePost : 글을 등록, 수정 했을 때 게시판, 새글피드 갱신
+noti_ChangeTaskDate : 업무생성시 시작일, 종료일 변경
+noti_TaskCommentEdit : 댓글 수정 시 업무 상세보기 화면 갱신
+noti_TaskModify
+noti_NewTaskPush : 새 업무, 업무 수정 푸시 받았을 때
+noti_PostOrderModify : 글 수정에서 순서변경 완료 푸시받았을 때
+
+<채팅>
+noti_AddUser : 새 채팅방 생성 푸시 받았을 때(채팅 사이드메뉴 구성에 사용)
+noti_AddUserNewChatRoom : 1:1대화에서 사용자 초대 시 새 채팅방 생성할 때 사용
+noti_ChangeChatBadge : 메시지 수신 시 채팅리스트 뱃지 수정
+noti_ChangeRoomName : 채팅 사용자 초대,나가기 푸시 받았을 때 방 이름 변경하기 위해 사용(채팅방 화면에서만 쓰고있다? LGSideMenuController)
+noti_ChatClassFlag : noti_NewChatPush받았을 때 채팅화면으로 새창/전환 하기위해 사용
+noti_ChatDetailView : 채팅메시지 수신 푸시받아서 노티 눌렀을 때 채팅화면 보여줌
+noti_ChatReadPush : 채팅 읽음 푸시 받았을 때
+noti_MoveNewChatRoom : noti_AddUserNewChatRoom받아서 새 채팅방 생성
+noti_NewChatPush : 새 채팅 푸시 받았을 때
+noti_NewChatRoom : 채팅목록에서 새 채팅 생성할 때
+noti_SideProfileChat : 채팅 사이드메뉴에서 프로필화면 -> 채팅버튼
+
+<프로필>
+noti_ChangeProfilePush : 프로필 변경 푸시 받았을 때
+noti_FeedProfileChat : 피드목록에서 프로필화면 -> 채팅버튼
+noti_PostProfileChat : 글 상세보기에서 프로필화면 -> 채팅버튼
+noti_TeamProfileChat : 게시판 내(멤버정보 포함)에서 프로필화면 -> 채팅버튼
+
+<기타>
+noti_RmqConnect : RabbitMQ 연결
+

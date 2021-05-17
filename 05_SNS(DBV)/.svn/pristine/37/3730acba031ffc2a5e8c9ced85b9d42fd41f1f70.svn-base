@@ -1,0 +1,65 @@
+
+회사별 접속 정보 (2018.11.13_hilee)
+
+*2018-11-13 최초작성
+
+============================================================================
+
+[디비밸리]
+self.main_url = @"https://roms.dbvalley.com/snsService";
+
+self.legacy_name = @"ANYMATE";
+self.db_ver = 5;
+self.use_task = YES;
+
+//어드민 사용자 번호
+self.adminNo1 = @"0";
+self.adminNo2 = @"2";
+
+self.userListSortDept = NO; //조직도 YES:부서기준, NO:사용자기준
+self.firstNormal = YES; //처음 로딩 시 일반게시판 선택
+
+self.rmq_host = @"roms.dbvalley.com";
+self.rmq_port = 5672;
+self.rmq_loginUser = @"snsService";
+self.rmq_password = @"feel1001";
+self.rmq_virtualHost = @"snsHost";
+self.rmq_exFanout = @"mfps.fanout";
+self.rmq_exTopic = @"mfps.topic";
+self.rmq_exDirect = @"mfps.direct";
+self.rmq_exDevInfo = @"mfps.device.info";
+self.rmq_threadName = @"hileeThread";
+
+*로컬DB버전
+5 (181113)
+
+============================================================================
+
+[현대중공업]
+self.main_url = @"http://dev.hhi.co.kr:49175/snsService/";
+self.legacy_name = @"HHI";
+self.db_ver = 2;
+self.use_task = NO;
+
+//어드민 사용자 번호
+self.adminNo1 = @"0";
+self.adminNo2 = @"2";
+
+self.userListSortDept = NO; //조직도 YES:부서기준, NO:사용자기준
+self.firstNormal = YES; //처음 로딩 시 일반게시판 선택
+
+self.rmq_host = @"mfps2.hhi.co.kr";
+self.rmq_port = 5672;
+self.rmq_loginUser = @"snsService";
+self.rmq_password = @"feel1001";
+self.rmq_virtualHost = @"snsHost";
+self.rmq_exFanout = @"mfps.fanout";
+self.rmq_exTopic = @"mfps.topic";
+self.rmq_exDirect = @"mfps.direct";
+self.rmq_exDevInfo = @"mfps.device.info";
+self.rmq_threadName = @"hileeThread";
+
+*로컬DB버전
+2 (181113)
+
+============================================================================
