@@ -1,0 +1,27 @@
+/* Localized versions of Info.plist keys */
+
+
+//NSLocationAlwaysAndWhenInUseUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+//NSLocationAlwaysUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+//NSLocationWhenInUseUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)"; /*"Collecting your location information when you outside work";*/ /*"Required \"Allow\" when use for outside work";*/
+//
+//NSCameraUsageDescription="Required \"Allow\" when use camera";
+//NSPhotoLibraryUsageDescription="Required \"Allow\" when use photo library";
+//NSPhotoLibraryAddUsageDescription="Required \"Allow\" when use photo library";
+//NSBluetoothPeripheralUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+//NSBluetoothAlwaysUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+
+NSLocationAlwaysAndWhenInUseUsageDescription="You can send the current location information for attendance management.";
+NSLocationAlwaysUsageDescription="You can send the current location information for attendance management.";
+NSLocationWhenInUseUsageDescription="You can send the current location information for attendance management.";
+
+//게시글에 촬영한 사진을 첨부하는 기능을 이용할 수 있습니다.(필수권한)
+NSCameraUsageDescription="You can attach pictures taken to the e-mail.";
+NSPhotoLibraryUsageDescription="You can attach pictures to the e-mail.";
+NSPhotoLibraryAddUsageDescription="You can attach pictures to the e-mail.";
+
+//게시글에 음성 첨부 기능을 이용할 수 있습니다.(필수권한)
+NSMicrophoneUsageDescription="You can attach a voice to the e-mail.";
+
+NSBluetoothPeripheralUsageDescription="You can register for automatic attendance.";
+NSBluetoothAlwaysUsageDescription="You can register for automatic attendance.";

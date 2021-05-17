@@ -1,0 +1,10 @@
+/* Localized versions of Info.plist keys */
+
+NSLocationAlwaysAndWhenInUseUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+NSLocationAlwaysUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)";
+NSLocationWhenInUseUsageDescription="Required \"Allow\" when use for time and attendance management(commuting department)"; /*"Collecting your location information when you outside work";*/ /*"Required \"Allow\" when use for outside work";*/
+
+NSCameraUsageDescription="Required \"Allow\" when use camera";
+NSPhotoLibraryUsageDescription="Required \"Allow\" when use photo library";
+NSPhotoLibraryAddUsageDescription="Required \"Allow\" when use photo library";
+

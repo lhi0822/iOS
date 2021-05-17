@@ -1,0 +1,31 @@
+/* 
+  Localizable.strings
+  Anymate
+
+  Created by hilee on 13/11/2019.
+  Copyright © 2019 Kyeong In Park. All rights reserved.
+*/
+
+"cancel"="Cancel";
+"ok"="OK";
+"notice"="Notice";
+"error"="Error";
+
+"not_auth_background_fetch_title"="Background App Refresh Permission Denied";
+"not_auth_background_fetch_msg"="To re-enable, please go to Settings > General and turn on Background App Refresh for this app.";
+
+"not_auth_location_title"="Location Services Permission Denied";
+"not_auth_location_msg"="To re-enable, please go to Settings > Privacy and turn on Location Services for this app.";
+
+"login_code_990"="유효한 값이 아닙니다.";
+"login_code_991"="등록된 비콘기기가 없습니다.";
+"login_code_992"="등록된 모바일장치가 없습니다.";
+"login_code_100"="출근확인 되었습니다.";
+"login_code_200"="지각처리 되었습니다.";
+"login_code_300"="조퇴";
+"login_code_400"="결근";
+"login_code_500"="지각+조퇴";
+"login_code_600"="퇴근";
+"login_code_0"="금일 근태기록 있음";
+
+"file_not_support"="파일 열기를 지원하지 않는 형식입니다.\n다운로드 하시겠습니까?";

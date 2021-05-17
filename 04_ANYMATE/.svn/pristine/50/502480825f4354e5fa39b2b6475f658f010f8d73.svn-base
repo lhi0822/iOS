@@ -1,0 +1,322 @@
+//
+//  AppDelegate.m
+//  Anymate
+//
+//  Created by Kyeong In Park on 12. 12. 14..
+//  Copyright (c) 2012년 Kyeong In Park. All rights reserved.
+//
+
+#import "AppDelegate.h"
+
+#import "WebViewController.h"
+#import "LoginViewController.h"
+#import "WebViewController.h"
+
+@implementation AppDelegate
+@synthesize viewController2;
+@synthesize appDeviceToken;
+@synthesize urlString;
+@synthesize model_nm;
+@synthesize isPush;
+@synthesize isSetting;
+@synthesize isSet;
+@synthesize appVersion;
+@synthesize isSetPush;
+@synthesize gwID,gwPW;
+@synthesize compNm;
+@synthesize pushURL;
+@synthesize isLogin, isLogout;
+- (void)dealloc
+{
+    [_window release];
+    [_viewController release];
+    [super dealloc];
+}
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+{
+    NSLog(@"%s",__FUNCTION__);
+    
+    if( [[[UIDevice currentDevice] systemVersion] floatValue] < 10.0 )
+    {
+        [[UIApplication sharedApplication] registerUserNotificationSettings:[UIUserNotificationSettings settingsForTypes:(UIUserNotificationTypeSound|UIUserNotificationTypeAlert |UIUserNotificationTypeBadge) categories:nil]];
+        [[UIApplication sharedApplication] registerForRemoteNotifications];
+        
+        if (launchOptions != nil){
+            NSLog(@"launchOptions : %@",launchOptions);
+            NSDictionary* dictionary = [launchOptions objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
+            NSLog(@"dictionary : %@",dictionary);
+            if (dictionary != nil)
+            {
+                
+            }
+        }
+    }
+    else
+    {
+//        NSLog(@"10.0");
+        UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+        center.delegate = self;
+        [center requestAuthorizationWithOptions:(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge) completionHandler:^(BOOL granted, NSError * _Nullable error)
+         {
+             if( !error )
+             {
+                 dispatch_async(dispatch_get_main_queue(), ^{
+                     [[UIApplication sharedApplication] registerForRemoteNotifications];  // required to get the app to do anything at all about push notifications
+                 });
+             }
+             else
+             {
+                 NSLog( @"Push registration FAILED" );
+                 NSLog( @"ERROR: %@ - %@", error.localizedFailureReason, error.localizedDescription );
+                 NSLog( @"SUGGESTIONS: %@ - %@", error.localizedRecoveryOptions, error.localizedRecoverySuggestion );
+             }
+         }];
+    }
+    
+    [application setMinimumBackgroundFetchInterval:UIApplicationBackgroundFetchIntervalMinimum];
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    if ([prefs objectForKey:@"SOUND_NUMBER"]==nil) {
+        [prefs setInteger:0 forKey:@"SOUND_NUMBER"];
+        [prefs synchronize];
+    }
+   
+    self.isSet = @"NO";
+    self.isLogout = NO;
+    self.appDeviceToken = @"";
+    self.isLoad = NO;
+
+    NSError *error;
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategorySoloAmbient error:&error];
+
+    return YES;
+}
+
+
+- (void)applicationWillResignActive:(UIApplication *)application
+{
+    // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+    // Use this method to pause ongoing tasks, disable timers, and throttle down OpenGL ES frame rates. Games should use this method to pause the game.
+}
+
+- (void)applicationDidEnterBackground:(UIApplication *)application
+{
+    // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+    // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+}
+
+- (void)applicationWillEnterForeground:(UIApplication *)application
+{
+    // Called as part of the transition from the background to the inactive state; here you can undo many of the changes made on entering the background.
+}
+
+- (void)applicationDidBecomeActive:(UIApplication *)application
+{
+    //쿠키허용
+//    [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookieAcceptPolicy:NSHTTPCookieAcceptPolicyAlways];
+}
+
+- (void)applicationWillTerminate:(UIApplication *)application
+{
+    // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+    if (@available(iOS 13.0, *)) {
+        self.appDeviceToken = [self stringFromDeviceToken:deviceToken];
+        
+    } else {
+        self.appDeviceToken = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+        self.appDeviceToken = [self.appDeviceToken stringByReplacingOccurrencesOfString:@" " withString:@""];
+    }
+    NSLog(@"self.appDeviceToken : %@",self.appDeviceToken);
+    
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    [prefs setObject:self.appDeviceToken forKey:@"DEVICE_TOKEN"];
+    [prefs synchronize];
+}
+
+- (NSString *)stringFromDeviceToken:(NSData *)deviceToken {
+    NSUInteger length = deviceToken.length;
+    if (length == 0) {
+        return nil;
+    }
+    const unsigned char *buffer = deviceToken.bytes;
+    NSMutableString *hexString  = [NSMutableString stringWithCapacity:(length * 2)];
+    for (int i = 0; i < length; ++i) {
+        [hexString appendFormat:@"%02x", buffer[i]];
+    }
+    return [hexString copy];
+}
+
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if ([alertView.title isEqualToString:@"알림"]) {
+        UINavigationController *navigationController = (UINavigationController *)self.window.rootViewController;
+        NSArray *arr = [navigationController viewControllers];
+        WebViewController *webView = [[navigationController viewControllers]objectAtIndex:[arr count]-1];
+        if (webView != nil) {
+            if ([UIApplication sharedApplication].applicationIconBadgeNumber !=0) {
+                [UIApplication sharedApplication].applicationIconBadgeNumber = 0;
+            }
+            
+            [webView dismissViewControllerAnimated:YES completion:nil];
+            webView.urlString = self.pushURL;
+            [webView moveToPage];
+        }
+    }
+}
+- (void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification{
+    NSLog(@"%s", __func__);
+}
+- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo{
+    NSLog(@"userInfo : %@", userInfo);
+    NSDictionary *aps = [userInfo valueForKey:@"aps"];
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    NSString *domain = [prefs objectForKey:@"URL"];
+    self.pushURL = [domain stringByAppendingFormat:@"%@", [userInfo valueForKey:@"url"]];
+    
+    NSString *badge = [aps valueForKey:@"badge"];
+    [[UIApplication sharedApplication]setApplicationIconBadgeNumber:[badge intValue]];
+    
+    NSString *alert = [[aps valueForKey:@"alert"] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    //NSLog(@"alert : %@", alert);
+    
+    UIApplicationState state = [application applicationState];
+    NSLog(@"self.pushURL : %@",self.pushURL);
+    if (state==UIApplicationStateActive) {
+        if (self.isLogin) {
+            if(![alert isEqualToString:@""] && alert!=nil){
+                //AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+                //AudioServicesPlayAlertSound(kSystemSoundID_Vibrate);
+                
+                NSLog(@"soundNumber : %@", [prefs objectForKey:@"SOUND_NUMBER"]);
+                NSString *soundPath=nil;
+                SystemSoundID SoundID;
+                if([[prefs objectForKey:@"SOUND_NUMBER"] intValue]==0){
+                    soundPath = [[NSBundle mainBundle] pathForResource:@"anymate" ofType:@"caf"];
+                    NSURL *soundURL = [NSURL fileURLWithPath:soundPath];
+                    AudioServicesCreateSystemSoundID((__bridge CFURLRef)soundURL, &SoundID);
+                    AudioServicesPlayAlertSound(SoundID);
+                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+                    
+                } else if([[prefs objectForKey:@"SOUND_NUMBER"] intValue]==1){
+                    AudioServicesPlayAlertSound(1007);
+                    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+                }
+                
+                UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"알림" message:[aps valueForKey:@"alert"] delegate:self cancelButtonTitle:nil otherButtonTitles:@"확인", nil];
+                [alertView show];
+                [alertView release];
+            }
+        }
+        
+    }else if(state == UIApplicationStateInactive && self.isLogin){
+        self.isPush = YES;
+    }
+    
+}
+- (BOOL)deviceIsSilenced {
+    CFStringRef state;
+    UInt32 propertySize = sizeof(CFStringRef);
+    OSStatus audioStatus = AudioSessionGetProperty(kAudioSessionProperty_AudioRoute, &propertySize, &state);
+    if (audioStatus == kAudioSessionNoError) {
+        
+        // "Speaker" regardless of silent switch setting, but "Headphone" when my headphones are plugged in
+        return (CFStringGetLength(state) <= 0);
+    }
+    return NO;
+}
+- (UIColor *) myRGBfromHex: (NSString *) code {
+    
+    NSString *str = [[code stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] uppercaseString];
+    
+    if ([str length] < 6)
+        return [UIColor blackColor];
+    if ([str hasPrefix:@"0X"])
+        str = [str substringFromIndex:2];
+    if ([str hasPrefix:@"#"])
+        str = [str substringFromIndex:1];
+    if ([str length] != 6)
+        return [UIColor blackColor];
+    
+    NSRange range;
+    range.location = 0;
+    range.length = 2;
+    NSString *rcolorString = [str substringWithRange:range];
+    range.location = 2;
+    NSString *gcolorString = [str substringWithRange:range];
+    range.location = 4;
+    NSString *bcolorString = [str substringWithRange:range];
+    unsigned int red, green, blue;
+    [[NSScanner scannerWithString: rcolorString] scanHexInt:&red];
+    [[NSScanner scannerWithString: gcolorString] scanHexInt:&green];
+    [[NSScanner scannerWithString: bcolorString] scanHexInt:&blue];
+    return [UIColor colorWithRed:((float) red / 255.0f)
+                           green:((float) green / 255.0f)
+                            blue:((float) blue / 255.0f)
+                           alpha:1.0f];
+    
+}
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+    UIAlertView *alertView = [[UIAlertView alloc]initWithTitle:@"notification Error" message:[NSString stringWithFormat:@"%@",error]  delegate:nil cancelButtonTitle:@"확인" otherButtonTitles: nil];
+    [alertView show];
+    NSLog(@"deviceToken error : %@", error);
+}
+- (BOOL)application:application handleOpenURL:(NSURL *)url{
+    @try {
+        NSString *strURL = [url absoluteString];
+        NSLog(@"strURL = %@",strURL);
+        
+        NSArray *arr = [strURL componentsSeparatedByString:@"id="];
+        NSString *temp = [arr objectAtIndex:1];
+        NSString *idString = [[temp componentsSeparatedByString:@"&"] objectAtIndex:0];
+        NSArray *arr2 = [[[temp componentsSeparatedByString:@"&"] objectAtIndex:1] componentsSeparatedByString:@"pw="];
+        NSString *pwString = [arr2 objectAtIndex:1];
+        NSLog(@"id : %@, pw : %@",idString, pwString);
+        self.gwID = idString;
+        self.gwPW = pwString;
+    }
+    @catch (NSException *exception) {
+        NSLog(@"exception : %@",exception);
+    }
+    
+    return YES;
+}
+@end
+@implementation NSString (URLEncoding)
+
+- (NSString *)urlEncodeUsingEncoding:(NSStringEncoding)encoding{
+    return (NSString *)CFBridgingRelease(CFURLCreateStringByAddingPercentEscapes(NULL, (CFStringRef)self, NULL, (CFStringRef)@"!*'\"();:@&=+$,/?%#[]% ", CFStringConvertNSStringEncodingToEncoding(encoding)));
+}
++ (NSString *)urlDecodeString:(NSString *)str
+{
+    NSString *temp = [str stringByReplacingOccurrencesOfString:@"+" withString:@"%20"];
+    NSString *result = (NSString *)CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault,
+                                                                                                             (CFStringRef)temp,
+                                                                                                             CFSTR(""),
+                                                                                                             kCFStringEncodingUTF8));
+    return result;
+}
+- (NSString *)AES256EncryptWithKeyString:(NSString *)key
+{
+    NSData *plainData = [self dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *encryptedData = [plainData AES256EncryptWithKey:key];
+    
+    NSString *encryptedString = [encryptedData base64Encoding];
+    
+    return encryptedString;
+}
+
+- (NSString *)AES256DecryptWithKeyString:(NSString *)key
+{
+    NSData *encryptedData = [NSData dataWithBase64EncodedString:self];
+    NSData *plainData = [encryptedData AES256DecryptWithKey:key];
+    
+    NSString *plainString = [[NSString alloc] initWithData:plainData encoding:NSUTF8StringEncoding];
+    
+    return plainString;
+}
+
+@end
+

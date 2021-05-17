@@ -1,0 +1,13 @@
+//
+//  AppProxyProvider.h
+//  NetworkExtension
+//
+//  Created by hilee on 23/01/2020.
+//  Copyright © 2020 Kyeong In Park. All rights reserved.
+//
+
+#import <NetworkExtension/NetworkExtension.h>
+
+@interface AppProxyProvider : NEAppProxyProvider
+
+@end

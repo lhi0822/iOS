@@ -1,0 +1,29 @@
+/* Localized versions of Info.plist keys */
+
+/*
+NSLocationAlwaysAndWhenInUseUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSLocationAlwaysUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSLocationWhenInUseUsageDescription="근태관리를 위한 출근 위치 정보(직출 보고) 전송시 \"허용\" 필수";
+
+NSCameraUsageDescription="카메라 이용시 \"허용\" 필수";
+NSPhotoLibraryUsageDescription="사진 앨범 이용시 \"허용\" 필수";
+NSPhotoLibraryAddUsageDescription="사진 앨범 이용시 \"허용\" 필수";
+
+NSBluetoothPeripheralUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSBluetoothAlwaysUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+*/
+
+NSLocationAlwaysAndWhenInUseUsageDescription="근태관리를 위한 출근 위치 정보 전송을 할 수 있습니다.(필수권한)";
+NSLocationAlwaysUsageDescription="근태관리를 위한 출근 위치 정보 전송을 할 수 있습니다.(필수권한)";
+NSLocationWhenInUseUsageDescription="근태관리를 위한 출근 위치 정보(직출 보고) 전송을 할 수 있습니다.(필수권한)";
+
+//게시글에 촬영한 사진을 첨부하는 기능을 이용할 수 있습니다.(필수권한)
+NSCameraUsageDescription="메일에 촬영한 사진을 첨부할 수 있습니다.(필수권한)";
+NSPhotoLibraryUsageDescription="메일에 사진을 첨부할 수 있습니다.(필수권한)";
+NSPhotoLibraryAddUsageDescription="메일에 사진을 첨부할 수 있습니다.(필수권한)";
+
+//게시글에 음성 첨부 기능을 이용할 수 있습니다.(필수권한)
+NSMicrophoneUsageDescription="메일에 음성을 첨부할 수 있습니다.(필수권한)";
+
+NSBluetoothPeripheralUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSBluetoothAlwaysUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";

@@ -1,0 +1,39 @@
+/* 
+  Localizable.strings
+  Anymate
+
+  Created by hilee on 13/11/2019.
+  Copyright © 2019 Kyeong In Park. All rights reserved.
+*/
+
+"cancel"="Cancel";
+"ok"="OK";
+"notice"="Notice";
+"error"="Error";
+
+"not_auth_background_fetch_title"="Background App Refresh Permission Denied";
+"not_auth_background_fetch_msg"="To re-enable, please go to Settings > General and turn on Background App Refresh for this app.";
+
+"not_auth_location_title"="Location Services Permission Denied";
+"not_auth_location_msg"="To re-enable, please go to Settings > Privacy and turn on Location Services for this app.";
+
+"login_code_990"="Not a valid value";
+"login_code_991"="There is no registered beacon device";
+"login_code_992"="There is no registered mobile device.";
+"login_code_100"="Finished going to work";
+"login_code_200"="You are late.";
+"login_code_300"="Leave work early";
+"login_code_400"="Absent from work";
+"login_code_500"="Late and leave early";
+"login_code_600"="Off work";
+"login_code_0"="You already have a record of work.";
+
+"file_not_support"="The format does not support opening files. \nDo you want to download it?";
+
+"url_setting"="URL Setting";
+"url_error_title"="Setup error";
+"url_error_null"="Please input the URL.";
+
+"error_msg1"="The information is incorrect.";
+"error_msg2"="A temporary network error has occurred.";
+

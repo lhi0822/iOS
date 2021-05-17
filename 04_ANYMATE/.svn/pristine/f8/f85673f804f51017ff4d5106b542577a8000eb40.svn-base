@@ -1,0 +1,11 @@
+/* Localized versions of Info.plist keys */
+
+NSLocationAlwaysAndWhenInUseUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSLocationAlwaysUsageDescription="근태관리(출퇴근부) 이용시 \"허용\" 필수";
+NSLocationWhenInUseUsageDescription="근태관리를 위한 출근 위치 정보(직출 보고) 전송시 \"허용\" 필수";
+
+NSCameraUsageDescription="카메라 이용시 \"허용\" 필수";
+NSPhotoLibraryUsageDescription="사진 앨범 이용시 \"허용\" 필수";
+NSPhotoLibraryAddUsageDescription="사진 앨범 이용시 \"허용\" 필수";
+
+
