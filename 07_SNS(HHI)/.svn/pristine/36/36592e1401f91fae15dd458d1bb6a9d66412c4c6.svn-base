@@ -1,0 +1,101 @@
+//
+//  ChatViewController.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 4. 21..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <CoreLocation/CoreLocation.h>
+#import <MessageUI/MessageUI.h>
+#import <AVFoundation/AVAudioSession.h>
+#import "JSQMessagesInputToolbar.h"
+#import "ChatMessageData.h"
+#import "AppDelegate.h"
+
+#import "ChatListViewController.h"
+#import "MFURLSessionUpload.h"
+#import "MFURLSession.h"
+
+#import "AMQPChannel.h"
+#import "AMQPConnection.h"
+#import "AMQPExchange.h"
+#import "AMQPQueue.h"
+#import "AMQPConsumer.h"
+#import "AMQPConsumerThread.h"
+#import "AMQPMessage.h"
+#import "amqp_framing.h"
+#import "amqp.h"
+#import <sqlite3.h>
+
+#import <Photos/Photos.h>
+#import "JTSImageViewController.h"
+#import "NSIndexSet+Convenience.h"
+#import "MFTextView.h"
+
+#import "SRWebSocket.h"
+#import "TOCropViewController.h"
+
+#import "HISImageViewer.h"
+#import "TTTAttributedLabel.h"
+
+#import "SDAVAssetExportSession.h"
+//#import "SendChatHandler.h"
+
+@interface ChatViewController : UIViewController <JSQMessagesInputToolbarDelegate, UITextViewDelegate, UITableViewDataSource, UITableViewDelegate, MFURLSessionDelegate, UIImagePickerControllerDelegate, MFURLSessionUploadDelegate, UINavigationControllerDelegate, UIScrollViewDelegate, NSURLConnectionDataDelegate, NSURLSessionDelegate,
+UISearchControllerDelegate, UISearchBarDelegate, UISearchControllerDelegate, UIGestureRecognizerDelegate, MFTextViewDelegate, SRWebSocketDelegate, TOCropViewControllerDelegate, TTTAttributedLabelDelegate, SDAVAssetExportSessionDelegate>{
+    int uploadCount;
+    
+    BOOL isRefresh;
+    BOOL isDragging;
+    
+    int rowCnt;
+    int selectCount;
+    
+    BOOL isHideKeyboard;
+    BOOL isSmallContents;
+    BOOL isLargeContents;
+    
+    SRWebSocket *socket;
+    HISImageViewer *imageViewer;
+}
+
+@property (strong, nonatomic) IBOutlet UITableView *tableView;
+@property (strong, nonatomic) IBOutlet JSQMessagesInputToolbar *inputToolbar;
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *keyboardHeight;
+
+@property (strong, nonatomic) NSString *roomName;
+@property (strong, nonatomic) NSString *roomNo;
+@property (strong, nonatomic) NSString *roomNoti;
+
+@property (strong, nonatomic) UIButton *mediaButton;
+@property BOOL isFlag;
+
+@property (strong, nonatomic) NSMutableArray *assetArray;
+
+@property (nonatomic,strong) NSString *fromSegue;
+@property (nonatomic,strong) NSDictionary *notiChatDic;
+
+@property (nonatomic,strong) NSMutableDictionary *editInfoDic;
+@property (nonatomic,strong) NSMutableArray *sendingMsgArr;
+
+@property (strong, nonatomic) NSString *tabImgUser;
+@property (strong, nonatomic) NSString *tabImgDate;
+
+@property (nonatomic,strong) NSMutableArray *fileNameArr;
+
+-(void)searchChatContent: (NSString *)text;
+-(void)closeSearchChat;
+@property (strong, nonatomic) NSString *searchText;
+
+@property (strong, nonatomic) NSDictionary *snsInfoDic;
+
+@property (nonatomic, assign) TOCropViewCroppingStyle croppingStyle;
+@property (nonatomic, strong) UIImage *image;
+@property (nonatomic, assign) CGRect croppedFrame;
+@property (nonatomic, assign) NSInteger angle;
+
+
+
+@end

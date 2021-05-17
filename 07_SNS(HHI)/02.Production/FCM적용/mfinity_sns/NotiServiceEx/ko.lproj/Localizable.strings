@@ -1,0 +1,491 @@
+
+/*
+  Localizable.strings
+  mfinity_sns
+
+  Created by hilee on 2019/12/04.
+  Copyright © 2019 com.dbvalley. All rights reserved.
+*/
+
+/*** a ***/
+"app_is_upgrade"="최신 버전이 업데이트 되었습니다.\n지금 설치하시겠습니까?";
+"app_is_downgrade"="미배포버전이 설치되어있습니다.\n다운그레이드 하시겠습니까?";
+"app_is_upgrade_for_hhi"="최신 버전이 업데이트 되었습니다.\n터치원(TouchOne)을 통하여 업데이트 하세요.";
+"app_is_downgrade_for_hhi"="미배포버전이 설치되어있습니다.\n터치원(TouchOne)을 통하여 다운그레이드 하세요.";
+
+"auto_login_expired"="자동로그인 기간이 만료되었습니다.\n터치원(TouchOne)을 이용하여 실행하세요.";
+
+"add_chat_user"="%@님이 %@님을 초대했습니다.";
+"add_chat_user_conj"="님과 ";
+"delete_chat_user"="%@님이 퇴장했습니다.";
+
+"approve_btn_title"="승인";
+"approve_title"="가입 승인";
+"approve_msg"="선택한 사용자를 승인하시겠습니까?";
+"approve_succeed"="%lu명을 승인처리하였습니다.";
+
+"alert_access_camera"="기기의 [설정 > 개인정보보호 > 카메라]에서 %@앱을 켜주세요.";
+"alert_access_photo"="기기의 [설정 > 개인정보보호 > 사진]에서 %@앱을 켜주세요.";
+
+/*** b ***/
+"board_info_title"="팀룸 정보";
+"board_info_name"="이름";
+"board_info_kind"="타입";
+"board_info_visible_type"="공개 여부";
+"board_info_member_count"="멤버수";
+"board_info_member_count1"="멤버";
+"board_info_invite_count"="신청";
+
+"board_info_kind_normal"="팀룸";
+"board_info_kind_normal_desc"="일반적인 팀룸 형태입니다.";
+"board_info_kind_project"="프로젝트룸";
+"board_info_kind_project_desc"="프로젝트형 게시물을 생성하여 프로젝트 진행관리를 할수 있는 형태입니다.";
+
+"board_info_visible_type_public"="공개";
+"board_info_visible_type_public_desc"="다른 사용자가 팀룸 검색시 검색결과에 노출되는 팀룸입니다.";
+"board_info_visible_type_closed"="팀룸명 공개";
+"board_info_visible_type_closed_desc"="다른 사용자가 팀룸 검색시 검색결과에 노출되지만 팀룸에 가입할 수 없는 팀룸입니다. 초대로 가입가능합니다.";
+"board_info_visible_type_secret"="비공개";
+"board_info_visible_type_secret_desc"="다른 사용자가 팀룸 검색시 검색결과에 노출되지 않으며 가입할 수 없는 팀룸입니다.  초대로 가입가능합니다.";
+
+"board_info_need_allow"="가입시 승인 여부";
+"board_info_need_allow_yes"="승인";
+"board_info_need_allow_yes_desc"="리더의 승인이 필요한 팀룸입니다.";
+"board_info_need_allow_no"="비승인";
+"board_info_need_allow_no_desc"="리더의 승인없이 가입할 수 있는 팀룸입니다.";
+
+"board_info_desc"="팀룸 설명";
+"board_info_create_user_name"="팀룸 생성자";
+"board_info_create_date"="팀룸 생성일자";
+"board_info_noti_setting"="알림 설정";
+"board_info_noti_setting_post"="새글 알림 설정";
+"board_info_noti_setting_comment"="댓글 알림 설정";
+"board_info_push_setting"="푸시 알림";
+"board_info_setting"="팀룸 설정";
+"board_info_setting1"="팀룸 설정 변경";
+"board_info_force_delete_users"="멤버 강제탈퇴";
+"board_info_waiting_users"="가입 신청자";
+"board_info_create_secession"="팀룸 탈퇴";
+"board_info_create_secession1"="팀룸을 탈퇴하시겠습니까?";
+"board_info_create_secession2"="팀룸을 삭제하시겠습니까?";
+"board_info_create_secession3"="삭제되었습니다.";
+"board_info_create_secession4"="탈퇴되었습니다.";
+
+"board_add_member"="멤버 초대하기";
+"board_userlist_delete"="멤버 관리";
+"board_userlist_select"="멤버 선택";
+"board_userlist_title"="멤버";
+"board_userlist_title2"="멤버 정보";
+"board_edit_title"="팀룸 정보 수정";
+"board_create_title"="팀룸 만들기";
+"board_create_cancel"="팀룸생성을 취소하시겠습니까?";
+
+"board_create_name"="팀룸 이름";
+"board_create_name_null"="팀룸 이름을 입력하세요.";
+"board_create_desc_null"="팀룸 설명을 입력하세요.";
+
+"board_create_img"="대표이미지 추가\n추가하지 않을 경우 기본 이미지가 적용됩니다.";
+"board_create_owner"="리더";
+"board_create_limit_over"="팀룸 최대 소유 개수를 초과하였습니다.\n기존 소유중인 팀룸을 삭제 및 권한 위임 후 추가 생성 가능합니다.";
+
+"board_project_request_task"="업무요청";
+"board_project_start_task"="진행";
+"board_project_close_task"="종결";
+"board_project_hold_task"="보류";
+"board_project_complete_task"="완료";
+
+/*** c ***/
+"cancel"="취소";
+"close"="닫기";
+"complete"="완료";
+
+"chat_slidingmenu_title1"="대화상대";
+"chat_slidingmenu_title2"="알림 설정";
+"chat_slidingmenu_adduser"="대화상대 초대";
+"chat_long_text_view_all"="전체보기";
+"change"="변경";
+"chat_entry_fail"="채팅방 입장에 실패하였습니다.";
+
+"comment"="댓글";
+"comment1"="이전 댓글";
+"comment2"="이전 댓글 보기";
+
+"change_leader_title"="리더 위임";
+"change_leader_button"="위임";
+
+"change_sns_leader_1"="리더 권한을 위임받았습니다.";
+"change_sns_leader_2"="[%@]의 리더 권한을 위임받았습니다.";
+"change_leader_msg"="선택한 멤버에게 리더를 위임하시겠습니까?";
+"change_leader_succeed"="리더를 위임하였습니다.";
+
+"chat_receive_image"="사진을 보냈습니다.";
+"chat_receive_file"="파일을 보냈습니다.";
+"chat_receive_video"="동영상을 보냈습니다.";
+"chat_receive_invite"="초대메시지를 보냈습니다.";
+
+"chat_room_setting"="채팅방 설정";
+
+"chat_set_alarm"="알림설정";
+"chat_change_room_name"="채팅방 이름 설정";
+"chat_leave_room"="채팅방 나가기";
+"chat_leave_room_message"="이 채팅방을 나가시겠습니까?";
+
+"chat_resend"="재전송";
+"chat_select_msg_delete"="선택한 메시지를 삭제하시겠습니까?";
+
+"change_chat_room_failed"="채팅방 이름 변경에 실패하였습니다.";
+"change_chat_room_name_null"="채팅방 이름을 입력하세요.";
+
+"check_user_null"="선택된 사용자가 없습니다.";
+
+"comment_image"="사진을 올렸습니다.";
+"comment_file"="파일을 올렸습니다.";
+"comment_video"="동영상을 올렸습니다.";
+
+/*** d ***/
+"date1"="HH:mm:ss";
+"date2"="yyyy-MM-dd HH:mm:ss";
+"date3"="a hh:mm";
+"date4"="yyyy년 M월 d일 aah:mm";
+"date5"="yy.M.d";
+"date6"="yyyy-MM-dd";
+"date7"="yyyy년 M월 d일 E요일";
+"date8"="yyyy년 M월 d일";
+"date9"="yyyy-MM-dd HH:mm";
+"date10"="yyyyMMdd";
+"date11"="M월 d일 aah:mm";
+"date12"="M월 dd일 ah:mm";
+"date13"="yyyy년 M월 dd일 ah:mm";
+"date14"="yyyy년 MMMM d일 eeee";
+
+"done"="확인";
+"done1"="예";
+"delete"="삭제";
+"delete1"="삭제하시겠습니까?";
+"delete2"="삭제되었습니다.";
+
+"delete_board"="팀룸 삭제";
+"delete_board1"="작성된 게시물은 자동 삭제되지 않습니다.";
+"delete_board2"="게시물 및 팀룸 정보가 모두 삭제됩니다.";
+
+"delete_room1"="채팅방에서 나가시겠습니까?";
+"delete_room2"="대화내용 및 채팅방 정보가 모두 삭제됩니다.";
+"delete_chat_failed_msg"="메시지를 삭제하시겠습니까?";
+
+"dept_user1"="대화상대 선택";
+"dept_user2"="부서명 또는 사람이름 검색";
+"dept_user3"="선택된 대화상대가 없습니다.";
+"dept_user4"="채팅 대상이 없습니다.";
+
+"delete_sns_1"="[%@]이 삭제되었습니다.\n[%@]에서 탈퇴되었습니다.";
+"delete_sns_2"="[%@]이 삭제 및 탈퇴되었습니다.";
+
+"download_completed"="파일 다운로드 완료.\n%@";
+"download_completed_noti_title"="파일 다운로드 완료";
+
+/*** e ***/
+"edit"="수정";
+"edit1"="수정하시겠습니까?";
+"edit2"="편집";
+"edit_post_comment"="댓글 내용이 없습니다. 내용을 입력해 주세요.";
+
+"error"="오류";
+"exception_msg_unknownhostexception"="일시적인 네트워크 오류가 발생했습니다.";
+"exception_msg_exception"="에러가 발생했습니다. 관리자에게 문의하세요.";
+
+"exit_program"="프로그램을 종료하시겠습니까?";
+
+/*** f ***/
+"file_content_type"="파일";
+"filebrowser_title"="탐색기";
+"failed_to_send"="전송실패";
+"file_upload"="파일업로드를 실패하였습니다. 재업로드 하시겠습니까?";
+"file_download"="파일을 다운로드 하시겠습니까?";
+"file_open_restricted"="파일 다운로드 및 열기가 제한되었습니다.";
+"file_open"="파일열기";
+
+"force_secession"="강제탈퇴";
+"force_delete"="선택된 멤버를 강제탈퇴하시겠습니까?";
+"force_delete_succeed"="%lu명을 강제탈퇴처리하였습니다.";
+
+"force_delete_sns_1"="강제탈퇴되었습니다.";
+"force_delete_sns_2"="[%@]에서 강제탈퇴되었습니다.";
+
+"favorite_add_user"="즐겨찾기에 추가되었습니다.";
+"favorite_remove_user"="즐겨찾기에서 해제되었습니다.";
+
+/*** g ***/
+
+/*** h ***/
+
+/*** i ***/
+"invite_title"="[%@]에 초대합니다.";
+"invite_more"="팀룸소개 더보기";
+"invite_done"="가입하기";
+"invite_join_cancle"="가입신청 취소";
+
+/*** j ***/
+"join_sns_toast0"="[%@]에 가입하시겠습니까?";
+"join_sns_toast1_1"="[%@]에 가입되었습니다.";
+"join_sns_toast1_2"="가입되었습니다.";
+"join_sns_toast2"="[%@]에 가입신청이 되었습니다. 리더의 승인 후 가입됩니다.";
+"join_sns_toast3"="[%@]에 이미 가입되어있습니다.";
+"join_sns_toast4"="[%@]에 이미 가입신청 되어 승인 대기 중에 있습니다.";
+"join_sns_toast5"="[%@]이 존재하지 않습니다.";
+"join_sns_toast6"="가입승인 후 이용가능합니다.";
+"join_sns_toast7"="가입 후 이용가능합니다.";
+"join_sns_toast8"="가입신청을 취소하시겠습니까?";
+"join_sns_toast9"="가입신청이 취소되었습니다.";
+"join_sns_toast10"="이미 가입처리된 팀룸입니다.";
+"join_sns_toast11"="가입 신청자 목록";
+
+"join_sns_toast13"="[%@]님이 가입 신청하였습니다. 팀룸정보에서 가입승인을 진행하세요.";
+"join_sns_toast14_1"="[%@]의 가입신청이 거절되었습니다.\n%@";
+"join_sns_toast14_2"="가입신청이 거절되었습니다.\n%@";
+
+/*** k ***/
+
+/*** l ***/
+"login_not_info"="사용자 로그인 정보가 없습니다.\n터치원(TouchOne) 로그인 후 사용하십시오.";
+
+/*** m ***/
+"me"="나";
+
+"myinfo_image_null_msg"="기본 이미지로 변경하시겠습니까?";
+"myinfo_image_null"="기본 이미지로 변경";
+
+"myinfo_profile"="프로필";
+"myinfo_name"="이름";
+"myinfo_status"="상태메시지";
+"myinfo_status_null"="상태메시지를 입력하세요.";
+
+"myinfo_account"="계정 정보";
+"myinfo_phone"="전화번호";
+"myinfo_comp"="회사";
+"myinfo_dept"="부서";
+"myinfo_id"="계정";
+
+"myinfo_system_title"="시스템 설정";
+
+"myinfo_noti"="알림 설정";
+"myinfo_noti_title"="알림 내용 표시";
+"myinfo_post_noti"="새글 알림 내용 미리보기";
+"myinfo_comment_noti"="새댓글 알림 내용 미리보기";
+"myinfo_chat_noti"="새채팅 알림 내용 미리보기";
+
+"myinfo_image_tab_reordering_title"="탭 설정";
+"myinfo_image_tab_reordering"="탭 순서 변경";
+
+"myinfo_backup_restore_title"="데이터 관리";
+"myinfo_backup_restore"="대화 백업 및 복원";
+"myinfo_backup_restore_info"="백업 정보";
+"myinfo_backup"="백업";
+"myinfo_backup_date"="백업 일시";
+"myinfo_backup_date_null"="없음";
+"myinfo_backup_action_title"="대화 백업하기";
+"myinfo_backup_action"="백업된 대화는 복원기능을 이용하여 대화를 복원할 수 있습니다.\n대화를 백업하시겠습니까?";
+"myinfo_backup_action_null"="백업할 대화내용이 없습니다. 관리자에게 문의하세요.";
+"myinfo_backup_result_succeed"="대화내용 백업이 완료되었습니다.";
+
+"myinfo_restore"="복원";
+"myinfo_restore_action_title"="대화 복원하기";
+"myinfo_restore_action"="대화를 복원하시겠습니까?";
+"myinfo_restore_action_null"="복원할 데이터가 없습니다.";
+"myinfo_restore_action_succeed"="대화내용 복원이 완료되었습니다.";
+
+"myinfo_version_title"="프로그램 정보";
+"myinfo_version"="버전 정보";
+
+"myinfo_mdm_off"="MDM 정책 종료";
+"myinfo_mdm_off_message"="MDM 정책을 종료하시겠습니까?";
+
+"myinfo_logout"="로그아웃";
+"myinfo_logout_message"="로그아웃 시 로그인정보가 모두 삭제됩니다.\n로그아웃 하시겠습니까?";
+
+/*** n ***/
+"new_post_content"="새로운 게시물을 등록하세요.";
+"new_task_content"="새로운 업무을 등록하세요.";
+"no_content_normal_board"="가입된 팀룸이 없습니다.\n팀룸 생성 및 가입하세요.";
+"no_content_normal_feed"="게시물이 없습니다.\n새로운 게시물을 등록하세요.";
+"no_content_project_board"="가입된 프로젝트룸이 없습니다.\n프로젝트룸 생성 및 가입하세요.";
+"no_content_project_feed"="업무가 없습니다.\n새로운 업무을 등록하세요.";
+"no_content_message"="채팅방이 없습니다.\n새로운 채팅을 시작하세요.";
+"no_content_member"="멤버가 없습니다.";
+
+"new_board"="팀룸 만들기";
+"new_notice"="공지사항 올리기";
+"new_post"="새글 올리기";
+"new_task"="업무 생성";
+"new_message"="새 채팅하기";
+
+"new_chat_msg"="%@ : %@";
+"new_chat_no_prev"="새로운 메시지를 보냈습니다.";
+
+"newpost_feed"="팀룸 선택";
+"notification_setting_title"="알림";
+
+"new_post1"="%@님이 새글을 올렸습니다.";
+"new_post1_2"="[%@] %@님이 새글을 올렸습니다.";
+//"new_post1_3"="%@님이 새글을 올렸습니다. \"%@\"";
+//"new_post1_4"="[%@] %@님이 새글을 올렸습니다. \"%@\"";
+"new_post1_3"="%@님 새글 : %@";
+"new_post1_4"="[%@] %@님 새글 : %@";
+
+"new_post_comment1"="%@님이 %@님의 글에 댓글을 남겼습니다.";
+"new_post_comment1_2"="[%@] %@님이 %@님의 글에 댓글을 남겼습니다.";
+//"new_post_comment1_3"="%@님이 %@님의 글에 댓글을 남겼습니다. \"%@\"";
+//"new_post_comment1_4"="[%@] %@님이 %@님의 글에 댓글을 남겼습니다. \"%@\"";
+"new_post_comment1_3"="%@님 댓글 : %@";
+"new_post_comment1_4"="[%@] %@님 댓글 : %@";
+
+"new_post_comment2"="%@님이 댓글에서 %@님을 언급했습니다.";
+"new_post_comment2_2"="[%@] %@님이 댓글에서 %@님을 언급했습니다.";
+"new_post_comment2_3"="%@님이 댓글에서 %@님을 언급했습니다. \"%@\"";
+"new_post_comment2_4"="[%@] %@님이 댓글에서 %@님을 언급했습니다. \"%@\"";
+
+
+"new_task1"="%@님이 새로운 업무를 생성하였습니다.";
+"new_task2"="%@님이 업무를 수정하였습니다.";
+"new_task_comment1"="%@님이 %@님의 글에 댓글을 남겼습니다.";
+"new_task_comment2"="%@님이 댓글에서 %@님을 언급했습니다.";
+
+"notification_unread_message"="%@개의 안 읽은 메시지";
+
+"notification_channel_group1"="팀룸 알림 유형";
+"notification_channel1_1"="새글 알림";
+"notification_channel1_1_desc"="새 게시글 알림";
+"notification_channel1_2"="댓글 알림";
+"notification_channel1_2_desc"="새 댓글 알림";
+"notification_channel_group2"="채팅 알림 유형";
+"notification_channel2_1"="채팅 알림";
+"notification_channel2_1_desc"="새 채팅 알림";
+"notification_channel_group3"="알림 유형";
+"notification_channel3_1"="기타 알림";
+
+"notify_chat_title"="알림톡 도착";
+
+/*** o ***/
+
+/*** p ***/
+"popup_camera1"="사진 촬영";
+"popup_camera2"="사진 선택";
+"popup_camera3"="배경 사진 촬영";
+"popup_camera4"="배경 사진 선택";
+"popup_camera5"="기본이미지 선택";
+"popup_video1"="영상 촬영";
+"popup_video2"="영상 선택";
+
+"popup_file1"="파일 추가";
+
+"popup_comment_copy"="댓글 복사";
+"popup_comment_edit"="댓글 수정";
+"popup_comment_delete"="댓글 삭제";
+
+"popup_bookmark"="북마크";
+
+"popup_room_noti_on"="알림켜기";
+"popup_room_noti_off"="알림끄기";
+
+"popup_room_exit1"="나가기";
+
+"post_save_content_null"="저장할 내용이 없습니다.";
+"post_save_cancel1"="포스트 작성을 취소하시겠습니까?";
+"post_save_cancel2"="작성중인 모든 내용이 삭제됩니다.";
+"post_save_cancel3"="이 화면을 나가시겠습니까?\n작성중인 내용은 모두 삭제됩니다.";
+
+"post_edit_save_cancel1"="글 수정을 취소하시겠습니까?";
+"post_content_order_title"="순서 편집";
+"post_content_order_cancel"="순서 편집을 취소하시겠습니까?";
+
+"post_comment_edit_title"="댓글 변경";
+"post_comment_edit_cancel"="댓글 수정을 취소하시겠습니까?";
+
+"post_deleted"="삭제된 글입니다.";
+"post_read"="읽음";
+"post_edit"="글 수정";
+"post_comment_hint"="댓글을 달아보세요.";
+
+"profile_detail_btn1_me"="나와의 채팅";
+"profile_detail_btn2_me"="내정보 관리";
+"profile_detail_btn1_you"="1 : 1 대화";
+"profile_detail_btn2_you"="전화걸기";
+"profile_detail_btn3_you"="문자보내기";
+
+"profile_post"="게시글";
+"profile_comment"="댓글";
+"profile_file"="파일";
+
+
+/*** q ***/
+
+/*** r ***/
+"regist"="등록";
+
+"reject_btn_title"="거절";
+"reject_title"="가입 거절";
+"reject_msg"="선택한 가입신청을 거절하시겠습니까?";
+"reject_reason_msg"="가입거절 사유를 입력하세요.";
+"reject_succeed"="%lu명을 가입 거절처리하였습니다.";
+
+"readonly_chatroom_input_msg"="대화가 불가능한 채팅방입니다.";
+
+/*** s ***/
+"save"="저장";
+"save_succeed"="저장되었습니다.";
+
+"search_board"="팀룸명으로 검색";
+"search_feed"="팀룸명,글쓴이,글내용으로 검색";
+"search_message"="채팅방명,대화내용 검색";
+"search_chat"="대화내용 검색";
+"search_userlist"="사용자 검색";
+
+"select_all"="전체선택";
+
+"send"="전송";
+
+"screenshot_mode"="해당 앱은 화면 캡쳐가 허용되지 않습니다.";
+
+"share"="공유";
+"share_title"="공유대상 선택";
+"share_item_null"="공유할 파일이 없습니다.";
+"share_item_size_over"="공유할 파일의 최대크기는 [20MB]이하 입니다.";
+"share_video_size_limit"="공유할 동영상의 최대크기는 [80MB]이하 입니다.";
+
+"share_tab_item_board"="팀룸";
+"share_tab_item_chat"="채팅";
+"share_to_post"="다른 팀룸으로 공유";
+
+"system_msg"="시스템 메시지";
+"system_info_version"="현재 버전 %@";
+"system_info_message1"="현재 최신 버전입니다.";
+"system_info_message2"="현재 최신버전은 %@입니다.";
+
+/*** t ***/
+"tab_home"="팀룸";
+"tab_newsfeed"="새글피드";
+"tab_chat"="채팅";
+"tab_myinfo"="내정보";
+
+"task_status1"="요청";
+"task_status2"="진행";
+"task_status3"="완료";
+"task_status4"="보류";
+
+"tutorial"="튜토리얼";
+
+/*** u ***/
+"upload_fail_title"="업로드 실패";
+"upload_fail_size_limit"="업로드 가능한 파일의 최대크기는 [20MB]이하 입니다.";
+"upload_video_size_limit"="업로드 가능한 동영상의 최대크기는 [80MB]이하 입니다.";
+
+/*** v ***/
+
+/*** w ***/
+"withdraw"="탈퇴";
+
+/*** x ***/
+
+/*** y ***/
+
+/*** z ***/
+

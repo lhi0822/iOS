@@ -1,0 +1,48 @@
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "192-XB-kOa"; */
+"192-XB-kOa.text" = "Label";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "29a-dX-63D"; */
+"29a-dX-63D.text" = "Label";
+
+/* Class = "UIBarButtonItem"; title = "Video"; ObjectID = "FCX-vn-OHE"; */
+"FCX-vn-OHE.title" = "Video";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "GUN-it-8VL"; */
+"GUN-it-8VL.text" = "Label";
+
+/* Class = "UILabel"; text = "Label"; ObjectID = "Q4g-2s-ZiN"; */
+"Q4g-2s-ZiN.text" = "Label";
+
+/* Class = "UIBarButtonItem"; title = "Auth"; ObjectID = "ZNd-nD-uUr"; */
+"ZNd-nD-uUr.title" = "Auth";
+
+/* Class = "UILabel"; text = "글쓰기"; ObjectID = "ciR-tf-DNb"; */
+"ciR-tf-DNb.text" = "글쓰기";
+
+/* Class = "UIBarButtonItem"; title = "Next"; ObjectID = "d1Q-Os-AtD"; */
+"d1Q-Os-AtD.title" = "Next";
+
+/* Class = "UITabBarItem"; title = "Home"; ObjectID = "ewj-sz-h6t"; */
+"ewj-sz-h6t.title" = "Home";
+
+/* Class = "UIButton"; normalTitle = "mFinity로 로그인"; ObjectID = "him-G6-rLN"; */
+"him-G6-rLN.normalTitle" = "mFinity로 로그인";
+
+/* Class = "UITabBarItem"; title = "Band"; ObjectID = "kuR-Db-pFg"; */
+"kuR-Db-pFg.title" = "Band";
+
+/* Class = "UIButton"; normalTitle = "Button"; ObjectID = "mPm-fQ-GXv"; */
+"mPm-fQ-GXv.normalTitle" = "Button";
+
+/* Class = "UITabBarItem"; title = "Mypage"; ObjectID = "oXF-as-dWt"; */
+"oXF-as-dWt.title" = "Mypage";
+
+/* Class = "UITabBarItem"; title = "Chat"; ObjectID = "ry4-Np-o1b"; */
+"ry4-Np-o1b.title" = "Chat";
+
+/* Class = "UIBarButtonItem"; title = "Camera"; ObjectID = "vfg-xn-aqU"; */
+"vfg-xn-aqU.title" = "Camera";
+
+/* Class = "UIBarButtonItem"; title = "File"; ObjectID = "xKH-Kw-oHm"; */
+"xKH-Kw-oHm.title" = "File";

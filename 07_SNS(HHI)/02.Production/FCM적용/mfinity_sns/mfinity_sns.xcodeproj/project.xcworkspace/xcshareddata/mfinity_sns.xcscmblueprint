@@ -1,0 +1,24 @@
+{
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+    "03a18cd3-8b02-9545-98a4-1d0856b23c7e" : {
+
+    }
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "03a18cd3-8b02-9545-98a4-1d0856b23c7e" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "481DF801-2D01-4630-AB49-F31DD9657CFB",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "03a18cd3-8b02-9545-98a4-1d0856b23c7e" : "..\/..\/..\/iOS"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "mfinity_sns",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "mfinity_sns.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/bsdbv.ezsmart.co.kr\/svn\/iOS",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Subversion",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "03a18cd3-8b02-9545-98a4-1d0856b23c7e"
+    }
+  ]
+}

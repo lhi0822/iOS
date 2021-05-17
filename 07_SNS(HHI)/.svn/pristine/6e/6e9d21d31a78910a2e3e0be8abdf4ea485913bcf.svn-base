@@ -1,0 +1,198 @@
+//
+//  AccessAuthCheck.m
+//  mfinity_sns
+//
+//  Created by hilee on 2020/05/08.
+//  Copyright © 2020 com.dbvalley. All rights reserved.
+//
+
+#import "AccessAuthCheck.h"
+
+@implementation AccessAuthCheck
+
++ (UIViewController *)topViewController{
+  return [self topViewController:[UIApplication sharedApplication].keyWindow.rootViewController];
+}
+
++ (UIViewController *)topViewController:(UIViewController *)rootViewController
+{
+  if (rootViewController.presentedViewController == nil) {
+    return rootViewController;
+  }
+
+  if ([rootViewController.presentedViewController isMemberOfClass:[UINavigationController class]]) {
+    UINavigationController *navigationController = (UINavigationController *)rootViewController.presentedViewController;
+    UIViewController *lastViewController = [[navigationController viewControllers] lastObject];
+    return [self topViewController:lastViewController];
+  }
+
+  UIViewController *presentedViewController = (UIViewController *)rootViewController.presentedViewController;
+  return [self topViewController:presentedViewController];
+}
+
++(BOOL)cameraAccessCheck {
+    @try{
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *mediaAuth = [NSString stringWithFormat:@"%@", [prefs objectForKey:@"MEDIA_AUTH"]]; //@"0"; //미디어 접근 권한 임시 변수
+        UIViewController *top = [self topViewController];
+        
+        if([[MFSingleton sharedInstance] mediaAuthCheck] && [mediaAuth isEqualToString:@"0"]){
+            //미디어 접근 권한 사용 및 권한이 없을 경우
+            
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"user_permission_media", @"user_permission_media") message:nil preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"done", @"done") style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {
+                                                                 //내정보 페이지로 이동?
+                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                             }];
+            [alert addAction:okButton];
+            
+            [top presentViewController:alert animated:YES completion:nil];
+            
+            return NO;
+            
+        } else {
+            NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+                    
+            AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+            if(status == AVAuthorizationStatusAuthorized) {
+                NSLog(@"카메라 접근 허용일 경우");
+                return YES;
+                
+            } else if(status == AVAuthorizationStatusDenied) {
+                NSLog(@"카메라 접근 허용되지않았을 경우");
+                
+                
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:NSLocalizedString(@"alert_access_camera", @"alert_access_camera"), appName] message:nil preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"cancel", @"cancel") style:UIAlertActionStyleDefault
+                                                                     handler:^(UIAlertAction * action) {
+                                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                     }];
+                UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"done", @"done") style:UIAlertActionStyleDefault
+                                                                 handler:^(UIAlertAction * action) {
+                                                                     NSURL *url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                                                                     [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                                                                     
+                                                                     [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                 }];
+                [alert addAction:cancelButton];
+                [alert addAction:okButton];
+                
+                [top presentViewController:alert animated:YES completion:nil];
+                
+                return NO;
+                
+            } else if(status == AVAuthorizationStatusNotDetermined){ // not determined
+                [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+                    if(granted){ // Access has been granted ..do something
+                        
+                    } else { // Access denied ..do something
+                        UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:NSLocalizedString(@"alert_access_camera", @"alert_access_camera"), appName] message:nil preferredStyle:UIAlertControllerStyleAlert];
+                        UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"cancel", @"cancel") style:UIAlertActionStyleDefault
+                                                                             handler:^(UIAlertAction * action) {
+                                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                             }];
+                        UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"done", @"done") style:UIAlertActionStyleDefault
+                                                                         handler:^(UIAlertAction * action) {
+                                                                             NSURL *url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                                                                             [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                                                                             
+                                                                             [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                         }];
+                        [alert addAction:cancelButton];
+                        [alert addAction:okButton];
+
+                        [top presentViewController:alert animated:YES completion:NULL];
+                    }
+                }];
+                
+                return NO;
+                
+            } else {
+               return NO;
+            }
+            
+        }
+        
+    } @catch(NSException *exception){
+        NSLog(@"%s Exception : %@", __func__, exception);
+    }
+}
+
++(BOOL)photoAccessCheck{
+    @try{
+        NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+        NSString *mediaAuth = [NSString stringWithFormat:@"%@", [prefs objectForKey:@"MEDIA_AUTH"]]; //@"0"; //미디어 접근 권한 임시 변수
+        UIViewController *top = [self topViewController];
+        
+        if([[MFSingleton sharedInstance] mediaAuthCheck] && [mediaAuth isEqualToString:@"0"]){
+            //미디어 접근 권한 사용 및 권한이 없을 경우
+            
+            UIAlertController *alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"user_permission_media", @"user_permission_media") message:nil preferredStyle:UIAlertControllerStyleAlert];
+            UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"done", @"done") style:UIAlertActionStyleDefault
+                                                             handler:^(UIAlertAction * action) {
+                                                                 //내정보 페이지로 이동?
+                                                                 [alert dismissViewControllerAnimated:YES completion:nil];
+                                                             }];
+            [alert addAction:okButton];
+            
+            [top presentViewController:alert animated:YES completion:nil];
+            
+            return NO;
+            
+        } else {
+            NSString *appName = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleDisplayName"];
+            PHAuthorizationStatus photoStatus = [PHPhotoLibrary authorizationStatus];
+            
+            if (photoStatus == PHAuthorizationStatusAuthorized) {
+                return YES;
+                
+            } else if (photoStatus == PHAuthorizationStatusDenied) {
+                NSLog(@"Access has been denied.");
+                
+                UIAlertController *alert = [UIAlertController alertControllerWithTitle:[NSString stringWithFormat:NSLocalizedString(@"alert_access_photo", @"alert_access_photo"),appName] message:nil preferredStyle:UIAlertControllerStyleAlert];
+                UIAlertAction* cancelButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"cancel", @"cancel") style:UIAlertActionStyleDefault
+                                                                     handler:^(UIAlertAction * action) {
+                                                                         [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                     }];
+                UIAlertAction* okButton = [UIAlertAction actionWithTitle:NSLocalizedString(@"done", @"done") style:UIAlertActionStyleDefault
+                                                                 handler:^(UIAlertAction * action) {
+                                                                     NSURL *url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+                                                                     [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                                                                     
+                                                                     [alert dismissViewControllerAnimated:YES completion:nil];
+                                                                 }];
+                [alert addAction:cancelButton];
+                [alert addAction:okButton];
+
+                [top presentViewController:alert animated:YES completion:NULL];
+                
+                return NO;
+                
+            } else if (photoStatus == PHAuthorizationStatusNotDetermined) {
+                [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+                    if (status == PHAuthorizationStatusAuthorized) {
+                        NSLog(@"1 StatusNotDetermined Access has been granted.");
+                    
+                        
+                    } else {
+                        NSLog(@"2 StatusNotDetermined Access has been granted.");
+                    }
+                }];
+                
+                return NO;
+                
+            } else if (photoStatus == PHAuthorizationStatusRestricted) {
+                NSLog(@"Restricted access - normally won't happen.");
+                return NO;
+            }
+            
+        }
+        
+    } @catch(NSException *exception){
+        NSLog(@"%s Exception : %@", __func__, exception);
+    }
+}
+
+
+@end

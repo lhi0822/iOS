@@ -1,0 +1,40 @@
+//
+//  PrefixHeader.pch
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 13..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <Availability.h>
+
+#ifndef __IPHONE_4_0
+#warning "This project uses features only available in iOS SDK 4.0 and later."
+#endif
+
+#ifdef __OBJC__
+#import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
+#endif
+
+//#ifndef Debug
+//#define Debug 1
+//#endif
+
+//#ifdef DEBUG
+//#define NSLog( s, ... ) NSLog( @"<%p %@:(%d)> %@", self, [[NSString stringWithUTF8String:__FILE__] lastPathComponent], __LINE__, [NSString stringWithFormat:(s), ##__VA_ARGS__] )
+//#else
+//#define NSLog( s, ... )
+//#endif
+
+//디버그모드 일때만 로그출력
+//#ifdef DEBUG
+//#define NSLog(fmt, ...) NSLog((@"%s [Line %d] " fmt), __PRETTY_FUNCTION__, __LINE__, ##__VA_ARGS__);
+//#else
+//#define NSLog(...)
+//#endif
+
+#ifndef DEBUG
+    #define NSLog(...)
+#endif
+

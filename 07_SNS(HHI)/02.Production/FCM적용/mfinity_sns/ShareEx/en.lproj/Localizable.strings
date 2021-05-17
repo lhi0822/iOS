@@ -1,0 +1,11 @@
+/* 
+  Localizable.strings
+  mfinity_sns
+
+  Created by hilee on 2021/01/28.
+  Copyright © 2021 com.dbvalley. All rights reserved.
+*/
+
+"done"="확인";
+"share_item_size_over"="공유할 파일의 최대크기는 [20MB]이하 입니다.";
+"share_video_size_limit"="공유할 동영상의 최대크기는 [80MB]이하 입니다.";

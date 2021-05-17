@@ -1,0 +1,1299 @@
+//
+//  MFDBHelper.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 8. 22..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "MFDBHelper.h"
+
+@implementation MFDBHelper {
+//    AppDelegate *appDelegate;
+    int sqliteOpen;
+    BOOL isCorrect;
+    
+    NSUserDefaults *userDefaults;
+    NSUserDefaults *notiDefaults;
+    
+    NSString *callType;
+    
+    NSString *notiGrpNm;
+}
+
+- (NSString *)setPreferencesKey:(NSString *)keyName{
+    NSString *resultKey = @"";
+    
+    NSLog(@"setPreferencesKey callType : %@", callType);
+    NSString *userId = @"";
+    if([callType isEqualToString:@"1"]){
+        userId = [userDefaults objectForKey:@"USERID"];
+    } else {
+        userId = [notiDefaults objectForKey:@"USERID"];
+    }
+//    NSString *userId = [userDefaults objectForKey:@"USERID"];
+    resultKey = [NSString stringWithFormat:@"%@_%@",userId,keyName];
+    NSLog(@"resultKey : %@", resultKey);
+    return resultKey;
+}
+
+- (instancetype)init:(NSString *)call userId:(NSString *)userId{
+#ifdef DEBUG
+    NSLog(@"init call : %@", call);
+    NSLog(@"MFDBHelper 초기화>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+    
+    self = [super init];
+    
+    notiGrpNm = @"group.hhi.sns.push";
+    callType = @"";
+    
+    userDefaults = [NSUserDefaults standardUserDefaults];
+//    notiDefaults = [[NSUserDefaults alloc] initWithSuiteName:[notiDefaults objectForKey:@"NOTIGROUPNAME"]];
+    notiDefaults = [[NSUserDefaults alloc] initWithSuiteName:notiGrpNm]; //앱그룹이름 하드코딩 하는걸로
+    
+    callType = call;
+    
+    if([callType isEqualToString:@"1"]){
+        NSLog(@"그룹 이름이 잘 저장되어있는가1 : %@", [userDefaults objectForKey:@"NOTIGROUPNAME"]);
+    } else {
+//        NSLog(@"그룹 이름이 잘 저장되어있는가2 : %@", [notiDefaults objectForKey:@"NOTIGROUPNAME"]);
+    }
+    
+    if(userId==nil){
+        // 1:App, 2:Noti Extension
+        if([call isEqualToString:@"1"]){
+            NSLog(@"NOTIGROUPNAME : %@", [userDefaults objectForKey:@"NOTIGROUPNAME"]);
+            NSLog(@"DBVER : %@", [userDefaults objectForKey:@"DBVER"]);
+            NSLog(@"AES256KEY : %@", [userDefaults objectForKey:@"AES256KEY"]);
+            NSLog(@"DBENCRYPT : %@", [userDefaults objectForKey:@"DBENCRYPT"]);
+            NSLog(@"WSENCRYPT : %@", [userDefaults objectForKey:@"WSENCRYPT"]);
+            
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+        #ifdef DEBUG
+            NSLog(@"SET_LOCAL_DB : %@", [userDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]]);
+        #endif
+            
+            NSString *dbPath = [self useAppGroupDB];
+            
+            if([[userDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]] isEqualToString:@"NOT_SET"]){
+                if ([fileManager fileExistsAtPath:dbPath]) {
+        #ifdef DEBUG
+                    NSLog(@"DB 지우고 다시 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    [fileManager removeItemAtPath:dbPath error:nil];
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                } else {
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 없음>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                }
+                
+                if([[userDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                    [self encryptDB];
+                } else {
+                    [self openDB];
+                }
+                
+                [self checkForDB];
+                
+                [self createTable];
+                [self insertData];
+                
+                [userDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                [userDefaults synchronize];
+                
+                [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                [notiDefaults synchronize];
+                
+            } else {
+                if ([fileManager fileExistsAtPath:dbPath]) {
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 있음>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                    
+                    [self checkForDB];
+                    
+        #ifdef DEBUG
+                    NSLog(@"DB 버전 확인>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    //파일이 있으면 버전이 맞는지 확인
+                    NSString *DB_VERSION = @"SELECT VERSION FROM DB_VERSION;";
+                    NSString *currDbVer = [self selectString:DB_VERSION];
+                    
+                    //버전이 다를경우
+                    if([currDbVer intValue] != [[userDefaults objectForKey:@"DBVER"] intValue]){
+        #ifdef DEBUG
+                        NSLog(@"DB 버전 수정>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                        NSString *updateVer = [NSString stringWithFormat:@"UPDATE DB_VERSION SET VERSION = %d", [[userDefaults objectForKey:@"DBVER"] intValue]];
+                        [self crudStatement:updateVer];
+                        [self changeDBVersion];
+                    }
+                } else {
+                    //파일없으면 생성
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 없음2>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    if([[userDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]] isEqualToString:@"NOT_SET"]){
+                        sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                        
+                        if([[userDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                            [self encryptDB];
+                        } else {
+                            [self openDB];
+                        }
+                        
+                        [self checkForDB];
+                        
+                        [self createTable];
+                        [self insertData];
+                        
+                        [userDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [userDefaults synchronize];
+                        
+                        [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [notiDefaults synchronize];
+                    
+                    } else {
+                        NSLog(@"DB 파일 없고,, 다시 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                        sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                                
+                        if([[userDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                            [self encryptDB];
+                        } else {
+                            [self openDB];
+                        }
+                        
+                        [self checkForDB];
+                        
+                        [self createTable];
+                        [self insertData];
+                        
+                        [userDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [userDefaults synchronize];
+                        
+                        [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [notiDefaults synchronize];
+                    }
+                }
+            }
+            
+        } else if([call isEqualToString:@"2"]){
+            NSLog(@"2 DBVER : %@", [notiDefaults objectForKey:@"DBVER"]);
+            NSLog(@"2 AES256KEY : %@", [notiDefaults objectForKey:@"AES256KEY"]);
+            NSLog(@"2 DBENCRYPT : %@", [notiDefaults objectForKey:@"DBENCRYPT"]);
+            NSLog(@"2 WSENCRYPT : %@", [notiDefaults objectForKey:@"WSENCRYPT"]);
+            
+            NSFileManager *fileManager = [NSFileManager defaultManager];
+            #ifdef DEBUG
+                NSLog(@"2 SET_LOCAL_DB : %@", [notiDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]]);
+            #endif
+                
+            NSString *dbPath = [self useAppGroupDB];
+            
+            if([[notiDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]] isEqualToString:@"NOT_SET"]){
+                if ([fileManager fileExistsAtPath:dbPath]) {
+        #ifdef DEBUG
+                    NSLog(@"DB 지우고 다시 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    [fileManager removeItemAtPath:dbPath error:nil];
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                } else {
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 없음>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                }
+                
+                if([[notiDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                    [self encryptDB];
+                } else {
+                    [self openDB];
+                }
+                
+                [self checkForDB];
+                
+                [self createTable];
+                [self insertData];
+                
+                [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                [notiDefaults synchronize];
+                
+                
+            } else {
+                if ([fileManager fileExistsAtPath:dbPath]) {
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 있음>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                    
+                    [self checkForDB];
+                    
+        #ifdef DEBUG
+                    NSLog(@"DB 버전 확인>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    //파일이 있으면 버전이 맞는지 확인
+                    NSString *DB_VERSION = @"SELECT VERSION FROM DB_VERSION;";
+                    NSString *currDbVer = [self selectString:DB_VERSION];
+                    
+                    //버전이 다를경우
+                    if([currDbVer intValue] != [[notiDefaults objectForKey:@"DBVER"] intValue]){
+        #ifdef DEBUG
+                        NSLog(@"DB 버전 수정>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                        NSString *updateVer = [NSString stringWithFormat:@"UPDATE DB_VERSION SET VERSION = %d", [[notiDefaults objectForKey:@"DBVER"] intValue]];
+                        [self crudStatement:updateVer];
+                        [self changeDBVersion];
+                    }
+                } else {
+                    //파일없으면 생성
+        #ifdef DEBUG
+                    NSLog(@"DB 파일 없음2>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        #endif
+                    if([[notiDefaults objectForKey:[self setPreferencesKey:@"SETLOCALDB"]] isEqualToString:@"NOT_SET"]){
+                        sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                        
+                        if([[notiDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                            [self encryptDB];
+                        } else {
+                            [self openDB];
+                        }
+                        
+                        [self checkForDB];
+                        
+                        [self createTable];
+                        [self insertData];
+                        
+                        [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [notiDefaults synchronize];
+                        
+                    
+                    } else {
+                        NSLog(@"DB 파일 없고,, 다시 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+                        sqliteOpen = sqlite3_open([dbPath UTF8String], &db);
+                                
+                        if([[notiDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+                            [self encryptDB];
+                        } else {
+                            [self openDB];
+                        }
+                        
+                        [self checkForDB];
+                        
+                        [self createTable];
+                        [self insertData];
+                        
+                        [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+                        [notiDefaults synchronize];
+                    }
+                }
+            }
+        }
+        
+        [self createLocalFolder];
+        
+    } else {
+        NSLog(@"MFDBHelper USER_ID로 초기화>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        self = [super init];
+        if (self) {
+            userDefaults = [NSUserDefaults standardUserDefaults];
+            
+            sqliteOpen = sqlite3_open([[self useAppGroupDB] UTF8String], &db);
+            [self checkForDB];
+        }
+    }
+    
+    return self;
+}
+
+- (NSString *)getDBPath {
+//    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+//    NSString *dbName = [appDelegate.appPrefs objectForKey:[appDelegate setPreferencesKey:@"DBNAME"]];
+    NSString *dbName = [userDefaults objectForKey:[self setPreferencesKey:@"DBNAME"]];
+
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    NSString *dbPath = [NSString stringWithFormat:@"%@.db", [documentsDir stringByAppendingPathComponent:dbName]];
+
+    NSLog(@"DBPath : %@", dbPath);
+
+    return dbPath;
+}
+
+- (NSString *)useAppGroupDB{
+    /*
+    1. 앱그룹 경로에 디비 있는지 체크
+    2. 있으면 연결
+    3. 없으면,
+    4. 기존 경로에 디비 있는지 체크
+    5. 있으면 해당 디비를 앱그룹 경로에 복사 후, 기존 경로에 디비 삭제
+    6. 앱그룹 디비에 연결
+    7. 기존 경로에도 디비가 없으면
+    8. 앱그룹 경로에 디비 생성 및 연결
+    */
+    
+//    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
+//    NSString *dbName = [appDelegate.appPrefs objectForKey:[appDelegate setPreferencesKey:@"DBNAME"]];
+    NSString *dbName;
+    NSString *appGroupName;
+    if([callType isEqualToString:@"1"]){
+        dbName = [userDefaults objectForKey:[self setPreferencesKey:@"DBNAME"]];
+        appGroupName = [userDefaults objectForKey:@"NOTIGROUPNAME"];
+    } else {
+        dbName = [notiDefaults objectForKey:[self setPreferencesKey:@"DBNAME"]];
+        appGroupName = notiGrpNm; //[notiDefaults objectForKey:@"NOTIGROUPNAME"];
+    }
+    
+//    NSString *appGroupDirectoryPath = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appDelegate.notiGroupName].path;
+    NSString *appGroupDirectoryPath = [[NSFileManager defaultManager] containerURLForSecurityApplicationGroupIdentifier:appGroupName].path;
+    NSString *groupDbPath = [NSString stringWithFormat:@"%@.db", [appGroupDirectoryPath stringByAppendingPathComponent:dbName]];
+    
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    NSString *localDbPath = [NSString stringWithFormat:@"%@.db", [documentsDir stringByAppendingPathComponent:dbName]];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSError *error;
+    
+    if ([fileManager fileExistsAtPath:groupDbPath]) {
+        NSLog(@"앱그룹 경로에 디비 있음");
+        //[fileManager removeItemAtPath:groupDbPath error:&error];
+        
+    } else {
+        NSLog(@"앱그룹 경로에 디비 없음");
+        if ([fileManager fileExistsAtPath:localDbPath]) {
+            NSLog(@"로컬 경로에 디비 있음, 앱 경로로 복사");
+            
+//            [fileManager moveItemAtPath:localDbPath toPath:groupDbPath error:&error];
+            [fileManager copyItemAtPath:localDbPath toPath:groupDbPath error:&error];
+            //[fileManager removeItemAtPath:prevPath error:&error];
+            
+        } else {
+            NSLog(@"로컬 경로에 디비 없음");
+        }
+    }
+    NSLog(@"groupDbPath : %@", groupDbPath);
+    
+    return groupDbPath;
+}
+
+- (void)openDB {
+    //데이터베이스 생성
+#ifdef DEBUG
+    NSLog(@"DB 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+    
+    if(sqliteOpen != SQLITE_OK){
+        //sqlite3_close(db);
+        NSAssert(0, @"DB failed to open.");
+    }
+}
+
+-(void)encryptDB{
+#ifdef DEBUG
+    NSLog(@"암호화DB 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+    
+    //DB파일 암호화
+    sqlite3_stmt *stmt;
+    bool sqlcipher_valid = NO;
+
+    if (sqliteOpen == SQLITE_OK) {
+//        const char* key = [appDelegate.AES256Key UTF8String];
+        
+        NSString *aes256key;
+        if([callType isEqualToString:@"1"]){
+            aes256key = [userDefaults objectForKey:@"AES256KEY"];
+        } else {
+            aes256key = [notiDefaults objectForKey:@"AES256KEY"];
+        }
+        
+        const char* key = [aes256key UTF8String];
+        sqlite3_key(db, key, (int)strlen(key));
+        if (sqlite3_exec(db, (const char*) "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK) {
+            if(sqlite3_prepare_v2(db, "PRAGMA cipher_version;", -1, &stmt, NULL) == SQLITE_OK) {
+                if(sqlite3_step(stmt)== SQLITE_ROW) {
+                    const unsigned char *ver = sqlite3_column_text(stmt, 0);
+                    if(ver != NULL) {
+                        sqlcipher_valid = YES;
+                    }
+                }
+                sqlite3_finalize(stmt);
+            }
+        }
+    } else {
+#ifdef DEBUG
+        NSLog(@"암호화DB 생성 FAILED>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+        
+    }
+}
+
+-(void)checkForDB{
+    if (sqliteOpen == SQLITE_OK) {
+        
+#ifdef DEBUG
+        NSLog(@"SQLite OPEN>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+
+        NSString *dbEncrypt;
+        if([callType isEqualToString:@"1"]){
+            dbEncrypt = [userDefaults objectForKey:@"DBENCRYPT"];
+        } else {
+            dbEncrypt = [notiDefaults objectForKey:@"DBENCRYPT"];
+        }
+        
+        if([dbEncrypt isEqual:@1]){
+#ifdef DEBUG
+            NSLog(@"암호화 DB 사용>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+
+            if (sqlite3_exec(db, (const char*) "PRAGMA key = 'E3Z2S1M5A9R8T1F3E2E4L31504081532'", NULL, NULL, NULL) == SQLITE_OK) {
+#ifdef DEBUG
+                NSLog(@"암호화DB 패스워드 체크>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+                isCorrect = YES;
+            } else {
+#ifdef DEBUG
+                NSLog(@"암호화DB 패스워드 체크 실패>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+                isCorrect = NO;
+            }
+        } else {
+#ifdef DEBUG
+            NSLog(@"일반 DB 사용>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+            isCorrect = YES;
+        }
+    } else {
+#ifdef DEBUG
+        NSLog(@"SQLite OPEN FAILED>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+    }
+}
+
+-(void)restoreInsertDB{
+//    appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;op
+//    NSString *dbName = [appDelegate.appPrefs objectForKey:[appDelegate setPreferencesKey:@"DBNAME"]];
+    NSString *dbName = [userDefaults objectForKey:[self setPreferencesKey:@"DBNAME"]];
+    NSArray *documentPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDir = [documentPaths objectAtIndex:0];
+    NSString *dbPath = [NSString stringWithFormat:@"%@.db", [documentsDir stringByAppendingPathComponent:[NSString stringWithFormat:@"TEMP_%@", dbName]]];
+    
+    if(isCorrect){
+        if (sqliteOpen == SQLITE_OK) {
+            //현재 연결된 DB(BP15214.db)에 복원할 디비(TEMP_BP15214.db)를 연결
+            NSString *attachSQL = [NSString stringWithFormat:@"ATTACH DATABASE \'%@\' AS RESOTRE_DB KEY 'E3Z2S1M5A9R8T1F3E2E4L31504081532';", dbPath];
+            
+            if (sqlite3_exec(db, [attachSQL UTF8String], NULL, NULL, NULL) == SQLITE_OK) {
+                //복원할 디비에서 전체 테이블 검색
+                NSString *masterQuery = [NSString stringWithFormat:@"SELECT name FROM RESOTRE_DB.sqlite_master WHERE type='table';"];
+                const char *masterStmt = [masterQuery UTF8String];
+                sqlite3_stmt *statement;
+                
+                if (sqlite3_prepare_v2(db, masterStmt, -1, &statement, NULL) == SQLITE_OK) {
+                    int rowCount = 0;
+                    while(sqlite3_step(statement) == SQLITE_ROW) {
+                        rowCount = sqlite3_column_int(statement, 0);
+                        
+                        NSString * currentTable = [NSString stringWithUTF8String:(char *)sqlite3_column_text(statement, 0)];
+                        //NSLog(@"Here's the current table: %@",currentTable);
+                        
+                        //복원할 디비 데이터를 원본 디비로 INSERT OR REPLACE
+                        NSString *tblUpdate = [NSString stringWithFormat:@"INSERT OR REPLACE INTO %@ SELECT * FROM RESOTRE_DB.%@;", currentTable, currentTable];
+                        const char *updateStmt = [tblUpdate UTF8String];
+                        if (sqlite3_exec(db, updateStmt, NULL, NULL, NULL) == SQLITE_OK) {
+#ifdef DEBUG
+                            NSLog(@"tblUpdate : %@", tblUpdate);
+#endif
+                        } else {
+#ifdef DEBUG
+                            NSLog(@"ATTACHE INSERT ERROR : %s\n", sqlite3_errmsg(db));
+#endif
+                        }
+                    }
+                } else {
+#ifdef DEBUG
+                    NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+                }
+                sqlite3_finalize(statement);
+              
+                NSString *detachSQL = [NSString stringWithFormat:@"DETACH DATABASE RESTORE_DB;"];
+                if (sqlite3_exec(db, [detachSQL UTF8String], NULL, NULL, NULL) == SQLITE_OK) {
+#ifdef DEBUG
+                    NSLog(@"복원 했으니 연결 해제");
+#endif
+                } else {
+                    //NSLog(@"이건 왜 안돼? : %s\n", sqlite3_errmsg(db));
+                }
+            } else {
+#ifdef DEBUG
+                NSLog(@"Could not exec statement: %s\n", sqlite3_errmsg(db));
+#endif
+            }
+        }
+    } else {
+#ifdef DEBUG
+        NSLog(@"restoreInsertDB isCorrect Value = NO");
+#endif
+    }
+
+//    [SVProgressHUD dismiss];
+}
+
+-(void)clearDataBase{
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    NSString *bundleFolder = [documentFolder stringByAppendingFormat:@"/%@/",bundleIdentifier];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if ([fileManager fileExistsAtPath:[self useAppGroupDB]]) {
+#ifdef DEBUG
+        NSLog(@"DB 지우고 다시 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+        [fileManager removeItemAtPath:[self useAppGroupDB] error:nil];
+        [fileManager removeItemAtPath:bundleFolder error:nil];
+        sqliteOpen = sqlite3_open([[self useAppGroupDB] UTF8String], &db);
+    }
+    
+    [self createLocalFolder];
+    
+//    if(appDelegate.dbEncrypt){
+    if([[userDefaults objectForKey:@"DBENCRYPT"] isEqual:@1]){
+        [self encryptDB];
+    } else {
+        [self openDB];
+    }
+    
+    [self checkForDB];
+    
+    [self createTable];
+    [self insertData];
+    
+//    [appDelegate.appPrefs setObject:@"DB_SET" forKey:[appDelegate setPreferencesKey:@"SETLOCALDB"]];
+//    [appDelegate.appPrefs synchronize];
+    [userDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+    [userDefaults synchronize];
+    
+    [notiDefaults setObject:@"DB_SET" forKey:[self setPreferencesKey:@"SETLOCALDB"]];
+    [notiDefaults synchronize];
+}
+
+#pragma mark - CREATE DATA
+-(void)createLocalFolder{
+#ifdef DEBUG
+    NSLog(@"로컬폴더생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+
+    NSString *bundleIdentifier = [[NSBundle mainBundle] bundleIdentifier];
+    NSString *documentFolder = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
+    
+    NSString *bundleFolder = [documentFolder stringByAppendingFormat:@"/%@/",bundleIdentifier];
+//    NSString *compFolder = [bundleFolder stringByAppendingFormat:@"/%@/",[appDelegate.appPrefs objectForKey:@"COMP_NO"]];
+    NSString *compFolder = [bundleFolder stringByAppendingFormat:@"/%@/",[userDefaults objectForKey:@"COMP_NO"]];
+    
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    BOOL issue = [fileManager isReadableFileAtPath:bundleFolder];
+    if (issue) {
+#ifdef DEBUG
+//        NSLog(@"BundleIdentifier directory can read");
+#endif
+
+    }else{
+#ifdef DEBUG
+//        NSLog(@"BundleIdentifier directory can't read...Create Folder");
+#endif
+        [fileManager createDirectoryAtPath:compFolder withIntermediateDirectories:YES attributes:nil error:nil];
+        //부모 폴더가 없어도 생성하는가?? withIntermediateDirectories:YES
+    }
+    
+    NSArray *folderArr = @[@"Post", @"Task", @"Chat", @"Profile", @"ProfileBg", @"Cover", @"Cache"];
+    for(int i=0; i<folderArr.count; i++){
+        NSString *saveFolder = [compFolder stringByAppendingFormat:@"/%@/",[folderArr objectAtIndex:i]];
+        
+        NSFileManager *fileManager = [NSFileManager defaultManager];
+        BOOL issue = [fileManager isReadableFileAtPath:saveFolder];
+        if (issue) {
+#ifdef DEBUG
+//            NSLog(@"Directory can read");
+#endif
+        }else{
+#ifdef DEBUG
+//            NSLog(@"Directory can't read...Create Folder");
+#endif
+            [fileManager createDirectoryAtPath:saveFolder withIntermediateDirectories:YES attributes:nil error:nil];
+        }
+    }
+}
+
+- (void)createTable {
+#ifdef DEBUG
+    NSLog(@"DB 테이블 생성>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+    
+    NSString *DB_VERSION = @"CREATE TABLE IF NOT EXISTS DB_VERSION (VERSION INTEGER PRIMARY KEY);";
+    [self crudStatement:DB_VERSION];
+    
+    NSString *CHAT_ROOMS = @"CREATE TABLE IF NOT EXISTS CHAT_ROOMS (ROOM_NO INTEGER PRIMARY KEY, ROOM_NM TEXT NOT NULL, ROOM_TYPE TEXT NOT NULL, ROOM_NOTI INTEGER DEFAULT 1, NEW_CHAT INTEGER DEFAULT 0, CUSTOM_ROOM_NM TEXT DEFAULT '', IS_SCROLL INTEGER DEFAULT 0);";
+    [self crudStatement:CHAT_ROOMS];
+    
+    NSString *CHAT_USERS = @"CREATE TABLE IF NOT EXISTS CHAT_USERS (ROOM_NO INTEGER, USER_NO INTEGER NOT NULL, PRIMARY KEY(ROOM_NO,USER_NO));";
+    [self crudStatement:CHAT_USERS];
+    
+    NSString *USERS = @"CREATE TABLE IF NOT EXISTS USERS (USER_NO INTEGER PRIMARY KEY, USER_ID TEXT NOT NULL, USER_NM TEXT NOT NULL, USER_IMG TEXT, USER_MSG TEXT, USER_PHONE TEXT, DEPT_NO TEXT NOT NULL, USER_BG_IMG TEXT, DEPT_NM TEXT, LEVEL_NO TEXT, LEVEL_NM TEXT, DUTY_NO TEXT, DUTY_NM TEXT, JOB_GRP_NM TEXT, EX_COMPANY_NO TEXT, EX_COMPANY_NM TEXT, SNS_USER_TYPE INTEGER DEFAULT 0);";
+    [self crudStatement:USERS];
+    
+    NSString *DEPTS = @"CREATE TABLE IF NOT EXISTS DEPTS (DEPT_NO TEXT PRIMARY KEY, DEPT_NM TEXT NOT NULL, UP_DEPT_NO TEXT NOT NULL);";
+    [self crudStatement:DEPTS];
+    
+//    NSString *SNS = @"CREATE TABLE IF NOT EXISTS SNS (SNS_NO INTEGER PRIMARY KEY, SNS_NM TEXT NOT NULL, SNS_TY TEXT NOT NULL, NEED_ALLOW TEXT, SNS_DESC TEXT, COVER_IMG TEXT, CUSER_NO INTEGER, CREATE_DATE TEXT, COMP_NO INTEGER NOT NULL, POST_NOTI INTEGER DEFAULT 1, COMMENT_NOTI INTEGER DEFAULT 1, SNS_KIND TEXT NOT NULL DEFAULT '1', USER_NM TEXT DEFAULT '');";
+    NSString *SNS = @"CREATE TABLE IF NOT EXISTS SNS (SNS_NO INTEGER PRIMARY KEY, SNS_NM TEXT NOT NULL, SNS_TY TEXT NOT NULL, NEED_ALLOW TEXT, SNS_DESC TEXT, COVER_IMG TEXT, CUSER_NO INTEGER, CREATE_DATE TEXT, COMP_NO INTEGER NOT NULL, POST_NOTI INTEGER DEFAULT 1, COMMENT_NOTI INTEGER DEFAULT 1, SNS_KIND TEXT NOT NULL DEFAULT '1', CREATE_USER_NM TEXT DEFAULT '', USER_COUNT INTEGER DEFAULT 0, WAITING_USER_COUNT INTEGER DEFAULT 0, ITEM_TYPE TEXT);";
+    [self crudStatement:SNS];
+    
+    NSString *SNS_USERS = @"CREATE TABLE IF NOT EXISTS SNS_USERS (SNS_NO INTEGER NOT NULL, CUSER_NO INTEGER NOT NULL, PRIMARY KEY(SNS_NO,CUSER_NO));";
+    [self crudStatement:SNS_USERS];
+    
+    NSString *CHATS = @"CREATE TABLE IF NOT EXISTS CHATS (CHAT_NO INTEGER PRIMARY KEY, ROOM_NO INTEGER NOT NULL, USER_NO INTEGER NOT NULL, CONTENT_TY TEXT NOT NULL, CONTENT TEXT NOT NULL, LOCAL_CONTENT TEXT NOT NULL, FILE_NM TEXT, ADIT_INFO TEXT, DATE TEXT NOT NULL, IS_READ INTEGER DEFAULT 0, UNREAD_COUNT INTEGER DEFAULT 0, CONTENT_PREV TEXT DEFAULT '');";
+    [self crudStatement:CHATS];
+    
+    NSString *MISSED_CHAT = @"CREATE TABLE IF NOT EXISTS MISSED_CHATS (CHAT_NO INTEGER PRIMARY KEY AUTOINCREMENT, ROOM_NO INTEGER NOT NULL, CONTENT_TY TEXT NOT NULL, CONTENT TEXT NOT NULL, FILE_NM TEXT, ADIT_INFO TEXT, CONTENT_PREV TEXT DEFAULT '');";
+    [self crudStatement:MISSED_CHAT];
+    
+    NSString *ROOM_IMAGES = @"CREATE TABLE IF NOT EXISTS ROOM_IMAGES(ROOM_NO INTEGER PRIMARY KEY, ROOM_IMG TEXT NOT NULL, REF_NO1 INTEGER, REF_NO2 INTEGER, REF_NO3 INTEGER, REF_NO4 INTEGER);";
+    [self crudStatement:ROOM_IMAGES];
+} 
+
+- (void)insertData {
+#ifdef DEBUG
+    NSLog(@"DB 테이블 테이터 추가>>>>>>>>>>>>>>>>>>>>>>>>>>");
+#endif
+
+//    NSString *insertDBVer = [NSString stringWithFormat:@"INSERT OR REPLACE INTO DB_VERSION VALUES(%d);", appDelegate.db_ver];
+    NSString *insertDBVer = [NSString stringWithFormat:@"INSERT OR REPLACE INTO DB_VERSION VALUES(%d);", [[userDefaults objectForKey:@"DBVER"] intValue]];
+    [self crudStatement:insertDBVer];
+    
+    NSString *insertUsers = @"INSERT OR REPLACE INTO USERS VALUES(0,'admin','SYSTEM','','','','0','','','','','','','','','',1);";
+    [self crudStatement:insertUsers];
+
+    NSString *insertUsers2 = @"INSERT OR REPLACE INTO USERS VALUES(2,'admin','admin','','','','0','','','','','','','','','',1);";
+    [self crudStatement:insertUsers2];
+}
+
+- (void)changeDBVersion {
+    NSString *updateChats = @"UPDATE CHATS SET IS_READ = 1";
+    [self crudStatement:updateChats];
+   
+    /*
+    //DBVer 3-------------------------------------------------------------------
+    NSString *ROOM_IMAGES = @"CREATE TABLE IF NOT EXISTS ROOM_IMAGES(ROOM_NO INTEGER PRIMARY KEY, ROOM_IMG TEXT NOT NULL, REF_NO1 INTEGER, REF_NO2 INTEGER, REF_NO3 INTEGER, REF_NO4 INTEGER);";
+    [self crudStatement:ROOM_IMAGES];
+    
+    //DBVer 4-------------------------------------------------------------------
+    NSString *alterUsers1 = @"ALTER TABLE USERS ADD DEPT_NM TEXT";
+    [self crudStatement:alterUsers1];
+    NSString *alterUsers2 = @"ALTER TABLE USERS ADD LEVEL_NO TEXT";
+    [self crudStatement:alterUsers2];
+    NSString *alterUsers3 = @"ALTER TABLE USERS ADD LEVEL_NM TEXT";
+    [self crudStatement:alterUsers3];
+    NSString *alterUsers4 = @"ALTER TABLE USERS ADD DUTY_NO TEXT";
+    [self crudStatement:alterUsers4];
+    NSString *alterUsers5 = @"ALTER TABLE USERS ADD DUTY_NM TEXT";
+    [self crudStatement:alterUsers5];
+    NSString *alterUsers6 = @"ALTER TABLE USERS ADD JOB_GRP_NM TEXT";
+    [self crudStatement:alterUsers6];
+    NSString *alterUsers7 = @"ALTER TABLE USERS ADD EX_COMPANY_NO TEXT";
+    [self crudStatement:alterUsers7];
+    NSString *alterUsers8 = @"ALTER TABLE USERS ADD EX_COMPANY_NM TEXT";
+    [self crudStatement:alterUsers8];
+    
+    //DBVer 5-------------------------------------------------------------------
+    NSString *alterChatRooms1 = @"ALTER TABLE CHAT_ROOMS ADD IS_SCROLL INTEGER DEFAULT 0";
+    [self crudStatement:alterChatRooms1];
+    
+    //DBVer 6-------------------------------------------------------------------
+    NSString *alterUsers1 = @"ALTER TABLE USERS ADD SNS_USER_TYPE INTEGER DEFAULT 0";
+    [self crudStatement:alterUsers1];
+     */
+    
+    //DBVer 7-------------------------------------------------------------------
+    NSString *alterSns1 = @"ALTER TABLE SNS RENAME COLUMN USER_NM TO CREATE_USER_NM";
+    [self crudStatement:alterSns1];
+    
+    NSString *alterSns2 = @"ALTER TABLE SNS ADD USER_COUNT INTEGER DEFAULT 0";
+    [self crudStatement:alterSns2];
+    
+    NSString *alterSns3 = @"ALTER TABLE SNS ADD WAITING_USER_COUNT INTEGER DEFAULT 0";
+    [self crudStatement:alterSns3];
+    
+    NSString *alterSns4 = @"ALTER TABLE SNS ADD ITEM_TYPE TEXT";
+    [self crudStatement:alterSns4];
+}
+
+#pragma mark - QUERY EXECUTE
+- (void)crudStatement:(NSString *)crudStmt{
+#ifdef DEBUG
+    NSLog(@"MFDBHelper Crud Query : %@", crudStmt);
+#endif
+
+    if(isCorrect){
+        const char *sqlStatement = [crudStmt UTF8String];
+        
+        sqlite3_stmt *compiledStatement;
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            
+            if(sqlite3_step(compiledStatement) != SQLITE_DONE){
+#ifdef DEBUG
+                NSLog(@"Error updating table: %s", sqlite3_errmsg(db));
+#endif
+            }else{
+#ifdef DEBUG
+//                NSLog(@"MFDBHelper CrudStatement Succeed!");
+#endif
+            }
+            
+            if(sqlite3_finalize(compiledStatement) != SQLITE_OK){
+#ifdef DEBUG
+                NSLog(@"CrudStatement SQL Error : %s",sqlite3_errmsg(db));
+#endif
+            }
+        } else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper CrudStatement Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+    } else {
+#ifdef DEBUG
+        NSLog(@"CrudStatement isCorrect Value = NO");
+#endif
+    }
+}
+
+- (NSMutableArray *)selectRoomList {
+    NSString *sqlString = [self getRoomList];
+    return [self selectMutableArray:sqlString];
+}
+
+- (NSString *)selectString:(NSString *)selectStmt{
+    NSString *returnStr;
+    if(isCorrect){
+        const char *sqlStatement = [selectStmt UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    returnStr = valueString;
+                }
+            }
+        }else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper SelectString Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+        sqlite3_finalize(compiledStatement);
+        
+    } else {
+#ifdef DEBUG
+        NSLog(@"SelectString isCorrect Value = NO");
+#endif
+    }
+    return returnStr;
+}
+
+- (NSString *)selectString:(NSString *)selectStmt :(NSString *)param1{
+    NSString *returnStr;
+    
+    return returnStr;
+}
+
+- (NSMutableArray *)selectValueMutableArray:(NSString *)query{
+    NSMutableArray *arr = [NSMutableArray array];
+    NSMutableDictionary *dict = nil;
+    if(isCorrect){
+        const char *sqlStatement = [query UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    [arr addObject:valueString];
+                }
+            }
+        }else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper selectValueMutableArray Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+        sqlite3_finalize(compiledStatement);
+    } else {
+#ifdef DEBUG
+        NSLog(@"selectValueMutableArray isCorrect Value = NO");
+#endif
+    }
+    return arr;
+}
+
+
+- (NSMutableArray *)selectMutableArray:(NSString *)query{
+    NSMutableArray *arr = [NSMutableArray array];
+    NSMutableDictionary *dict = nil;
+    if(isCorrect){
+        const char *sqlStatement = [query UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    [dict setObject:valueString forKey:keyString];
+                }
+                
+                [arr addObject:dict];
+            }
+        }else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper selectMutableArray Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+        sqlite3_finalize(compiledStatement);
+    } else {
+#ifdef DEBUG
+        NSLog(@"selectMutableArray isCorrect Value = NO");
+#endif
+    }
+    return arr;
+}
+
+- (NSMutableArray *)selectMutableArray:(NSString *)query :(NSMutableArray *)paramArr{
+    NSMutableDictionary *dict = nil;
+    if(isCorrect){
+        const char *sqlStatement = [query UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    [dict setObject:valueString forKey:keyString];
+                }
+                [paramArr insertObject:dict atIndex:0];
+            }
+        }else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper selectMutableArray:param Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+        sqlite3_finalize(compiledStatement);
+    } else {
+#ifdef DEBUG
+        NSLog(@"selectMutableArray:param isCorrect Value = NO");
+#endif
+    }
+    return paramArr;
+}
+
+- (NSMutableDictionary *)selectMutableDictionary:(NSString *)query :(NSMutableArray *)paramArr{
+    NSMutableArray *arr = [NSMutableArray array];
+    NSMutableDictionary *dict = nil;
+    
+    NSMutableDictionary *resultDic = [NSMutableDictionary dictionary];
+    if(isCorrect){
+        const char *sqlStatement = [query UTF8String];
+        sqlite3_stmt *compiledStatement;
+        
+        if (sqlite3_prepare_v2(db, sqlStatement, -1, &compiledStatement, NULL) == SQLITE_OK) {
+            int rowCount = 0;
+            
+            while(sqlite3_step(compiledStatement) == SQLITE_ROW) {
+                rowCount = sqlite3_column_int(compiledStatement, 0);
+                
+                dict = [[NSMutableDictionary alloc]init];
+                
+                for(int j=0; j<sqlite3_column_count(compiledStatement);j++){
+                    NSString *keyString = [NSString stringWithUTF8String:(sqlite3_column_name(compiledStatement, j))];
+                    NSString *valueString = nil;
+                    if (sqlite3_column_text(compiledStatement, j)==NULL) {
+                        valueString = @"null";
+                    }else{
+                        valueString = [NSString stringWithUTF8String:(char *)sqlite3_column_text(compiledStatement, j)];
+                    }
+                    [dict setObject:valueString forKey:keyString];
+                    
+                    if([keyString isEqualToString:@"USER_NO"]){
+                        [paramArr addObject:[NSNumber numberWithInteger:[valueString integerValue]]];
+                    }
+                }
+                [arr addObject:dict];
+            }
+        }else {
+#ifdef DEBUG
+            NSLog(@"MFDBHelper selectMutableArray:param Failed!");
+            NSLog(@"Could not prepare statement: %s\n", sqlite3_errmsg(db));
+#endif
+        }
+        sqlite3_finalize(compiledStatement);
+    } else {
+#ifdef DEBUG
+        NSLog(@"selectMutableArray:param isCorrect Value = NO");
+#endif
+    }
+    
+    [resultDic setObject:arr forKey:@"USER_ARR"];
+    [resultDic setObject:paramArr forKey:@"EXIST_USER_ARR"];
+    
+    return resultDic;
+}
+
+#pragma mark - QUERY STRING
+#pragma mark SELECT
+//getSNS
+-(NSString *)getAllSnsList{
+    NSString *query = @"SELECT SNS_NO, SNS_NM, SNS_TY, NEED_ALLOW, SNS_DESC, COVER_IMG, CUSER_NO, CREATE_DATE, COMP_NO, SNS_KIND, POST_NOTI, COMMENT_NOTI, CREATE_USER_NM, USER_COUNT, WAITING_USER_COUNT, ITEM_TYPE FROM SNS";
+    return query;
+}
+-(NSString *)getSnsList:(NSString *)snsKind{
+    NSString *query = [NSString stringWithFormat:@"SELECT SNS_NO, SNS_NM, SNS_TY, NEED_ALLOW, SNS_DESC, COVER_IMG, CUSER_NO, CREATE_DATE, COMP_NO, SNS_KIND, POST_NOTI, COMMENT_NOTI, CREATE_USER_NM, USER_COUNT, WAITING_USER_COUNT, ITEM_TYPE FROM SNS WHERE SNS_KIND = %@", snsKind];
+    return query;
+}
+//getSNSNoList
+-(NSString *)getSnsNo:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT SNS_NO FROM SNS WHERE SNS_NO=%@", snsNo];
+    return query;
+}
+-(NSString *)getSnsName:(NSString *)snsName{
+    NSString *query = [NSString stringWithFormat:@"SELECT SNS_NM FROM SNS WHERE SNS_NO=%@", snsName];
+    return query;
+}
+//getSnsUserList
+-(NSString *)getSnsUserList:(NSString *)userList{
+    NSString *query = [NSString stringWithFormat:@"SELECT X.* FROM ( SELECT USER_NO, USER_ID, USER_NM, USER_IMG, USER_BG_IMG, USER_MSG, USER_PHONE, DEPT_NO, DEPT_NM, CASE LENGTH(LEVEL_NO) WHEN 0 THEN '99999999' ELSE LEVEL_NO END AS LEVEL_NO, LEVEL_NM, CASE LENGTH(DUTY_NO) WHEN 0 THEN '99999999' ELSE DUTY_NO END AS DUTY_NO, DUTY_NM, JOB_GRP_NM, EX_COMPANY_NO, EX_COMPANY_NM, SNS_USER_TYPE FROM USERS WHERE USER_NO IN (%@)) X ORDER BY X.DUTY_NO ASC, X.LEVEL_NO ASC, X.USER_ID ASC;", userList];
+    return query;
+}
+
+//getPostAndCommentNoti
+-(NSString *)getPostNoti:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT POST_NOTI FROM SNS WHERE SNS_NO=%@", snsNo];
+    return query;
+}
+//getPostAndCommentNoti
+-(NSString *)getCommentNoti:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT COMMENT_NOTI FROM SNS WHERE SNS_NO=%@", snsNo];
+    return query;
+}
+//getRoomList
+-(NSString *)getRoomList{
+    NSString *query = @"SELECT Z.LAST_MSG_TY, SUM(Z.NOT_READ_COUNT) NOT_READ_COUNT, Z.ROOM_NO, Z.ROOM_TYPE, Z.ROOM_NM, Z.ROOM_NOTI, Z.NEW_CHAT, Z.CONTENT_TY, Z.CONTENT, Z.LAST_DATE, Z.MEMBER_COUNT, Z.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'SUCCEED' LAST_MSG_TY, X1.NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' WHEN X2.CONTENT_TY = 'LONG_TEXT' THEN X2.CONTENT_PREV ELSE X2.CONTENT END CONTENT, X2.DATE LAST_DATE FROM (SELECT SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' GROUP BY A.ROOM_NO )X1, CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' ELSE X2.CONTENT END CONTENT, DATETIME('NOW','LOCALTIME') LAST_DATE FROM (SELECT 0 NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO )X1, MISSED_CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) Z GROUP BY Z.ROOM_NO ORDER BY Z.NEW_CHAT DESC , Z.LAST_DATE DESC;";
+    return query;
+}
+-(NSString *)getRoomList:(NSString*)param{
+    NSString *query = [NSString stringWithFormat:@"SELECT Z.LAST_MSG_TY, SUM(Z.NOT_READ_COUNT) NOT_READ_COUNT, Z.ROOM_NO, Z.ROOM_TYPE, Z.ROOM_NM, Z.ROOM_NOTI, Z.NEW_CHAT, Z.CONTENT_TY, Z.CONTENT, Z.LAST_DATE, Z.MEMBER_COUNT, Z.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'SUCCEED' LAST_MSG_TY, X1.NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' WHEN X2.CONTENT_TY = 'LONG_TEXT' THEN X2.CONTENT_PREV ELSE X2.CONTENT END CONTENT, X2.DATE LAST_DATE FROM (SELECT SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' AND (UPPER(a.content) like '%@%%' OR UPPER(b.room_nm) like '%@%%') GROUP BY A.ROOM_NO )X1, CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' ELSE X2.CONTENT END CONTENT, DATETIME('NOW','LOCALTIME') LAST_DATE FROM (SELECT 0 NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND (UPPER(a.content) like '%@%%' OR UPPER(b.room_nm) like '%@%%') GROUP BY A.ROOM_NO )X1, MISSED_CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) Z GROUP BY Z.ROOM_NO ORDER BY Z.NEW_CHAT DESC , Z.LAST_DATE DESC;", param, param, param, param];
+    return query;
+}
+-(NSString *)getNotOfTypeRoomList:(NSString *)roomType{
+    NSString *query = [NSString stringWithFormat:@"SELECT Z.LAST_MSG_TY, SUM(Z.NOT_READ_COUNT) NOT_READ_COUNT, Z.ROOM_NO, Z.ROOM_TYPE, Z.ROOM_NM, Z.ROOM_NOTI, Z.NEW_CHAT, Z.CONTENT_TY, Z.CONTENT, Z.LAST_DATE, Z.MEMBER_COUNT, Z.MEMBER_NO FROM ( SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'SUCCEED' LAST_MSG_TY, X1.NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' WHEN X2.CONTENT_TY = 'LONG_TEXT' THEN X2.CONTENT_PREV ELSE X2.CONTENT END CONTENT, X2.DATE LAST_DATE FROM (SELECT SUM(CASE A.IS_READ WHEN 1 THEN 0 ELSE 1 END) NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO AND A.CONTENT_TY != 'SYS' AND B.ROOM_TYPE != %@ GROUP BY A.ROOM_NO )X1, CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO UNION SELECT X.*, GROUP_CONCAT(Y.USER_NO) MEMBER_NO, COUNT(Y.USER_NO) MEMBER_COUNT FROM (SELECT 'MISSED' LAST_MSG_TY, 0 NOT_READ_COUNT, X2.ROOM_NO ROOM_NO, X3.ROOM_TYPE ROOM_TYPE, CASE WHEN LENGTH(X3.CUSTOM_ROOM_NM) > 0 THEN X3.CUSTOM_ROOM_NM ELSE X3.ROOM_NM END ROOM_NM, X3.ROOM_NOTI ROOM_NOTI, X3.NEW_CHAT NEW_CHAT, X2.CONTENT_TY CONTENT_TY, CASE WHEN X2.CONTENT_TY = 'FILE' THEN '파일' WHEN X2.CONTENT_TY = 'IMG' THEN '사진' WHEN X2.CONTENT_TY = 'VIDEO' THEN '동영상' WHEN X2.CONTENT_TY = 'INVITE' THEN '초대' ELSE X2.CONTENT END CONTENT, DATETIME('NOW','LOCALTIME') LAST_DATE FROM (SELECT 0 NOT_READ_COUNT, MAX(A.CHAT_NO) CHAT_NO, A.ROOM_NO FROM MISSED_CHATS A, CHAT_ROOMS B WHERE A.ROOM_NO = B.ROOM_NO GROUP BY A.ROOM_NO )X1, MISSED_CHATS X2, CHAT_ROOMS X3 WHERE X2.CHAT_NO = X1.CHAT_NO AND X3.ROOM_NO = X2.ROOM_NO AND X2.ROOM_NO = X1.ROOM_NO) X,CHAT_USERS Y WHERE X.ROOM_NO = Y.ROOM_NO GROUP BY X.ROOM_NO ) Z GROUP BY Z.ROOM_NO ORDER BY Z.NEW_CHAT DESC , Z.LAST_DATE DESC;", roomType];
+    return query;
+}
+//getRoomInfo
+-(NSString *)getRoomName:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_NM FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+//getRoomInfo
+-(NSString *)getRoomType:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_TYPE FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+//getRoomInfo
+-(NSString *)getRoomInfo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_NM, ROOM_NOTI, ROOM_TYPE FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+//getRoomNoti
+-(NSString *)getRoomNoti:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_NOTI FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+-(NSString *)getRoomImg:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_IMG FROM ROOM_IMAGES WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+-(NSString *)getUpdateRoomList:(NSString *)myUserNo roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT A.ROOM_NO ROOM_NO, A.ROOM_NM ROOM_NM, A.ROOM_NOTI ROOM_NOTI, A.NEW_CHAT NEW_CHAT, (SELECT COUNT(B.USER_NO) FROM CHAT_USERS B WHERE B.ROOM_NO = A.ROOM_NO) MEMBER_COUNT, IFNULL((SELECT DATE FROM CHATS C WHERE C.ROOM_NO = A.ROOM_NO ORDER BY C.CHAT_NO DESC LIMIT 1),'') LAST_DATE, IFNULL(B.USER_IMG,'') ROOM_IMG FROM CHAT_ROOMS A LEFT OUTER JOIN(SELECT C.ROOM_NO, GROUP_CONCAT(D.USER_IMG) USER_IMG FROM CHAT_USERS C, USERS D WHERE LENGTH(D.USER_IMG) > 0 AND D.USER_NO = C.USER_NO AND C.USER_NO != %@ GROUP BY C.ROOM_NO) B ON A.ROOM_NO = B.ROOM_NO WHERE A.ROOM_NO = %@ ORDER BY ROOM_NO ASC;", myUserNo, roomNo];
+    return query;
+}
+-(NSString *)getRoomNo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT ROOM_NO FROM CHAT_USERS WHERE USER_NO = %@", userNo];
+    return query;
+}
+-(NSString *)getCustomRoomName:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT CUSTOM_ROOM_NM FROM CHAT_ROOMS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+
+-(NSString *)getUserNoAndUserImg:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT A.USER_NO, A.USER_IMG FROM USERS A, CHAT_USERS B, CHAT_ROOMS C WHERE A.USER_NO = B.USER_NO AND B.ROOM_NO = C.ROOM_NO AND C.ROOM_NO = %@", roomNo];
+    return query;
+}
+//getUserInfo
+-(NSString *)getUserInfo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT * FROM USERS WHERE USER_NO = %@;", userNo];
+    return query;
+}
+-(NSString *)getSnsUserType:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT SNS_USER_TYPE FROM USERS WHERE USER_NO = %@", userNo];
+    return query;
+}
+-(NSString *)getRoomUserInfo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT A.* FROM USERS A, CHAT_USERS B WHERE A.USER_NO = B.USER_NO AND B.ROOM_NO = %@", roomNo];
+    return query;
+}
+-(NSString *)getRoomUserNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT USER_NO FROM CHAT_USERS WHERE ROOM_NO = %@", roomNo];
+    return query;
+}
+//getUnreadChatNoRange
+-(NSString *)getUnreadChatNoRange:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT IFNULL(MIN(CHAT_NO),'-1') FIRST_CHAT, IFNULL(MAX(CHAT_NO),'-1') LAST_CHAT FROM CHATS WHERE CONTENT_TY != 'SYS' AND IS_READ = 0 AND ROOM_NO = %@", roomNo];
+    return query;
+}
+-(NSString *)getUnreadChatNoRange:(NSString *)roomNo myUserNo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT IFNULL(MIN(CHAT_NO),'-1') FIRST_CHAT, IFNULL(MAX(CHAT_NO),'-1') LAST_CHAT FROM CHATS WHERE CONTENT_TY != 'SYS' AND IS_READ = 0 AND ROOM_NO = %@ AND USER_NO != %@", roomNo, userNo];
+    return query;
+}
+//lastInsertRowID
+-(NSString *)getMissedChat{
+    NSString *query = @"SELECT * FROM MISSED_CHATS ORDER BY CHAT_NO DESC LIMIT 1;";
+    return query;
+}
+-(NSString *)getContentLongChat:(NSString *)chatNo{
+    NSString *query = [NSString stringWithFormat:@"SELECT CONTENT FROM CHATS WHERE CHAT_NO=%@", chatNo];
+    return query;
+}
+//getChatList
+-(NSString *)getChatList:(NSString *)roomNo myUserNo:(NSString *)userNo rowCount:(int)rowCnt{
+    NSString *query = [NSString stringWithFormat:@"SELECT * FROM ( SELECT '' TYPE, A.UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, A.USER_NO, B.USER_NM, B.USER_IMG, A.CONTENT_TY, A.CONTENT, A.LOCAL_CONTENT, A.FILE_NM, A.DATE, A.ADIT_INFO, A.CONTENT_PREV FROM CHATS A, USERS B WHERE ROOM_NO = %@ AND A.USER_NO = B.USER_NO UNION SELECT 'MISSED' TYPE, 0 UNREAD_COUNT, A.ROOM_NO, A.CHAT_NO, %@, '', '', A.CONTENT_TY, A.CONTENT, '', A.FILE_NM, DATETIME('now','localtime'), A.ADIT_INFO, A.CONTENT_PREV FROM MISSED_CHATS A WHERE A.ROOM_NO = %@ ) X ORDER BY X.TYPE DESC, X.CHAT_NO DESC LIMIT 50 OFFSET %d;", roomNo, userNo, roomNo, rowCnt];
+    return query;
+}
+-(NSString *)getChatInfo{
+    NSString *query = @"SELECT CHAT_NO, ROOM_NO, USER_NO, CONTENT FROM CHATS;";
+    return query;
+}
+
+#pragma mark INSERT
+//insertSnsInfo
+//-(NSString *)insertOrUpdateSns:(NSString *)snsNo snsName:(NSString *)snsName snsType:(NSString *)snsType needAllow:(NSString *)needAllow snsDesc:(NSString *)snsDesc coverImg:(NSString *)coverImg createUser:(NSString *)createUser createDate:(NSString *)createDate compNo:(NSString *)compNo snsKind:(NSString *)snsKind{
+//    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SNS(SNS_NO, SNS_NM, SNS_TY, NEED_ALLOW, SNS_DESC, COVER_IMG, CUSER_NO, CREATE_DATE, COMP_NO, SNS_KIND) VALUES(%@, '%@', '%@', '%@', '%@', '%@', %@, '%@', %@, '%@');", snsNo, snsName, snsType, needAllow, snsDesc, coverImg, createUser, createDate, compNo, snsKind];
+//    return query;
+//}
+-(NSString *)insertOrUpdateSns:(NSString *)snsNo snsName:(NSString *)snsName snsType:(NSString *)snsType needAllow:(NSString *)needAllow snsDesc:(NSString *)snsDesc coverImg:(NSString *)coverImg createUserNo:(NSString *)createUserNo createUserNm:(NSString *)createUserNm createDate:(NSString *)createDate compNo:(NSString *)compNo snsKind:(NSString *)snsKind userCount:(NSString *)userCount waitingCount:(NSString *)waitingCount itemType:(NSString *)itemType{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SNS(SNS_NO, SNS_NM, SNS_TY, NEED_ALLOW, SNS_DESC, COVER_IMG, CUSER_NO, CREATE_USER_NM, CREATE_DATE, COMP_NO, SNS_KIND, USER_COUNT, WAITING_USER_COUNT, ITEM_TYPE) VALUES(%@, '%@', '%@', '%@', '%@', '%@', %@, '%@', '%@', %@, '%@', %@, %@, '%@');", snsNo, snsName, snsType, needAllow, snsDesc, coverImg, createUserNo, createUserNm, createDate, compNo, snsKind, userCount, waitingCount, itemType];
+    return query;
+}
+
+//insertOrUpdateUser
+-(NSString *)insertOrUpdateUsers:(NSString *)userNo userId:(NSString *)userId userName:(NSString *)userName userImg:(NSString *)userImg userMsg:(NSString *)userMsg phoneNo:(NSString *)phoneNo deptNo:(NSString *)deptNo userBgImg:(NSString *)userBgImg deptName:(NSString *)deptName levelNo:(NSString *)levelNo levelName:(NSString *)levelName dutyNo:(NSString *)dutyNo dutyName:(NSString *)dutyName jobGrpName:(NSString *)jobGrpName exCompNo:(NSString *)exCompNo exCompName:(NSString *)exCompName userType:(NSString *)userType{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO USERS VALUES(%@, '%@', '%@', '%@','%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', '%@', %@);", userNo, userId, userName, userImg, userMsg, phoneNo, deptNo, userBgImg, deptName, levelNo, levelName, dutyNo, dutyName, jobGrpName, exCompNo, exCompName, userType];
+    return query;
+}
+//insertRoom
+-(NSString *)insertChatRooms:(NSString *)roomNo roomName:(NSString *)roomName roomType:(NSString *)roomType{
+    NSString *query = [NSString stringWithFormat:@"INSERT INTO CHAT_ROOMS VALUES (%@, '%@', '%@', 1, 0, '', 0);", roomNo, roomName, roomType];
+    return query;
+}
+//insertChatUser (INSERT OR REPLACE INTO)
+-(NSString *)insertChatUsers:(NSString *)roomNo userNo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"INSERT INTO CHAT_USERS VALUES (%@, %@);", roomNo, userNo];
+    return query;
+}
+//insertMissedChat
+-(NSString *)insertMissedChat:(NSString *)roomNo contentType:(NSString *)contentType content:(NSString *)content fileName:(NSString *)fileName aditInfo:(NSString *)aditInfo contentPrev:(NSString *)contentPrev{
+    NSString *query = [NSString stringWithFormat:@"INSERT INTO MISSED_CHATS(ROOM_NO, CONTENT_TY, CONTENT, FILE_NM, ADIT_INFO, CONTENT_PREV) VALUES(%@, '%@', '%@', '%@', '%@', '%@');", roomNo, contentType, content, fileName, aditInfo, contentPrev];
+    return query;
+}
+-(NSString *)insertOrUpdateChats:(NSString *)chatNo roomNo:(NSString *)roomNo userNo:(NSString *)userNo contentType:(NSString *)contentType content:(NSString *)content localContent:(NSString *)localContent chatDate:(NSString *)date fileName:(NSString *)fileName aditInfo:(NSString *)aditInfo unReadCnt:(NSString *)unReadCnt contentPrev:(NSString *)contentPrev{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '%@', '%@', '%@', '%@', 0, %@,'%@');", chatNo, roomNo, userNo, contentType, content, localContent, date, fileName, aditInfo, unReadCnt, contentPrev];
+    return query;
+}
+-(NSString *)insertOrUpdateChats2:(NSString *)chatNo roomNo:(NSString *)roomNo userNo:(NSString *)userNo contentType:(NSString *)contentType content:(NSString *)content localContent:(NSString *)localContent chatDate:(NSString *)date fileName:(NSString *)fileName aditInfo:(NSString *)aditInfo isRead:(NSString *)isRead unReadCnt:(NSString *)unReadCnt contentPrev:(NSString *)contentPrev{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO CHATS(CHAT_NO,ROOM_NO,USER_NO,CONTENT_TY,CONTENT,LOCAL_CONTENT,DATE,FILE_NM,ADIT_INFO,IS_READ,UNREAD_COUNT,CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '%@', '%@', '%@', '%@', %@, %@,'%@');", chatNo, roomNo, userNo, contentType, content, localContent, date, fileName, aditInfo, isRead, unReadCnt, contentPrev];
+    return query;
+}
+//insertChat
+-(NSString *)insertChats:(NSString *)chatNo roomNo:(NSString *)roomNo userNo:(NSString *)userNo contentType:(NSString *)contentType content:(NSString *)content localContent:(NSString *)localContent chatDate:(NSString *)date fileName:(NSString *)fileName aditInfo:(NSString *)aditInfo isRead:(NSString *)isRead unReadCnt:(NSString *)unReadCnt contentPrev:(NSString *)contentPrev{
+    NSString *query = [NSString stringWithFormat:@"INSERT INTO CHATS(CHAT_NO, ROOM_NO, USER_NO, CONTENT_TY, CONTENT, LOCAL_CONTENT, DATE, FILE_NM, ADIT_INFO, IS_READ, UNREAD_COUNT, CONTENT_PREV) VALUES (%@, %@, %@, '%@', '%@', '%@', '%@', '%@', '%@', %@, %@,'%@');", chatNo, roomNo, userNo, contentType, content, localContent, date, fileName, aditInfo, isRead, unReadCnt, contentPrev];
+    return query;
+}
+//insertRoomImage
+-(NSString *)insertRoomImages:(NSString *)roomNo roomImg:(NSString *)roomImg refNo1:(NSString *)refNo1{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO ROOM_IMAGES (ROOM_NO, ROOM_IMG, REF_NO1) VALUES (%@, '%@', %@);", roomNo, roomImg, refNo1];
+    return query;
+}
+-(NSString *)insertRoomImages:(NSString *)resultKey roomNo:(NSString *)roomNo roomImg:(NSString *)roomImg resultVal:(NSString *)resultVal{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO ROOM_IMAGES (ROOM_NO, ROOM_IMG, %@) VALUES (%@, '%@', %@);", resultKey, roomNo, roomImg, resultVal];
+    return query;
+}
+//insertSnsUser
+-(NSString *)insertSnsUser:(NSString *)snsNo userNo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"INSERT OR REPLACE INTO SNS_USERS (SNS_NO, CUSER_NO) VALUES (%@, %@);", snsNo, userNo];
+    return query;
+}
+
+#pragma mark UPDATE
+//updateSnsInfo
+-(NSString *)updateSnsInfo:(NSString *)snsName snsType:(NSString *)snsType needAllow:(NSString *)needAllow snsDesc:(NSString *)snsDesc coverImg:(NSString *)coverImg snsNo:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE SNS SET SNS_NM = '%@', SNS_TY = %@, NEED_ALLOW = %@, SNS_DESC = '%@', COVER_IMG = '%@' WHERE SNS_NO = %@", snsName, snsType, needAllow, snsDesc, coverImg, snsNo];
+    return query;
+}
+
+-(NSString *)updateSnsMemberInfo:(NSString *)createUserNo createUserNm:(NSString *)createUserNm userCount:(NSString *)userCount waitingCount:(NSString *)waitingCount itemType:(NSString *)itemType snsNo:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE SNS SET CUSER_NO = '%@', CREATE_USER_NM = '%@', USER_COUNT = %@, WAITING_USER_COUNT = %@, ITEM_TYPE = '%@' WHERE SNS_NO = %@", createUserNo, createUserNm, userCount, waitingCount, itemType, snsNo];
+    return query;
+}
+
+//updatePostAndCommentNoti
+-(NSString *)updatePostNoti:(NSString *)postNoti snsNo:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE SNS SET POST_NOTI=%@ WHERE SNS_NO=%@;", postNoti, snsNo];
+    return query;
+}
+//updatePostAndCommentNoti
+-(NSString *)updateCommentNoti:(NSString *)commNoti snsNo:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE SNS SET COMMENT_NOTI=%@ WHERE SNS_NO=%@;", commNoti, snsNo];
+    return query;
+}
+//updateRoomNewChat
+-(NSString *)updateRoomNewChat:(int)newChat roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET NEW_CHAT = %d WHERE ROOM_NO=%@;", newChat, roomNo];
+    return query;
+}
+//updateChatReadStatus
+-(NSString *)updateChatReadStatus:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHATS SET IS_READ = 1 WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+//updateChatRoomScrolled
+-(NSString *)updateChatRoomScrolled:(int)isScroll roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET IS_SCROLL = %d WHERE ROOM_NO=%@;", isScroll, roomNo];
+    return query;
+}
+//updateChatUnReadCount
+-(NSString *)updateChatUnReadCount:(NSNumber *)unReadCnt roomNo:(NSString *)roomNo chatNoList:(NSString *)chatNoList{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHATS SET UNREAD_COUNT = %@ WHERE ROOM_NO=%@ AND CHAT_NO IN (%@);", unReadCnt, roomNo, chatNoList];
+    return query;
+}
+//updateRoomNoti
+-(NSString *)updateRoomNoti:(int)noti roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NOTI=%d WHERE ROOM_NO=%@;", noti, roomNo];
+    return query;
+}
+//updateChatContent
+-(NSString *)updateChatContent:(NSString *)longContent chatNo:(NSString *)chatNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHATS SET CONTENT='%@' WHERE CHAT_NO=%@;", longContent, chatNo];
+    return query;
+}
+//updateRoomName
+-(NSString *)updateRoomName:(NSString *)roomName roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET ROOM_NM = '%@' WHERE ROOM_NO = %@;", roomName, roomNo];
+    return query;
+}
+//updateCustomRoomName
+-(NSString *)updateCustomRoomName:(NSString *)roomName roomNo:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"UPDATE CHAT_ROOMS SET CUSTOM_ROOM_NM = '%@' WHERE ROOM_NO = %@;", roomName, roomNo];
+    return query;
+}
+
+#pragma mark DELETE
+//deleteChat
+-(NSString *)deleteMissedChat:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM MISSED_CHATS WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+-(NSString *)deleteChats:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM CHATS WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+-(NSString *)deleteChatUsers:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM CHAT_USERS WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+-(NSString *)deleteChatRooms:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM CHAT_ROOMS WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+
+//deleteMissedChat
+-(NSString *)deleteMissedChat:(NSString *)roomNo chatNo:(NSString *)chatNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM MISSED_CHATS WHERE ROOM_NO=%@ AND CHAT_NO=%@;", roomNo, chatNo];
+    return query;
+}
+//deleteChatUser
+-(NSString *)deleteChatUsers:(NSString *)roomNo userNo:(NSString *)userNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM CHAT_USERS WHERE ROOM_NO = %@ AND USER_NO = %@;", roomNo, userNo];
+    return query;
+}
+//deleteRoomImage
+-(NSString *)deleteRoomImage:(NSString *)roomNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM ROOM_IMAGES WHERE ROOM_NO=%@;", roomNo];
+    return query;
+}
+
+-(NSString *)deleteSns:(NSString *)snsNo{
+    NSString *query = [NSString stringWithFormat:@"DELETE FROM SNS WHERE SNS_NO = %@;", snsNo];
+    return query;
+}
+
+@end

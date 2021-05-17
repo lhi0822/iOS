@@ -1,0 +1,6 @@
+framework module Pods_mfinity_sns {
+  umbrella header "Pods-mfinity_sns-umbrella.h"
+
+  export *
+  module * { export * }
+}

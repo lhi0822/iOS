@@ -1,0 +1,140 @@
+//
+//  AppDelegate.h
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 7..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
+#import "MFUtil.h"
+#import <UserNotifications/UserNotifications.h>
+#import "AMQPConnection.h"
+#import "IntroViewController.h"
+#import "UIViewController+Utils.h"
+#import "MFUtil.h"
+#import "AFNetworkReachabilityManager.h"
+#import "PushReceivedHandler.h"
+#import <PushKit/PushKit.h>
+#import <CallKit/CallKit.h>
+#import "RMQServerViewController.h"
+@class MFDBHelper;
+
+@interface AppDelegate : UIResponder <UIApplicationDelegate, UNUserNotificationCenterDelegate, PKPushRegistryDelegate, UITabBarControllerDelegate, UITabBarDelegate, NSURLConnectionDataDelegate, CXProviderDelegate>
+
+@property (strong, nonatomic) UIWindow *window;
+
+@property (strong, nonatomic) NSUserDefaults *appPrefs;
+
+@property (strong, nonatomic) NSString *userID;
+@property (strong, nonatomic) NSString *devID;
+@property (strong, nonatomic) NSString *userNm;
+@property (strong, nonatomic) NSString *appDeviceToken;
+@property (strong, nonatomic) NSString *appDeviceToken2;
+
+@property (strong, nonatomic) MFDBHelper *dbHelper;
+
+@property (strong, nonatomic) NSDictionary *inactivePushInfo;
+@property (strong, nonatomic) NSDictionary *inactiveChatPushInfo;
+@property (strong, nonatomic) NSDictionary *inactivePostPushInfo;
+@property (strong, nonatomic) NSMutableArray *bindQueueArr;
+@property (strong, nonatomic) NSMutableArray *unbindQueueArr;
+
+@property (strong, nonatomic) NSMutableArray *tabItemArr;
+
+@property (strong, nonatomic) UINavigationController *navigationController;
+@property (strong, nonatomic) UITabBar *uiTabBar;
+@property (strong, nonatomic) UITabBarController *tabBarController;
+
+@property (strong, nonatomic) NSString *adminNo1;
+@property (strong, nonatomic) NSString *adminNo2;
+@property (strong, nonatomic) NSString *networkStatus;
+@property (strong, nonatomic) NSString *currChatRoomNo;
+@property (strong, nonatomic) NSString *logStr;
+@property (strong, nonatomic) NSString *compareAppVer;
+@property (strong, nonatomic) NSString *downAppUrl;
+
+@property (strong, nonatomic) NSString *main_url;
+@property (strong, nonatomic) NSString *legacy_name;
+@property (strong, nonatomic) NSString *appType;
+@property (strong, nonatomic) NSString *dvcType;
+
+@property (strong, nonatomic) NSString *mainThemeColor;
+@property (strong, nonatomic) NSString *hhiScheme;
+
+@property (strong, nonatomic) NSString *mdmCallAPI;
+
+@property (strong, nonatomic) NSString *toolBarBtnTitle;
+@property (strong, nonatomic) NSString *ipAddr;
+
+@property (strong, nonatomic) NSString *shareGroupName;
+@property (strong, nonatomic) NSString *notiGroupName;
+
+@property (strong, nonatomic) NSString *AES256Key;
+
+@property (strong, nonatomic) NSString *socketUrl1;
+@property (strong, nonatomic) NSString *socketUrl2;
+
+@property BOOL isLogin;
+
+@property BOOL wsEncrypt; //웹서비스 파라미터 암호화 여부
+@property BOOL dbEncrypt; //로컬DB 암호화 여부
+
+@property BOOL userListSortDept; //조직도 YES:부서기준, NO:사용자기준
+@property BOOL firstNormal; //처음 로딩 시 일반게시판 선택
+@property BOOL isChatViewing;
+@property BOOL rmqViewing;
+
+@property BOOL executeHHI;
+@property BOOL isMDM; //MDM사용여부
+
+@property int db_ver;
+@property BOOL use_task;
+@property BOOL use30dayLogin; //30일자동로그인
+
+@property BOOL mqConnect;
+@property BOOL isExcuteMDM;
+
+@property int imageMaxWidth;
+
+@property int errorExecCnt;
+@property int errorMaxCnt;
+
+@property BOOL canFeedRefresh;
+
+
+//+(NSString *)getDBName;
+-(void)dataNetworkCheck;
+-(NSString *)setPreferencesKey:(NSString *)keyName;
+
+- (void)exitWorkApp;
+
+@property (strong, nonatomic) NSString *rmq_host;
+@property int rmq_port;
+@property (strong, nonatomic) NSString *rmq_loginUser;
+@property (strong, nonatomic) NSString *rmq_password;
+@property (strong, nonatomic) NSString *rmq_virtualHost;
+@property (strong, nonatomic) NSString *rmq_exFanout;
+@property (strong, nonatomic) NSString *rmq_exTopic;
+@property (strong, nonatomic) NSString *rmq_exDirect;
+@property (strong, nonatomic) NSString *rmq_exDevInfo;
+@property (strong, nonatomic) NSString *rmq_threadName;
+
++ (NSString *)deviceNetworkingType;
+
+
+@end
+
+@interface NSString(URLEncoding)
+- (NSString *)urlEncodeUsingEncoding:(NSStringEncoding)encoding;
++ (NSString *)urlDecodeString:(NSString *)str;
+- (NSString *)AES256EncryptWithKeyString:(NSString *)key;
+- (NSString *)AES256DecryptWithKeyString:(NSString *)key;
+@end
+
+@interface NSData (NSData_AES256)
+- (NSData *)AES256EncryptWithKey:(NSString *)key;
+- (NSData *)AES256DecryptWithKey:(NSString *)key;
+@end
+

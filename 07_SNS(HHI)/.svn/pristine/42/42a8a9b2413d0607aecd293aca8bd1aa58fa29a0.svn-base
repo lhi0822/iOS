@@ -1,0 +1,68 @@
+//
+//  AttachView.m
+//  mfinity_sns
+//
+//  Created by hilee on 2017. 3. 16..
+//  Copyright © 2017년 com.dbvalley. All rights reserved.
+//
+
+#import "AttachView.h"
+#import "ChatViewController.h"
+#import "PHLibListViewController.h"
+
+#define MARGIN              40
+#define DEFAULT_ICONSIZE    40
+#define DEFAULT_FONTSIZE    15
+#define DEGREES_TO_RADIANS(angle) ((angle) / 180.0 * M_PI)
+
+@interface AttachView()
+
+@end
+
+@implementation AttachView
+
+- (id)init:(NSString *)type{
+    self = [super init];
+    if(self){
+        [self.cameraButton setImage:[UIImage imageNamed:@"menu_camera.png"] forState:UIControlStateNormal];
+        [self.photoButton setImage:[UIImage imageNamed:@"menu_album.png"] forState:UIControlStateNormal];
+        [self.videoButton setImage:[UIImage imageNamed:@"menu_movie.png"] forState:UIControlStateNormal];
+        
+        if([type isEqualToString:@"CHAT"]){
+            self.videoContainer.hidden = NO;
+        } else if([type isEqualToString:@"POST"]){
+            self.videoContainer.hidden = NO;
+        }
+        
+    }
+    return self;
+}
+
+- (id)initWithFrame:(CGRect)frame :(NSString *)type
+{
+    self = [super initWithFrame:frame];
+
+    if (self)
+    {
+        // Initialization code
+        self.autoresizingMask = UIViewAutoresizingFlexibleHeight;
+        self.backgroundColor = [UIColor whiteColor];
+
+        [[NSBundle mainBundle] loadNibNamed:@"AttachView" owner:self options:nil];
+        [self addSubview:self.aView];
+
+        [self.cameraButton setImage:[UIImage imageNamed:@"menu_camera.png"] forState:UIControlStateNormal];
+        [self.photoButton setImage:[UIImage imageNamed:@"menu_album.png"] forState:UIControlStateNormal];
+        [self.videoButton setImage:[UIImage imageNamed:@"menu_movie.png"] forState:UIControlStateNormal];
+        //[self.contactButton setImage:[UIImage imageNamed:@"menu_address.png"] forState:UIControlStateNormal];
+
+        if([type isEqualToString:@"CHAT"]){
+            self.videoContainer.hidden = NO;
+        } else if([type isEqualToString:@"POST"]){
+            self.videoContainer.hidden = NO;
+        }
+    }
+    return self;
+}
+
+@end

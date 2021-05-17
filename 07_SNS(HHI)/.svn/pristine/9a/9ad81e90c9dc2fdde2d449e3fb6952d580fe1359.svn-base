@@ -1,0 +1,13 @@
+4a81bea61e1da6fec222d713852830f1fd01aed2		branch 'master' of https://github.com/sqlcipher/sqlcipher.git
+53b7a7077a4706f4d6714a3156085b38de962dd3	not-for-merge	branch '1.1.x' of https://github.com/sqlcipher/sqlcipher.git
+314f5735d9797ad7743fc665711c3f34b935c57a	not-for-merge	branch 'Xcode5' of https://github.com/sqlcipher/sqlcipher.git
+6f4a0f2d8d452ebfb6ed62135d45d5ef84fd67ed	not-for-merge	branch 'attach' of https://github.com/sqlcipher/sqlcipher.git
+50bd041c8a17c97c2bc85a161302324f640b6dd8	not-for-merge	branch 'ditto' of https://github.com/sqlcipher/sqlcipher.git
+5ef4710d1bc9cc08b37e8ee5a547e70ca9be5b87	not-for-merge	branch 'ditto-4000kdf' of https://github.com/sqlcipher/sqlcipher.git
+cfee6c249ccbd7b558499e33c4aa6ed12e05773a	not-for-merge	branch 'kdfiter' of https://github.com/sqlcipher/sqlcipher.git
+7d3f1c047697425daca32a1415412c994bc35d9f	not-for-merge	branch 'migrate' of https://github.com/sqlcipher/sqlcipher.git
+e8a54ad0efa737271270da52b55ebff87edafb8f	not-for-merge	branch 'multi-lib' of https://github.com/sqlcipher/sqlcipher.git
+1309dcf2bdd33d8bee4c4a32cac1bbdb65c75d94	not-for-merge	branch 'prerelease' of https://github.com/sqlcipher/sqlcipher.git
+eeaf77af36e974872274b1b8f686a574e1af6618	not-for-merge	branch 'rekey-hotfix' of https://github.com/sqlcipher/sqlcipher.git
+6b86da716eae7cbf5894b463da3c856e687866d5	not-for-merge	branch 'sqlite-release' of https://github.com/sqlcipher/sqlcipher.git
+ff9a34003964900e2ee792169c544cd5d7696bdb	not-for-merge	branch 'v2.0-stable' of https://github.com/sqlcipher/sqlcipher.git

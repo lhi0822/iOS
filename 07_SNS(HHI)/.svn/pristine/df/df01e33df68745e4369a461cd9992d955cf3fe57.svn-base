@@ -1,0 +1,26 @@
+//
+//  ChatSendFileCell.h
+//  mfinity_sns
+//
+//  Created by hilee on 15/03/2019.
+//  Copyright © 2019 com.dbvalley. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface ChatSendFileCell : UITableViewCell
+@property (strong, nonatomic) IBOutlet UILabel *fDateLabel;
+@property (strong, nonatomic) IBOutlet UIImageView *fBubbleImage;
+@property (strong, nonatomic) IBOutlet UIImageView* fFileIcon;
+@property (strong, nonatomic) IBOutlet UILabel *fMsgLabel;
+@property (strong, nonatomic) IBOutlet UILabel *fReadLabel;
+@property (strong, nonatomic) IBOutlet UILabel *fTimeLabel;
+@property (strong, nonatomic) IBOutlet UIView *fFileContainer;
+
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *fDateLabelConstraint;
+
+@end
+
+NS_ASSUME_NONNULL_END
