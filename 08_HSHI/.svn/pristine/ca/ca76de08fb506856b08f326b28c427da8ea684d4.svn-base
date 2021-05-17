@@ -1,0 +1,16 @@
+//
+//  NotificationSettingViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFinityAppDelegate.h"
+@interface NotificationSettingViewController : UIViewController<UITableViewDataSource,UITableViewDelegate>{
+    IBOutlet UITableView *_tableView;
+    IBOutlet UIImageView *_imageView;
+    MFinityAppDelegate *appDelegate;
+}
+@end

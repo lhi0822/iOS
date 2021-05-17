@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="14113" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="retina4_7" orientation="portrait">
+        <adaptation id="fullscreen"/>
+    </device>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="SurveyViewController">
+            <connections>
+                <outlet property="progressView" destination="bip-zg-Q0E" id="Ocv-PW-Bzv"/>
+                <outlet property="scrollView" destination="PMm-zz-3Zi" id="VUB-lt-sy3"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+                <outlet property="webView" destination="O8s-z5-K09" id="ejD-2G-Ogw"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="PMm-zz-3Zi">
+                    <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                    <subviews>
+                        <webView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="O8s-z5-K09">
+                            <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                            <color key="backgroundColor" red="0.36078431370000003" green="0.38823529410000002" blue="0.4039215686" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        </webView>
+                        <progressView opaque="NO" contentMode="scaleToFill" verticalHuggingPriority="750" progress="0.5" translatesAutoresizingMaskIntoConstraints="NO" id="bip-zg-Q0E">
+                            <rect key="frame" x="0.0" y="0.0" width="768" height="2"/>
+                        </progressView>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="bip-zg-Q0E" firstAttribute="centerX" secondItem="PMm-zz-3Zi" secondAttribute="centerX" id="3b8-ML-4Ai"/>
+                        <constraint firstAttribute="trailing" secondItem="O8s-z5-K09" secondAttribute="trailing" id="8WE-vm-x3O"/>
+                        <constraint firstItem="bip-zg-Q0E" firstAttribute="leading" secondItem="PMm-zz-3Zi" secondAttribute="leading" id="FGx-ZQ-Hp7"/>
+                        <constraint firstItem="bip-zg-Q0E" firstAttribute="leading" secondItem="O8s-z5-K09" secondAttribute="leading" id="FJ8-bv-tO3"/>
+                        <constraint firstItem="O8s-z5-K09" firstAttribute="top" secondItem="bip-zg-Q0E" secondAttribute="top" id="HBg-k9-JIH"/>
+                        <constraint firstItem="O8s-z5-K09" firstAttribute="trailing" secondItem="bip-zg-Q0E" secondAttribute="trailing" id="QdM-LA-eTD"/>
+                        <constraint firstItem="O8s-z5-K09" firstAttribute="centerY" secondItem="PMm-zz-3Zi" secondAttribute="centerY" id="r6t-rc-CL7"/>
+                        <constraint firstItem="O8s-z5-K09" firstAttribute="top" secondItem="PMm-zz-3Zi" secondAttribute="top" id="tpl-CO-umx"/>
+                        <constraint firstAttribute="bottom" secondItem="O8s-z5-K09" secondAttribute="bottom" id="xWm-Xf-hiM"/>
+                    </constraints>
+                </scrollView>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstItem="PMm-zz-3Zi" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="7ZY-A6-p88"/>
+                <constraint firstAttribute="bottom" secondItem="PMm-zz-3Zi" secondAttribute="bottom" id="oaZ-8X-ZQ7"/>
+                <constraint firstItem="PMm-zz-3Zi" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="yIf-HQ-n66"/>
+                <constraint firstAttribute="trailing" secondItem="PMm-zz-3Zi" secondAttribute="trailing" id="zw9-pJ-593"/>
+            </constraints>
+            <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+            <point key="canvasLocation" x="24.5" y="51.5"/>
+        </view>
+    </objects>
+</document>

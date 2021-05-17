@@ -1,0 +1,36 @@
+//
+//  SurveyViewController.h
+//  mFinityHD
+//
+//  Created by hilee on 2018. 8. 16..
+//  Copyright © 2018년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFinityAppDelegate.h"
+#import "PullRefreshTableView.h"
+
+@interface SurveyViewController : UIViewController <UIScrollViewDelegate> {
+    MFinityAppDelegate *appDelegate;
+    
+    UILabel                                 *lbRefreshTime;
+    UIImageView                             *ivRefreshArrow;
+    UIActivityIndicatorView                 *spRefresh;
+    
+    NSString                                *refreshTime;
+    BOOL                                    isRefresh;
+    BOOL                                    isDragging;
+    
+    UILabel                                 *lbRefreshTime2;
+    UIImageView                             *ivRefreshArrow2;
+    UIActivityIndicatorView                 *spRefresh2;
+    
+    NSString                                *refreshTime2;
+    BOOL                                    isRefresh2;
+    BOOL                                    isDragging2;
+}
+@property (strong, nonatomic) IBOutlet UIScrollView *scrollView;
+@property (strong, nonatomic) IBOutlet UIWebView *webView;
+@property (strong, nonatomic) IBOutlet UIProgressView *progressView;
+
+@end

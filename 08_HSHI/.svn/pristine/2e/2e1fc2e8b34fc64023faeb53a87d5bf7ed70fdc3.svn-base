@@ -1,0 +1,286 @@
+//
+//  NotificationSettingViewController.m
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import "NotificationSettingViewController.h"
+#import "MFinityAppDelegate.h"
+@interface NotificationSettingViewController ()
+
+@end
+
+@implementation NotificationSettingViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+- (void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration{
+    //회전할때 탭바 사이즈에 맞게 변경
+    
+    CGFloat viewWidth = [[UIScreen mainScreen]bounds].size.width;
+
+    if([appDelegate.mainType isEqualToString:@"1"]){
+        if([appDelegate.tabBarType isEqualToString:@"B"]){
+            
+        } else if([appDelegate.tabBarType isEqualToString:@"T"]){
+            [appDelegate setTabletTabBar:4];
+            
+            appDelegate.scrollView.frame = CGRectMake(appDelegate.scrollView.frame.origin.x, appDelegate.scrollView.frame.origin.y, viewWidth, appDelegate.scrollView.frame.size.height);
+            appDelegate.scrollView.contentSize = CGSizeMake(viewWidth, appDelegate.scrollView.frame.size.height);
+        }
+    } else if([appDelegate.mainType isEqualToString:@"2"]){
+
+    } else if([appDelegate.mainType isEqualToString:@"3"]){
+        [appDelegate setTabletTabBar:4];
+        
+        if([appDelegate.tabBarType isEqualToString:@"B"]){
+            
+        } else if([appDelegate.tabBarType isEqualToString:@"T"]){
+            appDelegate.scrollView.frame = CGRectMake(appDelegate.scrollView.frame.origin.x, appDelegate.scrollView.frame.origin.y, viewWidth, appDelegate.scrollView.frame.size.height);
+            appDelegate.scrollView.contentSize = CGSizeMake(viewWidth, appDelegate.scrollView.frame.size.height);
+        }
+    }
+}
+
+-(void)viewWillAppear:(BOOL)animated{
+    //2018.06 UI개선
+    appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    self.view.backgroundColor = [appDelegate myRGBfromHex:[prefs stringForKey:@"TabBarColor"]];
+    
+    if([appDelegate.mainType isEqualToString:@"1"]){
+        if([appDelegate.tabBarType isEqualToString:@"B"]){
+            self.tabBarController.tabBar.hidden = NO;
+            
+        } else if([appDelegate.tabBarType isEqualToString:@"T"]){
+            self.tabBarController.tabBar.hidden = YES;
+            [_imageView setFrame:CGRectMake(_tableView.frame.origin.x, appDelegate.scrollView.frame.size.height, _tableView.frame.size.width, _tableView.frame.size.height)];
+            [_tableView setFrame:CGRectMake(_tableView.frame.origin.x, appDelegate.scrollView.frame.size.height, _tableView.frame.size.width, _tableView.frame.size.height)];
+        }
+        
+    } else if([appDelegate.mainType isEqualToString:@"2"]){
+    
+        
+    } else if([appDelegate.mainType isEqualToString:@"3"]){
+        self.tabBarController.tabBar.hidden = YES;
+        
+        if([appDelegate.tabBarType isEqualToString:@"B"]){
+            [_imageView setFrame:CGRectMake(_tableView.frame.origin.x, _tableView.frame.origin.y, _tableView.frame.size.width, appDelegate.scrollView.frame.origin.y-self.navigationController.navigationBar.frame.size.height - [UIApplication sharedApplication].statusBarFrame.size.height)];
+            [_tableView setFrame:CGRectMake(_tableView.frame.origin.x, _tableView.frame.origin.y, _tableView.frame.size.width, appDelegate.scrollView.frame.origin.y-self.navigationController.navigationBar.frame.size.height - [UIApplication sharedApplication].statusBarFrame.size.height)];
+            
+        } else if([appDelegate.tabBarType isEqualToString:@"T"]){
+            [_imageView setFrame:CGRectMake(_tableView.frame.origin.x, appDelegate.scrollView.frame.size.height, _tableView.frame.size.width, _tableView.frame.size.height)];
+            [_tableView setFrame:CGRectMake(_tableView.frame.origin.x, appDelegate.scrollView.frame.size.height, _tableView.frame.size.width, _tableView.frame.size.height)];
+        }
+    }
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    _tableView.sectionHeaderHeight = 30;
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    
+    //[self.navigationItem setTitle:NSLocalizedString(@"message32", @"")];
+    UILabel *label = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, 180, 44)];
+    label.textColor = [appDelegate myRGBfromHex:appDelegate.naviFontColor];
+    label.text = NSLocalizedString(@"message32", @"");
+    label.font = [UIFont boldSystemFontOfSize:20.0];
+    label.backgroundColor = [UIColor clearColor];
+    label.textAlignment = NSTextAlignmentCenter;
+    if ([appDelegate.naviIsShadow isEqualToString:@"Y"]) {
+        label.shadowOffset = CGSizeMake([appDelegate.naviShadowOffset floatValue], [appDelegate.naviShadowOffset floatValue]);
+        label.shadowColor = [appDelegate myRGBfromHex:appDelegate.naviShadowColor];
+    }
+    self.navigationItem.titleView = label;
+    
+    NSData *decryptData = [[NSData dataWithContentsOfFile:appDelegate.subBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *bgImage = [UIImage imageWithData:decryptData];
+    NSData *lDecryptData = [[NSData dataWithContentsOfFile:appDelegate.lSubBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+    UIImage *lBgImage = [UIImage imageWithData:lDecryptData];
+    
+    UIInterfaceOrientation interfaceOrientation = self.interfaceOrientation;
+    if ((interfaceOrientation == UIDeviceOrientationLandscapeLeft)||(interfaceOrientation == UIDeviceOrientationLandscapeRight)) {
+        
+        if (lBgImage==nil) {
+            lBgImage = [UIImage imageNamed:@"w_default2.png"];
+        }
+        _imageView.image = lBgImage;
+        
+    }else{
+        if (bgImage==nil) {
+            bgImage = [UIImage imageNamed:@"default2.png"];
+        }
+        _imageView.image = bgImage;
+        
+    }
+}
+-(void)viewDidAppear:(BOOL)animated{
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    UIInterfaceOrientation toInterfaceOrientation = self.interfaceOrientation;
+    if ((toInterfaceOrientation == UIDeviceOrientationLandscapeLeft)||(toInterfaceOrientation == UIDeviceOrientationLandscapeRight)) {
+        NSData *lDecryptData = [[NSData dataWithContentsOfFile:appDelegate.lSubBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+        UIImage *lBgImage = [UIImage imageWithData:lDecryptData];
+        if (lBgImage==nil) {
+            lBgImage = [UIImage imageNamed:@"w_default2.png"];
+        }
+        _imageView.image = lBgImage;
+        
+    }else{
+        NSData *decryptData = [[NSData dataWithContentsOfFile:appDelegate.subBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+        UIImage *bgImage = [UIImage imageWithData:decryptData];
+        
+        if (bgImage==nil) {
+            bgImage = [UIImage imageNamed:@"default2.png"];
+        }
+        _imageView.image = bgImage;
+        
+    }
+}
+-(void)willRotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration{
+    
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication] delegate];
+    if ((toInterfaceOrientation == UIDeviceOrientationLandscapeLeft)||(toInterfaceOrientation == UIDeviceOrientationLandscapeRight)) {
+        NSData *lDecryptData = [[NSData dataWithContentsOfFile:appDelegate.lSubBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+        UIImage *lBgImage = [UIImage imageWithData:lDecryptData];
+        if (lBgImage==nil) {
+            lBgImage = [UIImage imageNamed:@"w_default2.png"];
+        }
+        _imageView.image = lBgImage;
+        
+    }else{
+        NSData *decryptData = [[NSData dataWithContentsOfFile:appDelegate.subBgImagePath] AES256DecryptWithKey:appDelegate.AES256Key];
+        UIImage *bgImage = [UIImage imageWithData:decryptData];
+        
+        if (bgImage==nil) {
+            bgImage = [UIImage imageNamed:@"default2.png"];
+        }
+        _imageView.image = bgImage;
+        
+    }
+}
+#pragma mark
+#pragma mark UITableView
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    // Return the number of sections.
+    return 2;
+}
+
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    // Return the number of rows in the section.
+	if(section == 0){
+		return 1;
+	}else {
+		return 2;
+	}
+    
+}
+// Customize the appearance of table view cells.
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    MFinityAppDelegate *appDelegate = (MFinityAppDelegate *)[[UIApplication sharedApplication]delegate];
+    static NSString *CellIdentifier = @"Cell";
+    
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
+    if (cell == nil) {
+        cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:CellIdentifier];
+    }
+    cell.textLabel.textColor= [appDelegate myRGBfromHex:appDelegate.subFontColor];
+    int fontSize = 17;
+    int fontSize2 = 10;
+    NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+    switch ([prefs integerForKey:@"FONT_SIZE"]) {
+        case 1:
+            fontSize = fontSize+5;
+            fontSize2 = fontSize2+3;
+            break;
+        case 2:
+            fontSize = fontSize+10;
+            fontSize2 = fontSize2+5;
+            break;
+        default:
+            break;
+    }
+	if([indexPath section]==0)
+	{
+        
+        NSString *str = NSLocalizedString(@"message33", @"");
+        cell.textLabel.text = str;
+        cell.textLabel.font = [UIFont systemFontOfSize:fontSize];
+        UISwitch *updateSwitch;
+        UIInterfaceOrientation interfaceOrientation = self.interfaceOrientation;
+        if ((interfaceOrientation == UIDeviceOrientationLandscapeLeft)||(interfaceOrientation == UIDeviceOrientationLandscapeRight)) {
+            updateSwitch = [[UISwitch alloc]initWithFrame:CGRectMake(880, 5, 50, 50)];
+        } else {
+            updateSwitch = [[UISwitch alloc]initWithFrame:CGRectMake(630, 5, 50, 50)];
+        }
+        
+        if (![appDelegate.subFontColor isEqualToString:@"#FFFFFF"]) {
+            [updateSwitch setOnTintColor:[appDelegate myRGBfromHex:appDelegate.subFontColor]];
+        }
+        //[updateSwitch setOnTintColor:[appDelegate myRGBfromHex:appDelegate.subFontColor]];
+        
+        if ( [[prefs stringForKey:@"Update"] isEqualToString:@"YES"]) {
+            [updateSwitch setOn:YES];
+        }else {
+            [updateSwitch setOn:NO];
+        }
+        
+        if ([prefs stringForKey:@"Update"]==nil) {
+            [updateSwitch setOn:YES];
+        }
+        [updateSwitch addTarget:self action:@selector(switchValueChanged:) forControlEvents:UIControlEventValueChanged];
+        [cell addSubview:updateSwitch];
+        
+	}else if ([indexPath section]==1) {
+        
+        if(indexPath.row==0){
+            cell.textLabel.font = [UIFont systemFontOfSize:fontSize];
+            cell.textLabel.text = NSLocalizedString(@"message34", @"");
+        } else {
+            cell.textLabel.textColor = [appDelegate myRGBfromHex:appDelegate.subFontColor];
+            cell.textLabel.alpha = 0.7;
+            cell.textLabel.font = [UIFont boldSystemFontOfSize:fontSize2];
+            cell.textLabel.numberOfLines=2;
+            cell.textLabel.text = NSLocalizedString(@"message50", @"");
+        }
+	}
+    // Configure the cell...
+    //cell.textLabel.text = @"Info...!";
+    
+    cell.backgroundColor = [[UIColor alloc]initWithRed:0 green:0 blue:0 alpha:0.05];
+	[cell setSelectionStyle:UITableViewCellSelectionStyleNone];
+    return cell;
+}
+#pragma mark
+#pragma mark Switch Control
+-(void) switchValueChanged:(id)sender {
+	
+	UISwitch *tmpSwitch = (UISwitch*)sender;
+	NSUserDefaults *prefs = [NSUserDefaults standardUserDefaults];
+	if (tmpSwitch.on) {
+		[prefs setObject:@"YES" forKey:@"Update"];
+	} else {
+		[prefs setObject:@"NO" forKey:@"Update"];
+	}
+    [prefs synchronize];
+    
+}
+#pragma mark
+- (void)didReceiveMemoryWarning
+{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+@end

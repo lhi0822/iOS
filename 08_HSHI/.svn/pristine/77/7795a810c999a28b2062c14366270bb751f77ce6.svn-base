@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="15400" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES">
+    <device id="ipad12_9" orientation="portrait" layout="fullscreen" appearance="light"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="15404"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="PDFViewController">
+            <connections>
+                <outlet property="_scrollView" destination="v1F-Sz-1a4" id="RS0-W3-bzB"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="1024" height="1366"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="v1F-Sz-1a4">
+                    <rect key="frame" x="0.0" y="0.0" width="1024" height="1366"/>
+                    <connections>
+                        <outlet property="delegate" destination="-1" id="hae-wc-b1K"/>
+                    </connections>
+                </scrollView>
+            </subviews>
+            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="v1F-Sz-1a4" secondAttribute="bottom" id="GZ0-lQ-TC9"/>
+                <constraint firstItem="v1F-Sz-1a4" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="IXs-6n-VPS"/>
+                <constraint firstItem="v1F-Sz-1a4" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="bCX-0T-lx8"/>
+                <constraint firstAttribute="trailing" secondItem="v1F-Sz-1a4" secondAttribute="trailing" id="rlp-bR-Wdx"/>
+            </constraints>
+            <point key="canvasLocation" x="138.40000000000001" y="154.27286356821591"/>
+        </view>
+    </objects>
+</document>
