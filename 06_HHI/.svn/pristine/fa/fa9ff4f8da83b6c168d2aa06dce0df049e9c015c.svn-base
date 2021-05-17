@@ -1,0 +1,48 @@
+//
+//  AgreementViewController.h
+//  mFinity_HHI
+//
+//  Created by hilee on 30/03/2020.
+//  Copyright © 2020 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFinityAppDelegate.h"
+#import "IntegrateLoginViewController.h"
+#import "FBEncryptorAES.h"
+#import "UIDevice-Hardware.h"
+
+@interface AgreementViewController : IntegrateLoginViewController <NSURLSessionDelegate, NSURLSessionDataDelegate>
+
+@property (weak, nonatomic) IBOutlet UIScrollView *scrollView;
+@property (weak, nonatomic) IBOutlet UIView *container;
+
+@property (weak, nonatomic) IBOutlet UIView *headerContainer;
+@property (weak, nonatomic) IBOutlet UIView *contentContainer;
+@property (weak, nonatomic) IBOutlet UIView *textBoxContainer;
+@property (weak, nonatomic) IBOutlet UIView *textContainer;
+@property (weak, nonatomic) IBOutlet UIView *agreeContainer;
+@property (weak, nonatomic) IBOutlet UISegmentedControl *agreeSegment;
+
+@property (strong, nonatomic) NSString *loginResult;
+@property (strong, nonatomic) NSMutableData *returnData;
+
+@property (weak, nonatomic) IBOutlet UITextView *txt1;
+@property (weak, nonatomic) IBOutlet UITextView *txt2;
+@property (weak, nonatomic) IBOutlet UITextView *txt3;
+@property (weak, nonatomic) IBOutlet UITextView *txt4;
+@property (weak, nonatomic) IBOutlet UITextView *txt5;
+@property (weak, nonatomic) IBOutlet UITextView *txt6;
+@property (weak, nonatomic) IBOutlet UITextView *txt7;
+@property (weak, nonatomic) IBOutlet UITextView *txt8;
+@property (weak, nonatomic) IBOutlet UITextView *txt9;
+@property (weak, nonatomic) IBOutlet UITextView *txt10;
+@property (weak, nonatomic) IBOutlet UITextView *txt11;
+@property (weak, nonatomic) IBOutlet UITextView *txt12;
+
+@property (strong, nonatomic) NSMutableArray *txtArr;
+
+@end
+
+
+

@@ -1,0 +1,6 @@
+framework module Pods_mFinity_HHI {
+  umbrella header "Pods-mFinity_HHI-umbrella.h"
+
+  export *
+  module * { export * }
+}

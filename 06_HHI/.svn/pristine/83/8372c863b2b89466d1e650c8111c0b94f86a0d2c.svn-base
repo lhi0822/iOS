@@ -1,0 +1,21 @@
+//
+//  NoticeCell.h
+//  mFinityHD
+//
+//  Created by hilee on 2018. 7. 8..
+//  Copyright © 2018년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+
+@interface NoticeCell : UITableViewCell
+
+@property (strong, nonatomic) IBOutlet UIButton *checkButton;
+@property (strong, nonatomic) IBOutlet UILabel *titleLabel;
+@property (strong, nonatomic) IBOutlet UILabel *dateLabel;
+@property (strong, nonatomic) IBOutlet UIImageView *imgView;
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *titleWidthConstraint;
+@property (strong, nonatomic) IBOutlet NSLayoutConstraint *checkBtnWidthConstraint;
+@property (strong, nonatomic) IBOutlet UIButton *selectButton;
+
+@end

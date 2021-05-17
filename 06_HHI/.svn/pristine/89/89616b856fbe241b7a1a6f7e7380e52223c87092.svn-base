@@ -1,0 +1,27 @@
+//
+//  MymenuSettingViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 30..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "MFinityAppDelegate.h"
+
+@interface MymenuSettingViewController : UIViewController<UITableViewDataSource, UITableViewDelegate, UIAlertViewDelegate>{
+    IBOutlet UIImageView	*imageView;
+	IBOutlet UITableView    *myTableView;
+    
+    NSMutableData *receiveData;
+    NSMutableDictionary *menuNameDictionary;
+    NSMutableDictionary *menuNoDictionary;
+    NSMutableDictionary *menuCheckDictionary;
+    NSMutableDictionary *menuRegDictionary;
+    NSString				*paramValue;
+	NSString				*urlKind;
+	NSString				*menu_name;
+    MFinityAppDelegate *appDelegate;
+}
+
+@end

@@ -1,0 +1,24 @@
+//
+//  NoticeCell.m
+//  mFinityHD
+//
+//  Created by hilee on 2018. 7. 8..
+//  Copyright © 2018년 Jun hyeong Park. All rights reserved.
+//
+
+#import "NoticeCell.h"
+
+@implementation NoticeCell
+
+- (void)awakeFromNib {
+    [super awakeFromNib];
+    // Initialization code
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    // Configure the view for the selected state
+}
+
+@end

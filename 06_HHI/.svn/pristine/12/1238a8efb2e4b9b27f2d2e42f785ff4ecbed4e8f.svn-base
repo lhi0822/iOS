@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<OSE>
+    <USERS>
+        <USER name="MFRONTDEV2" file_id="0"/>
+    </USERS>
+    <PLUGINS>
+        <PLUGIN id="1397836905" CLASS="oracle.opensync.plugins.sqlite.SqlitePlugin"/>
+        <PLUGIN id="1329742914" CLASS="oracle.opensync.plugins.sqlite.SqlitePlugin"/>
+    </PLUGINS>
+</OSE>

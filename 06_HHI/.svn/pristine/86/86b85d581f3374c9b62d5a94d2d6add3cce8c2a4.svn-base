@@ -1,0 +1,28 @@
+//
+//  CertificateViewController.h
+//  mFinityHD
+//
+//  Created by Park on 2014. 5. 27..
+//  Copyright (c) 2014년 Jun hyeong Park. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "IntegrateLoginViewController.h"
+@interface CertificateViewController : IntegrateLoginViewController<UITextFieldDelegate,NSURLConnectionDataDelegate,UIAlertViewDelegate>{
+    UIActivityIndicatorView *myIndicator;
+    IBOutlet UIImageView *imageView;
+    IBOutlet UITextField *certField;
+    IBOutlet UITextField *compNoField;
+    IBOutlet UIButton *btnCert;
+    IBOutlet UILabel *label3;
+    IBOutlet UIImageView    *infoImageView;
+
+    BOOL isHideKeyboard;
+}
+-(IBAction) certificator;
+-(NSString *)isValue:(NSString *)name;
+-(void) userCheck;
+-(IBAction) textFieldDoneEditing:(id)sender;
+-(IBAction) backgroundTouch:(id)sender;
+@end
+
