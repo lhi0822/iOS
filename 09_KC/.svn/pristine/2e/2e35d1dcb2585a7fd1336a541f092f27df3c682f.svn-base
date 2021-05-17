@@ -1,0 +1,64 @@
+<?xml version="1.0"?>
+<USER name="MFRONTDEV2">
+    <PASSWORD>Wm1WbGJERXdNREU9</PASSWORD>
+    <DATABASES>
+        <DATABASE name="SYNCFOD" creator_id="1397836905"/>
+        <DATABASE name="SYNCINS" creator_id="1397836905"/>
+        <DATABASE name="default" creator_id="1397836905"/>
+    </DATABASES>
+    <PUBLICATIONS>
+        <PUBLICATION id="44" name="C$MO$67" db="SYNCFOD">
+            <SNAPSHOT id="46" name="C$ALL_INDEXES">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="52" name="C$SCRIPTS">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="49" name="C$SEQ_CLIENTS"/>
+        </PUBLICATION>
+        <PUBLICATION id="442" name="C$MO$8421" db="SYNCINS">
+            <SNAPSHOT id="444" name="C$ALL_INDEXES">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="450" name="C$SCRIPTS">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="447" name="C$SEQ_CLIENTS"/>
+        </PUBLICATION>
+        <PUBLICATION id="43" name="SYNCFOD" db="SYNCFOD">
+            <SNAPSHOT id="59" name="ORDERS"/>
+            <SNAPSHOT id="123" name="ORDER_ITEMS"/>
+            <SNAPSHOT id="57" name="PERSONS"/>
+            <SNAPSHOT id="162" name="PRODUCTS_BASE"/>
+        </PUBLICATION>
+        <PUBLICATION id="441" name="SYNCINS" db="SYNCINS">
+            <SNAPSHOT id="602" name="COM_CODE1"/>
+            <SNAPSHOT id="502" name="CONTRACT1"/>
+            <SNAPSHOT id="504" name="CONT_OPTION1"/>
+            <SNAPSHOT id="542" name="CUSTOMER1"/>
+            <SNAPSHOT id="586" name="DTL_CODE1"/>
+            <SNAPSHOT id="585" name="PRODUCT1"/>
+            <SNAPSHOT id="584" name="PROD_OPTION1"/>
+        </PUBLICATION>
+        <PUBLICATION id="5" name="DEFAULT" db="default">
+            <SNAPSHOT id="12" name="C$ALL_INDEXES">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="13" name="C$ALL_SEQUENCE_PARTITIONS"/>
+            <SNAPSHOT id="14" name="C$RESOURCES">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="15" name="C$SCRIPTS">
+                <READONLY/>
+            </SNAPSHOT>
+            <SNAPSHOT id="16" name="C$SEQ_CLIENTS"/>
+        </PUBLICATION>
+    </PUBLICATIONS>
+    <NETWORK>
+        <URL>http://ezpro1.mfrontiers.com:1598</URL>
+        <DEVICEID>TFRFPQ==</DEVICEID>
+        <PUBKEY>MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeggrI2VvDVLJR4+Sum+Zsf/IHUb4PZa27tg9r
+kFLzRm02ny7PF0i7yGopQi68sa7IAnl8C4AjC302qJWLSqulCfXHWmmO5xnkMuZJIuoh8I1hJ18H
+nWt4foNvECXSQDbVEHABvwYwkA6wMxjaL6sFCGicTZvXdxN3OVdx28mV2wIDAQAB</PUBKEY>
+    </NETWORK>
+</USER>
